@@ -3,6 +3,8 @@
 
 #include "sc2utils/sc2_manage_process.h"
 
+#include "CUDA_wrapper.hpp"
+
 #include <iostream>
 
 class FooBot : public sc2::Agent {
@@ -15,6 +17,8 @@ public:
 
     virtual void OnGameStart() final {
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
+
+        CUDA = new CUDA_wrapper();
     };
 
     virtual void OnStep() final {
@@ -35,6 +39,7 @@ public:
     };
 
 private:
+    CUDA_wrapper* CUDA;
 };
 
 //*************************************************************************************************
