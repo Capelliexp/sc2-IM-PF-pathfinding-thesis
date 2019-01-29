@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CUDA/host.cu"
+#include "CUDA/cuda_host.cu"
 
 #include <stdio.h>
 #include <string>
