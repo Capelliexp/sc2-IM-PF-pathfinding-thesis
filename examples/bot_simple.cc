@@ -5,7 +5,10 @@
 
 #include "CUDA_wrapper.hpp"
 
+#include <stdio.h>
 #include <iostream>
+#include <time.h>
+#include <math.h>
 
 class FooBot : public sc2::Agent {
 public:
@@ -19,6 +22,7 @@ public:
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
         CUDA = new CUDA_wrapper();
+        step_clock = clock();
     };
 
     virtual void OnStep() final {
@@ -31,15 +35,23 @@ public:
                 Actions()->UnitCommand(it_unit, sc2::ABILITY_ID::SMART, target);
             }
         }
+
+        CUDA->Update(clock() - step_clock);
+
+        step_clock = clock();
     };
 
     virtual void OnGameEnd() final {
         ++restarts_;
         std::cout << "Game ended after: " << Observation()->GetGameLoop() << " loops " << std::endl;
+
+        delete CUDA;
     };
 
 private:
     CUDA_wrapper* CUDA;
+    clock_t step_clock;
+
 };
 
 //*************************************************************************************************

@@ -3,15 +3,17 @@
 #include "CUDA/cuda_header.cuh"
 
 #include <stdio.h>
-#include <string>
 #include <iostream>
+#include <string>
+#include <time.h>
+#include <math.h>
 
 class CUDA_wrapper {
 public:
     CUDA_wrapper();
     ~CUDA_wrapper();
 
-    void Update();
+    void Update(clock_t dt_ticks);
 private:
     int* data;
 };
@@ -27,4 +29,6 @@ CUDA_wrapper::CUDA_wrapper() {
 
 CUDA_wrapper::~CUDA_wrapper() {}
 
-void CUDA_wrapper::Update(){}
+void CUDA_wrapper::Update(clock_t dt_ticks){
+	//float dt = ((float)dt_ticks) / CLOCKS_PER_SEC;
+}
