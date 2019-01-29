@@ -3258,19 +3258,19 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
 
     void MyBot::OnGameStart()
     {
-        Point2D p = Point2D(0.0f, 0.0f);
-        UnitTypeID unit = UNIT_TYPEID::NEUTRAL_BATTLESTATIONMINERALFIELD750;
+        Point2D p = Point2D(50.0f, 50.0f);
+        UnitTypeID unit = UNIT_TYPEID::PROTOSS_NEXUS;
         Debug()->DebugShowMap();
         Debug()->DebugIgnoreFood();
         Debug()->DebugIgnoreMineral();
         Debug()->DebugIgnoreResourceCost();
-        Debug()->DebugCreateUnit(unit, p, 0, 1);
+        //Debug()->DebugCreateUnit(unit, p, 2, 1);
         Debug()->SendDebug();
 
         game_info_ = Observation()->GetGameInfo();
-        PrintMap(game_info_.pathing_grid);
+        PrintMap(game_info_.pathing_grid, "Output");
 
-        p = Point2D(10.0f, 10.0f);
+        p = Point2D(50.0f, 30.0f);
         unit = UNIT_TYPEID::TERRAN_MARINE;
         Debug()->DebugCreateUnit(unit, p, 1, 5);
         Debug()->SendDebug();
@@ -3292,9 +3292,9 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
         std::cout << std::to_string(bot_identifier) << ": " << msg << std::endl;
     }
 
-    void MyBot::PrintMap(sc2::ImageData map)
+    void MyBot::PrintMap(sc2::ImageData map, std::string file)
     {
-        std::ofstream out("output.txt");
+        std::ofstream out(file + ".txt");
         int width = map.width;
         for (int i = map.height - 1; i >= 0; i--)
         {

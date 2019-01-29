@@ -34,7 +34,7 @@ public:
 
     GameInfo game_info_;
 
-    void PrintMap(sc2::ImageData map);
+    void PrintMap(sc2::ImageData map, std::string name);
 };
 
 // Bot builds supply depots as required.
