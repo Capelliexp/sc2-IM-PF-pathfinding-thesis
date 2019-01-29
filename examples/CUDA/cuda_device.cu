@@ -1,15 +1,13 @@
 #pragma once
 
-#define BLOCK_AMOUNT 3
-#define THREADS_PER_BLOCK 128 //max 1024, should be multiple of warp size (32)
-#define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
+#include "../examples/CUDA/cuda_header.cuh"
 
-__device__ int OtherDeviceFunction(int input) {
-	return input + 50;
-}
-
-__global__ void TestDevice(int* data){
+__global__ void TestDevice(int* data) {
 	int id = threadIdx.x + blockIdx.x * blockDim.x;
 
 	data[id] = OtherDeviceFunction(data[id]);
+}
+
+__device__ int OtherDeviceFunction(int input) {
+	return input + 50;
 }
