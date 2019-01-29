@@ -2,6 +2,7 @@
 #include "bot_examples.h"
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <algorithm>
 #include <random>
@@ -3254,4 +3255,59 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
 
     return true;
 }
+
+    void MyBot::OnGameStart()
+    {
+        Point2D p = Point2D(0.0f, 0.0f);
+        UnitTypeID unit = UNIT_TYPEID::NEUTRAL_BATTLESTATIONMINERALFIELD750;
+        Debug()->DebugShowMap();
+        Debug()->DebugIgnoreFood();
+        Debug()->DebugIgnoreMineral();
+        Debug()->DebugIgnoreResourceCost();
+        Debug()->DebugCreateUnit(unit, p, 0, 1);
+        Debug()->SendDebug();
+
+        game_info_ = Observation()->GetGameInfo();
+        PrintMap(game_info_.pathing_grid);
+
+        p = Point2D(10.0f, 10.0f);
+        unit = UNIT_TYPEID::TERRAN_MARINE;
+        Debug()->DebugCreateUnit(unit, p, 1, 5);
+        Debug()->SendDebug();
+        PrintStatus("Units created");
+    }
+
+    void MyBot::OnStep()
+    {
+    }
+
+    void MyBot::OnGameEnd()
+    {
+        std::cout << "Game Ended for: " << std::to_string(Control()->Proto().GetAssignedPort()) << std::endl;
+    }
+
+    void MyBot::PrintStatus(std::string msg)
+    {
+        int64_t bot_identifier = int64_t(this) & 0xFFFLL;
+        std::cout << std::to_string(bot_identifier) << ": " << msg << std::endl;
+    }
+
+    void MyBot::PrintMap(sc2::ImageData map)
+    {
+        std::ofstream out("output.txt");
+        int width = map.width;
+        for (int i = map.height - 1; i >= 0; i--)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                if (map.data[j + i*width] == 0)
+                    out << 0;
+                else
+                    out << 1;
+            }
+            out << std::endl;
+        }
+        out.close();
+    }
+
 }

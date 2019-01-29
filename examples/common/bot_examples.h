@@ -23,6 +23,20 @@ private:
 };
 
 
+// My bot for testing
+class MyBot : public sc2::Agent {
+public:
+    virtual void OnGameStart() final;
+    virtual void OnStep() final;
+    virtual void OnGameEnd() final;
+
+    void PrintStatus(std::string msg);
+
+    GameInfo game_info_;
+
+    void PrintMap(sc2::ImageData map);
+};
+
 // Bot builds supply depots as required.
 // Bot builds 15 SCVs.
 // Bot builds a barracks.
