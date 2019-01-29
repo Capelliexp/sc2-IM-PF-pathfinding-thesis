@@ -8,17 +8,17 @@
 #include <time.h>
 #include <math.h>
 
-class CUDA_wrapper {
+class CUDAWrapper {
 public:
-    CUDA_wrapper();
-    ~CUDA_wrapper();
+	CUDAWrapper();
+    ~CUDAWrapper();
 
     void Update(clock_t dt_ticks);
 private:
     int* data;
 };
 
-CUDA_wrapper::CUDA_wrapper() {
+CUDAWrapper::CUDAWrapper() {
     std::cout << "Initializing CUDA object" << std::endl;
 
     data = new int[THREADS_IN_GRID];
@@ -27,8 +27,8 @@ CUDA_wrapper::CUDA_wrapper() {
     InitializeCUDA(data);
 }
 
-CUDA_wrapper::~CUDA_wrapper() {}
+CUDAWrapper::~CUDAWrapper() {}
 
-void CUDA_wrapper::Update(clock_t dt_ticks){
+void CUDAWrapper::Update(clock_t dt_ticks) {
 	//float dt = ((float)dt_ticks) / CLOCKS_PER_SEC;
 }

@@ -3,7 +3,7 @@
 
 #include "sc2utils/sc2_manage_process.h"
 
-#include "CUDA_wrapper.hpp"
+#include "cuda_wrapper.hpp"
 
 #include <stdio.h>
 #include <iostream>
@@ -21,7 +21,7 @@ public:
     virtual void OnGameStart() final {
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
-        CUDA = new CUDA_wrapper();
+        CUDA = new CUDAWrapper();
         step_clock = clock();
     };
 
@@ -49,7 +49,7 @@ public:
     };
 
 private:
-    CUDA_wrapper* CUDA;
+    CUDAWrapper* CUDA;
     clock_t step_clock;
 
 };
