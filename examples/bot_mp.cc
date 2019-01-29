@@ -24,30 +24,33 @@ int main(int argc, char* argv[]) {
     }
 
     coordinator.SetMultithreaded(true);
+    coordinator.SetRealtime(true);
     if (PlayerOneIsHuman) {
         coordinator.SetRealtime(true);
     }
 
     // Add the custom bot, it will control the players.
+    sc2::MyBot myBot;
     sc2::TerranBot bot1, bot2;
     Human human_bot;
 
-    sc2::Agent* player_one = &bot1;
+    sc2::Agent* player_one = &myBot;
     if (PlayerOneIsHuman) {
         player_one = &human_bot;
     }
 
     coordinator.SetParticipants({
         CreateParticipant(sc2::Race::Terran, player_one),
-        CreateParticipant(sc2::Race::Terran, &bot2),
+        //CreateParticipant(sc2::Race::Terran, &bot2),
     });
 
     // Start the game.
     coordinator.LaunchStarcraft();
 
     bool do_break = false;
+    char* str = "Test/EditorTest.SC2Map";
     while (!do_break) {
-        if (!coordinator.StartGame(sc2::kMapBelShirVestigeLE)) {
+        if (!coordinator.StartGame(str)) {
             break;
         }
         while (coordinator.Update() && !do_break) {
@@ -56,8 +59,8 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    
-    bot1.Control()->DumpProtoUsage();
+
+    myBot.Control()->DumpProtoUsage();
     bot2.Control()->DumpProtoUsage();
 
     return 0;
