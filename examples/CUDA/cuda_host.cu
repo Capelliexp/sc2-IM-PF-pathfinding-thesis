@@ -33,12 +33,17 @@ __host__ int* Test(int* data) {
 	return new_data;
 }
 
-__host__ bool TransferToDevice(float* data, int length) {
+__host__ bool TransferUnitsToDevice(float* data, int length) {
 
 	return true;
 }
 
-__host__ bool TransferToHost(float* data, int length) {
+__host__ bool TransferMapToDevice(float* data, int length) {
+
+	return true;
+}
+
+__host__ bool TransferMapToHost(float* data, int length) {
 
 	return true;
 }

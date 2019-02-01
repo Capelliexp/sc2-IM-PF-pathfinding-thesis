@@ -21,7 +21,8 @@ public:
     virtual void OnGameStart() final {
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
-        CUDA = new CUDAWrapper();
+        map_storage = new MapStorage();
+        CUDA = new CUDAWrapper(map_storage);
         step_clock = clock();
     };
 
@@ -49,6 +50,7 @@ public:
     };
 
 private:
+    MapStorage* map_storage;
     CUDAWrapper* CUDA;
     clock_t step_clock;
 

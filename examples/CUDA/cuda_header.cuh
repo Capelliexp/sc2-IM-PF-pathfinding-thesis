@@ -13,3 +13,9 @@ __host__ bool InitializeCUDA(int* data);
 __global__ void TestDevice(int* data);
 
 __device__ int OtherDeviceFunction(int input);
+
+__host__ bool TransferUnitsToDevice(float* data, int length); 
+
+__host__ bool TransferMapToDevice(float* data, int length);
+
+__host__ bool TransferMapToHost(float* data, int length);
