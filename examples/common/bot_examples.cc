@@ -3258,6 +3258,7 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
 
     void MyBot::OnGameStart()
     {
+        BaseSelected = false;
         Point2D p = Point2D(50.0f, 50.0f);
         UnitTypeID unit = UNIT_TYPEID::PROTOSS_NEXUS;
         Debug()->DebugShowMap();
@@ -3267,20 +3268,46 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
         Debug()->DebugCreateUnit(unit, p, 1, 1);
         Debug()->SendDebug();
 
-        game_info_ = Observation()->GetGameInfo();
+        //game_info_ = Observation()->GetGameInfo();
         ///PrintStatus("Playable max: " + std::to_string(game_info_.playable_max));
         //PrintStatus("Playable min: " + std::to_string(game_info_.playable_min.x));
-        PrintMap(game_info_.pathing_grid, "Output");
+        //PrintMap(game_info_.pathing_grid, "Output");
 
-        p = Point2D(50.0f, 30.0f);
-        unit = UNIT_TYPEID::TERRAN_MARINE;
-        Debug()->DebugCreateUnit(unit, p, 1, 5);
+        p = Point2D(10.0f, 10.0f);
+        unit = UNIT_TYPEID::TERRAN_SCV;
+        Debug()->DebugCreateUnit(unit, p, 1, 2);
         Debug()->SendDebug();
         PrintStatus("Units created");
     }
 
     void MyBot::OnStep()
     {
+        Units my_units = Observation()->GetUnits(Unit::Alliance::Self);
+        for (const Unit* unit : my_units)
+        {
+            if (unit->unit_type == UNIT_TYPEID::TERRAN_SCV)
+            {
+                if (!unit->is_selected)
+                {
+                    float dist = Query()->PathingDistance(unit, Point2D(3, 3));
+                    int i = dist;
+                }
+            }
+            if (unit->unit_type == UNIT_TYPEID::PROTOSS_NEXUS)
+            {
+                if (unit->is_selected && !BaseSelected)
+                {
+                    game_info_ = Observation()->GetGameInfo();
+                    PrintMap(game_info_.pathing_grid, "Output");
+                    PrintStatus("Map printed!");
+                    BaseSelected = true;
+                }
+                else
+                {
+                    BaseSelected = false;
+                }
+            }
+        }
     }
 
     void MyBot::OnGameEnd()
@@ -3300,9 +3327,9 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
         PrintStatus("Map width: " + std::to_string(map.width));
         std::ofstream out(file + ".txt");
         int width = map.width;
-        for (int i = 0; i < map.height; i++)
+        for (int i = 2; i < map.height-2; i++)
         {
-            for (int j = 0; j < width; j++)
+            for (int j = 2; j < width-2; j++)
             {
                 if (map.data[j + i*width] == 0)
                     out << 0;
