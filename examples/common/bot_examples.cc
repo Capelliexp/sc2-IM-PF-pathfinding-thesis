@@ -3264,10 +3264,12 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
         Debug()->DebugIgnoreFood();
         Debug()->DebugIgnoreMineral();
         Debug()->DebugIgnoreResourceCost();
-        //Debug()->DebugCreateUnit(unit, p, 2, 1);
+        Debug()->DebugCreateUnit(unit, p, 1, 1);
         Debug()->SendDebug();
 
         game_info_ = Observation()->GetGameInfo();
+        ///PrintStatus("Playable max: " + std::to_string(game_info_.playable_max));
+        //PrintStatus("Playable min: " + std::to_string(game_info_.playable_min.x));
         PrintMap(game_info_.pathing_grid, "Output");
 
         p = Point2D(50.0f, 30.0f);
@@ -3294,9 +3296,11 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
 
     void MyBot::PrintMap(sc2::ImageData map, std::string file)
     {
+        PrintStatus("Map height: " + std::to_string(map.height));
+        PrintStatus("Map width: " + std::to_string(map.width));
         std::ofstream out(file + ".txt");
         int width = map.width;
-        for (int i = map.height - 1; i >= 0; i--)
+        for (int i = 0; i < map.height; i++)
         {
             for (int j = 0; j < width; j++)
             {
