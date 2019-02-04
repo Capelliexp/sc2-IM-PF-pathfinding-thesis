@@ -12,17 +12,23 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-//#include "../examples/CUDA/map_storage.hpp"
+#include "../examples/CUDA/map_storage.hpp"
+
+//https://devtalk.nvidia.com/default/topic/476201/passing-structures-into-cuda-kernels/
 
 #define BLOCK_AMOUNT 3
 #define THREADS_PER_BLOCK 128 //max 1024, should be multiple of warp size (32)
 #define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
 
 //DEVICE FUNCTIONS
-__global__ void TestDevice(int* data);
-__device__ int OtherDeviceFunction(int input);
+__global__ void TestDevicePFGeneration(float* device_map);
+__global__ void TestDeviceIMGeneration(float* device_map);
 
-class MapStorage;
+struct UnitStructInDevice {
+	float size;	//we might be able to combine size & range?
+	float range;
+	bool hostile;
+};
 
 class CUDA {
 public:
@@ -33,14 +39,20 @@ public:
 
 	__host__ bool InitializeCUDA(MapStorage* maps);
 
-	__host__ bool TransferUnitsToDevice(float* data, int length);
-	__host__ bool TransferMapToDevice(bool* map);
-	__host__ bool TransferMapToHost(float* data, int length);
+	__host__ bool TransferUnitsToDevice();
+	__host__ bool TransferStaticMapToDevice();
+	__host__ bool TransferDynamicMapToDevice();
 
-	__host__ int* Test(int* data);
+	__host__ void TestPFGeneration();
+	__host__ void TestIMGeneration();
 private:
 	MapStorage* map_storage;
-	int* data;
 
+	bool* static_map_device_pointer;
+	bool* dynamic_map_device_pointer;
+
+	UnitStructInDevice* unit_array_device_pointer;
+	int device_unit_array_length;
+	
 };
 #endif
