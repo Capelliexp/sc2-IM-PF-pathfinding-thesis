@@ -3259,25 +3259,52 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
     void MyBot::OnGameStart()
     {
         BaseSelected = false;
-        Point2D p = Point2D(50.0f, 50.0f);
-        UnitTypeID unit = UNIT_TYPEID::PROTOSS_NEXUS;
-        Debug()->DebugShowMap();
-        Debug()->DebugIgnoreFood();
-        Debug()->DebugIgnoreMineral();
-        Debug()->DebugIgnoreResourceCost();
-        Debug()->DebugCreateUnit(unit, p, 1, 1);
-        Debug()->SendDebug();
+        if (Observation()->GetPlayerID() == 1)
+        {
+            Point2D p = Point2D(50.0f, 50.0f);
+            UnitTypeID unit = UNIT_TYPEID::PROTOSS_NEXUS;
+            //Debug()->DebugShowMap();
+            Debug()->DebugIgnoreFood();
+            Debug()->DebugIgnoreMineral();
+            Debug()->DebugIgnoreResourceCost();
+            Debug()->DebugCreateUnit(unit, p, 1, 1);
+            Debug()->SendDebug();
 
-        //game_info_ = Observation()->GetGameInfo();
-        ///PrintStatus("Playable max: " + std::to_string(game_info_.playable_max));
-        //PrintStatus("Playable min: " + std::to_string(game_info_.playable_min.x));
-        //PrintMap(game_info_.pathing_grid, "Output");
+            //game_info_ = Observation()->GetGameInfo();
+            ///PrintStatus("Playable max: " + std::to_string(game_info_.playable_max));
+            //PrintStatus("Playable min: " + std::to_string(game_info_.playable_min.x));
+            //PrintMap(game_info_.pathing_grid, "Output");
 
-        p = Point2D(10.0f, 10.0f);
-        unit = UNIT_TYPEID::TERRAN_SCV;
-        Debug()->DebugCreateUnit(unit, p, 1, 2);
-        Debug()->SendDebug();
-        PrintStatus("Units created");
+            p = Point2D(50.0f, 45.0f);
+            unit = UNIT_TYPEID::TERRAN_MARAUDER;
+            Debug()->DebugCreateUnit(unit, p, 1, 2);
+            Debug()->SendDebug();
+            PrintStatus("Units for player 1 created");
+        }
+        else
+        {
+            Point2D p = Point2D(70.0f, 50.0f);
+            UnitTypeID unit = UNIT_TYPEID::PROTOSS_PYLON;
+            //Debug()->DebugShowMap();
+            Debug()->DebugIgnoreFood();
+            Debug()->DebugIgnoreMineral();
+            Debug()->DebugIgnoreResourceCost();
+            Debug()->DebugCreateUnit(unit, p, 2, 1);
+            Debug()->SendDebug();
+
+            p = Point2D(70.0f, 45.0f);
+            unit = UNIT_TYPEID::PROTOSS_ARCHON;
+            Debug()->DebugCreateUnit(unit, p, 2, 2);
+            Debug()->SendDebug();
+            PrintStatus("Units for player 2 created");
+
+            p = Point2D(75.0f, 50.0f);
+            unit = UNIT_TYPEID::TERRAN_SUPPLYDEPOT;
+            Debug()->DebugCreateUnit(unit, p, 3, 1);
+            Debug()->SendDebug();
+        }
+        CreateIM();
+        
     }
 
     void MyBot::OnStep()
@@ -3308,11 +3335,50 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
                 }
             }
         }
+        int i = Observation()->GetPlayerID();
+        if (i == 1)
+        {
+            Units units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
+            int newSize = units.size();
+            if (newSize < lastSize)
+            {
+                UpdateIM(units);
+                PrintStatus("Player " + std::to_string(i) + ". Size of enemy units changed from " + std::to_string(lastSize) + " to " + std::to_string(newSize));
+            }
+            lastSize = newSize;
+        }
     }
 
     void MyBot::OnGameEnd()
     {
         std::cout << "Game Ended for: " << std::to_string(Control()->Proto().GetAssignedPort()) << std::endl;
+    }
+
+    void MyBot::OnUnitEnterVision(const Unit* unit)
+    {
+        int i = Observation()->GetPlayerID();
+        PrintStatus("Player " + std::to_string(i) + " can see an enemy.");
+    }
+
+    void MyBot::OnUnitDestroyed(const Unit * unit)
+    {
+        int i = Observation()->GetPlayerID();
+        std::string str(UnitTypeToName(unit->unit_type.ToType()));
+        PrintStatus("Player: " + std::to_string(i) + " Unit: " + str + " was destroyed!");
+    }
+
+    void MyBot::OnUnitIdle(const Unit * unit)
+    {
+        switch (unit->unit_type.ToType())
+        {
+        case UNIT_TYPEID::PROTOSS_ARCHON:
+        {
+            Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, Point2D(75.0f, 50.0f));
+            break;
+        }
+        default:
+            break;
+        }
     }
 
     void MyBot::PrintStatus(std::string msg)
@@ -3327,9 +3393,9 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
         PrintStatus("Map width: " + std::to_string(map.width));
         std::ofstream out(file + ".txt");
         int width = map.width;
-        for (int i = 2; i < map.height-2; i++)
+        for (int i = 0; i < map.height; i++)
         {
-            for (int j = 2; j < width-2; j++)
+            for (int j = 0; j < width; j++)
             {
                 if (map.data[j + i*width] == 0)
                     out << 0;
@@ -3339,6 +3405,27 @@ bool MarineMicroBot::GetNearestZergling(const Point2D& from) {
             out << std::endl;
         }
         out.close();
+    }
+
+    void MyBot::CreateIM()
+    {
+        std::string IM = Observation()->GetGameInfo().pathing_grid.data;
+        width = Observation()->GetGameInfo().pathing_grid.width;
+        height = Observation()->GetGameInfo().pathing_grid.height;
+        for (int i = 0; i < IM.length(); ++i)
+        {
+            InfluenceMap.push_back(IM[i]);
+        }
+    }
+
+    void MyBot::UpdateIM(Units units)
+    {
+        for (const auto& unit : units)
+        {
+            int x = unit->pos.x;
+            int y = unit->pos.y;
+            InfluenceMap[y + x * width] = -1;
+        }
     }
 
 }

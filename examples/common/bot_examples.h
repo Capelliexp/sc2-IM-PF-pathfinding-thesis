@@ -29,6 +29,9 @@ public:
     virtual void OnGameStart() final;
     virtual void OnStep() final;
     virtual void OnGameEnd() final;
+    virtual void OnUnitEnterVision(const Unit* unit) final;
+    virtual void OnUnitDestroyed(const Unit* unit) final;
+    virtual void OnUnitIdle(const Unit* unit) final;
 
     void PrintStatus(std::string msg);
 
@@ -37,7 +40,16 @@ public:
     void PrintMap(sc2::ImageData map, std::string name);
 
 private:
+    void CreateIM();
+    void UpdateIM(Units units);
+
+private:
     bool BaseSelected;
+    int lastSize;
+    int width;
+    int height;
+    std::vector<float> InfluenceMap;
+    std::vector<float> PotentialField;
 };
 
 // Bot builds supply depots as required.
