@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef MAP_STORAGE
+#define MAP_STORAGE
+
 #include <vector>
 //#include <unordered_map>
 #include <list>
@@ -15,7 +18,7 @@
 
 /*
 Textures:
-* destinations (global, ground and/or air)
+* destinations (global, ground or air)
 * avoidance (global, ground and air)
 * attraction (per unit type)
 
@@ -62,7 +65,7 @@ public:
 private:
 	bool static_terrain[map_x][map_y];	//update at start
 	bool dynamic_terrain[map_x][map_y];	//update on-building-creation, on-building-destruction, on-building-vision
-	std::vector<unit> units;		//updated on-unit-creation, on-unit-death, on-unit-vision
+	std::vector<unit> units;	//update per frame	///updated on-unit-creation, on-unit-death, on-unit-vision
 };
 
 //--------------------
@@ -85,3 +88,4 @@ void MapStorage::Test() {
 	units.push_back({ true, true, sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 3, 3 } });
 	units.push_back({ true, true, sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 6, 6 } });
 }
+#endif
