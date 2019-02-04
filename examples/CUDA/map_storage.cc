@@ -10,8 +10,8 @@ MapStorage::~MapStorage() {
 }
 
 void MapStorage::Test() {
-    for (int x = 0; x < map_x; ++x)
-        for (int y = 0; y < map_y; ++y) {
+    for (int x = 0; x < MAP_X; ++x)
+        for (int y = 0; y < MAP_Y; ++y) {
             static_terrain[x][y] = x - y;
             dynamic_terrain[x][y] = x - y;
         }
