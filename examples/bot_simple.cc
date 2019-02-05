@@ -26,7 +26,7 @@ public:
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
         map_storage = new MapStorage();
-        cuda = new CUDA(map_storage);
+        cuda = new CUDA(map_storage, Observation());
         step_clock = clock();
     };
 
@@ -51,6 +51,7 @@ public:
         std::cout << "Game ended after: " << Observation()->GetGameLoop() << " loops " << std::endl;
 
         delete cuda;
+        delete map_storage;
     };
 
 private:

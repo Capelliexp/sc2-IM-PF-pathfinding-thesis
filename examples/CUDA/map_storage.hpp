@@ -29,10 +29,9 @@ Data:
 */
 
 struct Unit {
-	bool enemy = false;
-	bool ground_path = true;
 	sc2::UNIT_TYPEID id;
 	sc2::Point2D position;
+	bool enemy = false;
 };
 
 struct Destination_IM {

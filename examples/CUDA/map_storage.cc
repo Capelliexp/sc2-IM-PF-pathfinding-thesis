@@ -16,6 +16,6 @@ void MapStorage::Test() {
             dynamic_terrain[x][y] = x - y;
         }
 
-    units.push_back({ true, true, sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 3, 3 } });
-    units.push_back({ true, true, sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 6, 6 } });
+    units.push_back({ sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 3, 3 }, true });
+    units.push_back({ sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 6, 6 }, false});
 }
