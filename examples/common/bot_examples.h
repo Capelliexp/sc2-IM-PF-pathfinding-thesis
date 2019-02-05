@@ -32,24 +32,29 @@ public:
     virtual void OnUnitEnterVision(const Unit* unit) final;
     virtual void OnUnitDestroyed(const Unit* unit) final;
     virtual void OnUnitIdle(const Unit* unit) final;
+    virtual void OnUnitCreated(const Unit* unit) final;
 
     void PrintStatus(std::string msg);
 
-    GameInfo game_info_;
-
     void PrintMap(sc2::ImageData map, std::string name);
+    void PrintIM();
 
+    void OnStructureCreated(const Unit* structure);
 private:
     void CreateIM();
     void UpdateIM(Units units);
+    void UpdateIM(const Unit* unit);
+    void UpdateIMWithRadius(const Unit* unit);
 
 private:
     bool BaseSelected;
     int lastSize;
     int width;
     int height;
+    int pathingGridSize = 8;    //Pathing grid is 8 time larger than what is returned from API
     std::vector<float> InfluenceMap;
     std::vector<float> PotentialField;
+    GameInfo game_info_;
 };
 
 // Bot builds supply depots as required.
