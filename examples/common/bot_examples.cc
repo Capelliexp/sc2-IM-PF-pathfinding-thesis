@@ -3260,52 +3260,26 @@ namespace sc2 {
     void MyBot::OnGameStart()
     {
         BaseSelected = false;
-        if (Observation()->GetPlayerID() == 1)
-        {
-            Point2D p = Point2D(8.0f, 8.0f);
-            UnitTypeID unit = UNIT_TYPEID::TERRAN_COMMANDCENTER;
-            //Debug()->DebugShowMap();
-            Debug()->DebugIgnoreFood();
-            Debug()->DebugIgnoreMineral();
-            Debug()->DebugIgnoreResourceCost();
-            Debug()->DebugCreateUnit(unit, p, 1, 1);
-            Debug()->SendDebug();
+        Point2D p = Point2D(8.0f, 8.0f);
+        UnitTypeID unit = UNIT_TYPEID::TERRAN_COMMANDCENTER;
+        //Debug()->DebugShowMap();
+        Debug()->DebugIgnoreFood();
+        Debug()->DebugIgnoreMineral();
+        Debug()->DebugIgnoreResourceCost();
+        Debug()->DebugCreateUnit(unit, p, 1, 1);
+        Debug()->SendDebug();
+        p = Point2D(5.0f, 5.0f);
+        unit = UNIT_TYPEID::TERRAN_SCV;
+        Debug()->DebugCreateUnit(unit, p, 1, 1);
+        Debug()->SendDebug();
 
-            //game_info_ = Observation()->GetGameInfo();
-            ///PrintStatus("Playable max: " + std::to_string(game_info_.playable_max));
-            //PrintStatus("Playable min: " + std::to_string(game_info_.playable_min.x));
-            //PrintMap(game_info_.pathing_grid, "Output");
+        p = Point2D(25.0f, 8.0f);
+        unit = UNIT_TYPEID::PROTOSS_PYLON;
+        Debug()->DebugCreateUnit(unit, p, 2, 1);
+        Debug()->SendDebug();
+        PrintStatus("Units for player 1 created");
 
-            p = Point2D(5.0f, 5.0f);
-            unit = UNIT_TYPEID::TERRAN_SCV;
-            Debug()->DebugCreateUnit(unit, p, 1, 1);
-            Debug()->SendDebug();
-            PrintStatus("Units for player 1 created");
-        }
-        //else
-        //{
-        //    Point2D p = Point2D(70.0f, 50.0f);
-        //    UnitTypeID unit = UNIT_TYPEID::PROTOSS_PYLON;
-        //    //Debug()->DebugShowMap();
-        //    Debug()->DebugIgnoreFood();
-        //    Debug()->DebugIgnoreMineral();
-        //    Debug()->DebugIgnoreResourceCost();
-        //    Debug()->DebugCreateUnit(unit, p, 2, 1);
-        //    Debug()->SendDebug();
-
-        //    p = Point2D(70.0f, 45.0f);
-        //    unit = UNIT_TYPEID::PROTOSS_ARCHON;
-        //    Debug()->DebugCreateUnit(unit, p, 2, 2);
-        //    Debug()->SendDebug();
-        //    PrintStatus("Units for player 2 created");
-
-        //    p = Point2D(75.0f, 50.0f);
-        //    unit = UNIT_TYPEID::TERRAN_SUPPLYDEPOT;
-        //    Debug()->DebugCreateUnit(unit, p, 3, 1);
-        //    Debug()->SendDebug();
-        //}
         CreateIM();
-
     }
 
     void MyBot::OnStep()
@@ -3321,33 +3295,8 @@ namespace sc2 {
                     int i = dist;
                 }
             }
-            /*if (unit->unit_type == UNIT_TYPEID::PROTOSS_NEXUS)
-            {
-                if (unit->is_selected && !BaseSelected)
-                {
-                    game_info_ = Observation()->GetGameInfo();
-                    PrintMap(game_info_.pathing_grid, "Output");
-                    PrintStatus("Map printed!");
-                    BaseSelected = true;
-                }
-                else
-                {
-                    BaseSelected = false;
-                }
-            }*/
         }
         int i = Observation()->GetPlayerID();
-        /*if (i == 1)
-        {
-            Units units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
-            int newSize = units.size();
-            if (newSize < lastSize)
-            {
-                UpdateIM(units);
-                PrintStatus("Player " + std::to_string(i) + ". Size of enemy units changed from " + std::to_string(lastSize) + " to " + std::to_string(newSize));
-            }
-            lastSize = newSize;
-        }*/
     }
 
     void MyBot::OnGameEnd()
@@ -3359,41 +3308,18 @@ namespace sc2 {
     {
         int i = Observation()->GetPlayerID();
         PrintStatus("Player " + std::to_string(i) + " can see an enemy.");
+        if (IsStructure(unit))
+            IMAddUnit(unit);
+        PrintIM();
     }
 
     void MyBot::OnUnitDestroyed(const Unit * unit)
     {
-
         int i = Observation()->GetPlayerID();
         std::string str(UnitTypeToName(unit->unit_type.ToType()));
         PrintStatus("Player: " + std::to_string(i) + " Unit: " + str + " was destroyed!");
-        switch (unit->unit_type.ToType())
-        {
-        case UNIT_TYPEID::TERRAN_COMMANDCENTER:
-        case UNIT_TYPEID::TERRAN_REFINERY:
-        case UNIT_TYPEID::TERRAN_ARMORY:
-        case UNIT_TYPEID::TERRAN_BARRACKS:
-        case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB:
-        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR:
-        case UNIT_TYPEID::TERRAN_BUNKER:
-        case UNIT_TYPEID::TERRAN_ENGINEERINGBAY:
-        case UNIT_TYPEID::TERRAN_FACTORY:
-        case UNIT_TYPEID::TERRAN_FACTORYTECHLAB:
-        case UNIT_TYPEID::TERRAN_FACTORYREACTOR:
-        case UNIT_TYPEID::TERRAN_FUSIONCORE:
-        case UNIT_TYPEID::TERRAN_GHOSTACADEMY:
-        case UNIT_TYPEID::TERRAN_STARPORT:
-        case UNIT_TYPEID::TERRAN_STARPORTTECHLAB:
-        case UNIT_TYPEID::TERRAN_STARPORTREACTOR:
-        case UNIT_TYPEID::TERRAN_SUPPLYDEPOT:
-        case UNIT_TYPEID::TERRAN_SUPPLYDEPOTLOWERED:
-        case UNIT_TYPEID::TERRAN_MISSILETURRET:
-        case UNIT_TYPEID::TERRAN_SENSORTOWER:
-            OnStructureDestroyed(unit);
-            break;
-        default:
-            break;
-        }
+        if (IsStructure(unit))
+            IMRemoveUnit(unit);
     }
 
     void MyBot::OnUnitIdle(const Unit * unit)
@@ -3414,75 +3340,8 @@ namespace sc2 {
     {
         std::string str(UnitTypeToName(unit->unit_type.ToType()));
         PrintStatus(" Unit: " + str + " was created!");
-        switch (unit->unit_type.ToType())
-        {
-        case UNIT_TYPEID::TERRAN_COMMANDCENTER:
-        case UNIT_TYPEID::TERRAN_REFINERY:
-        case UNIT_TYPEID::TERRAN_ARMORY:
-        case UNIT_TYPEID::TERRAN_BARRACKS:
-        case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB:
-        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR:
-        case UNIT_TYPEID::TERRAN_BUNKER:
-        case UNIT_TYPEID::TERRAN_ENGINEERINGBAY:
-        case UNIT_TYPEID::TERRAN_FACTORY:
-        case UNIT_TYPEID::TERRAN_FACTORYTECHLAB:
-        case UNIT_TYPEID::TERRAN_FACTORYREACTOR:
-        case UNIT_TYPEID::TERRAN_FUSIONCORE:
-        case UNIT_TYPEID::TERRAN_GHOSTACADEMY:
-        case UNIT_TYPEID::TERRAN_STARPORT:
-        case UNIT_TYPEID::TERRAN_STARPORTTECHLAB:
-        case UNIT_TYPEID::TERRAN_STARPORTREACTOR:
-        case UNIT_TYPEID::TERRAN_SUPPLYDEPOT:
-        case UNIT_TYPEID::TERRAN_SUPPLYDEPOTLOWERED:
-        case UNIT_TYPEID::TERRAN_MISSILETURRET:
-        case UNIT_TYPEID::TERRAN_SENSORTOWER:
-            OnStructureCreated(unit);
-            break;
-        default:
-            break;
-        }
-
-        //UpdateIM(unit);
-    }
-
-    void MyBot::OnStructureCreated(const Unit * structure)
-    {
-        int d = int(structure->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
-        int rr = pow(structure->radius * pathingGridSize, 2);
-        int xc = structure->pos.x * pathingGridSize;
-        int yc = structure->pos.y * pathingGridSize;
-        int startX = xc - d / 2;
-        int startY = yc - d / 2;
-        for (int y = 0; y < d; ++y)
-        {
-            int yp = pow(y - d/2, 2);
-            for (int x = 0; x < d; ++x)
-            {
-                float dd = pow(x - d/2, 2) + yp;
-                InfluenceMap[startX + x + (startY + y) * width] = (dd < rr) ? 1 : 0;
-            }
-        }
-        PrintIM();
-    }
-
-    void MyBot::OnStructureDestroyed(const Unit * structure)
-    {
-        int d = int(structure->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
-        //int rr = pow(structure->radius * pathingGridSize, 2);
-        int xc = structure->pos.x * pathingGridSize;
-        int yc = structure->pos.y * pathingGridSize;
-        int startX = xc - d / 2;
-        int startY = yc - d / 2;
-        for (int y = 0; y < d; ++y)
-        {
-            //int yp = pow(y - d / 2, 2);
-            for (int x = 0; x < d; ++x)
-            {
-                //float dd = pow(x - d / 2, 2) + yp;
-                InfluenceMap[startX + x + (startY + y) * width] = 0; // (dd < rr) ? 1 : 0;
-            }
-        }
-        PrintIM();
+        if (IsStructure(unit))
+            IMAddUnit(unit);
     }
 
     void MyBot::PrintStatus(std::string msg)
@@ -3513,33 +3372,24 @@ namespace sc2 {
 
     void MyBot::PrintIM()
     {
-        PrintStatus("Map height: " + std::to_string(height));
-        PrintStatus("Map width: " + std::to_string(width));
-        //std::ofstream out("InfluenceMap.txt");
-
         std::stringstream str(std::stringstream::out | std::stringstream::binary);
         for (int y = height-1; y >= 0; --y)
         {
             for (int x = 0; x < width; ++x)
             {
                 str << InfluenceMap[x + y * width];
-                //out << InfluenceMap[x + y * width];
-                /*if (InfluenceMap[x + y * width] == 0)
-                    out << 0;
-                else
-                    out << 1;*/
             }
             str << std::endl;
-            //out << std::endl;
         }
         std::ofstream file;
         file.open("InfluenceMap.txt", std::ofstream::binary);
+        PrintStatus("File open and printing to file");
         file.write(str.str().c_str(), str.str().length());
         file.close();
-        //out.close();
-        PrintStatus("File closed!");
+        PrintStatus("File closed");
     }
 
+    //! Craetes the IM when the bot starts.
     void MyBot::CreateIM()
     {
         std::string IM = Observation()->GetGameInfo().pathing_grid.data;
@@ -3552,22 +3402,25 @@ namespace sc2 {
         //Fill a 8x8 cube with the same value
         for (int i = 0; i < height / pathingGridSize; ++i)
         {
+            int iP = i * pathingGridSize;
             for (int j = 0; j < width / pathingGridSize; ++j)
             {
+                int jP = j * pathingGridSize;
                 for (int y = 0; y < pathingGridSize; ++y)
                 {
-                    int yp = (y + i * pathingGridSize) * width;
+                    int yp = (y + iP) * width;
                     for (int x = 0; x < pathingGridSize; ++x)
                     {
-                        int xp = x + j * pathingGridSize;
+                        int xp = x + jP;
                         InfluenceMap[xp + yp] = (IM[j + i * width/pathingGridSize] == -1) ? 1 : 0;
                     }
                 }
             }
         }
-        //PrintIM();
     }
 
+    //! Function that is used to update the IM with a list of units.
+    //!< \param units The list of units to be added.
     void MyBot::UpdateIM(Units units)
     {
         for (const auto& unit : units)
@@ -3578,30 +3431,61 @@ namespace sc2 {
         }
     }
 
-    void MyBot::UpdateIM(const Unit* unit)
+    //! Function that is used to add an unit to the IM.
+    //!< \param unit The unit to be added.
+    void MyBot::IMAddUnit(const Unit* unit)
     {
-        int x = unit->pos.x * pathingGridSize;
-        int y = unit->pos.y * pathingGridSize;
-        InfluenceMap[y + x * width] = -1;
-        if (unit->radius > 1)
-            UpdateIMWithRadius(unit);
+        int d = int(unit->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
+        int rr = pow(unit->radius * pathingGridSize, 2);
+        int xc = unit->pos.x * pathingGridSize;
+        int yc = unit->pos.y * pathingGridSize;
+        int startX = xc - d / 2;
+        int startY = yc - d / 2;
+
+        for (int y = 0; y < d; ++y)
+        {
+            int yp = pow(y - d / 2, 2);
+            for (int x = 0; x < d; ++x)
+            {
+                float dd = pow(x - d / 2, 2) + yp;
+                InfluenceMap[startX + x + (startY + y) * width] = (dd < rr) ? 1 : 0;
+            }
+        }
     }
 
-    void MyBot::UpdateIMWithRadius(const Unit* unit)
+    //! Function that is used to remove an unit from the IM.
+    //!< \param unit The unit to be removed.
+    void MyBot::IMRemoveUnit(const Unit * unit)
     {
-        int x = unit->pos.x * pathingGridSize;
-        int y = unit->pos.y * pathingGridSize;
-        for (int i = 1; i < unit->radius; ++i)
+        int d = int(unit->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
+        int xc = unit->pos.x * pathingGridSize;
+        int yc = unit->pos.y * pathingGridSize;
+        int startX = xc - d / 2;
+        int startY = yc - d / 2;
+
+        for (int y = 0; y < d; ++y)
         {
-            y++;
-            InfluenceMap[y + x * width] = -1;
-            x++;
-            InfluenceMap[y + x * width] = -1;
-            y--;
-            InfluenceMap[y + x * width] = -1;
-            y--;
-            InfluenceMap[y + x * width] = -1;
+            int yp = (startY + y) * width;
+            for (int x = 0; x < d; ++x)
+            {
+                InfluenceMap[startX + x + yp] = 0;
+            }
         }
+    }
+
+    //! Function that is used to check if a given unit is a structure.
+    //!< \param unit The unit to be checked.
+    //!< \return Returns true if the unit is a structure, false otherwise.
+    bool MyBot::IsStructure(const Unit * unit)
+    {
+        auto& attributes = Observation()->GetUnitTypeData().at(unit->unit_type).attributes;
+        bool is_structure = false;
+        for (const auto& attribute : attributes) {
+            if (attribute == Attribute::Structure) {
+                is_structure = true;
+            }
+        }
+        return is_structure;
     }
 
 }

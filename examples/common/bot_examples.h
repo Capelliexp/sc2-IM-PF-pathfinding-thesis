@@ -1,3 +1,16 @@
+/*! \file bot_example.h
+    \brief A few different bots that can be used in sc2
+
+    In this class there is the bots:
+    MarineMicroBot
+    MyBot
+    TerranBot
+    MultiplayerBot
+    ProtossMultiplayerBot
+    ZergMultiplayerBot
+    TerranMultiplayerBot
+*/
+
 #pragma once
 
 #include "sc2api/sc2_interfaces.h"
@@ -23,7 +36,7 @@ private:
 };
 
 
-// My bot for testing
+//! My bot for starcraft 2 that creates IMs and PFs
 class MyBot : public sc2::Agent {
 public:
     virtual void OnGameStart() final;
@@ -34,27 +47,41 @@ public:
     virtual void OnUnitIdle(const Unit* unit) final;
     virtual void OnUnitCreated(const Unit* unit) final;
 
+    //! Prints the given string to the console.
+    //!< \param msg The message to be printed to the console.
     void PrintStatus(std::string msg);
 
     void PrintMap(sc2::ImageData map, std::string name);
+
+    //! The bot is abdle to print its IM to a file.
     void PrintIM();
 
-    void OnStructureCreated(const Unit* structure);
-    void OnStructureDestroyed(const Unit* structure);
 private:
+    //! Craetes the IM when the bot starts.
     void CreateIM();
+    //! Function that is used to update the IM with a list of units.
+    //!< \param units The list of units to be added.
     void UpdateIM(Units units);
-    void UpdateIM(const Unit* unit);
-    void UpdateIMWithRadius(const Unit* unit);
+    //! Function that is used to add an unit to the IM.
+    //!< \param unit The unit to be added.
+    void IMAddUnit(const Unit* unit);
+    //! Function that is used to remove an unit from the IM.
+    //!< \param unit The unit to be removed.
+    void IMRemoveUnit(const Unit* unit);
+    //! Function that is used to check if a given unit is a structure.
+    //!< \param unit The unit to be checked.
+    //!< \return Returns true if the unit is a structure, false otherwise.
+    bool IsStructure(const Unit* unit);
 
 private:
+
     bool BaseSelected;
     int lastSize;
     int width;
     int height;
     int pathingGridSize = 8;    //Pathing grid is 8 time larger than what is returned from API
     std::vector<float> InfluenceMap;
-    std::vector<float> PotentialField;
+    std::vector<std::vector<float>> PotentialField;
     GameInfo game_info_;
 };
 
