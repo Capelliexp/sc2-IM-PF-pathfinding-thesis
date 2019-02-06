@@ -3261,7 +3261,7 @@ namespace sc2 {
         BaseSelected = false;
         if (Observation()->GetPlayerID() == 1)
         {
-            Point2D p = Point2D(50.0f, 50.0f);
+            Point2D p = Point2D(8.0f, 8.0f);
             UnitTypeID unit = UNIT_TYPEID::TERRAN_COMMANDCENTER;
             //Debug()->DebugShowMap();
             Debug()->DebugIgnoreFood();
@@ -3275,7 +3275,7 @@ namespace sc2 {
             //PrintStatus("Playable min: " + std::to_string(game_info_.playable_min.x));
             //PrintMap(game_info_.pathing_grid, "Output");
 
-            p = Point2D(50.0f, 45.0f);
+            p = Point2D(5.0f, 5.0f);
             unit = UNIT_TYPEID::TERRAN_SCV;
             Debug()->DebugCreateUnit(unit, p, 1, 1);
             Debug()->SendDebug();
@@ -3309,9 +3309,6 @@ namespace sc2 {
 
     void MyBot::OnStep()
     {
-
-
-
         Units my_units = Observation()->GetUnits(Unit::Alliance::Self);
         for (const Unit* unit : my_units)
         {
@@ -3339,7 +3336,7 @@ namespace sc2 {
             }*/
         }
         int i = Observation()->GetPlayerID();
-        if (i == 1)
+        /*if (i == 1)
         {
             Units units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
             int newSize = units.size();
@@ -3349,7 +3346,7 @@ namespace sc2 {
                 PrintStatus("Player " + std::to_string(i) + ". Size of enemy units changed from " + std::to_string(lastSize) + " to " + std::to_string(newSize));
             }
             lastSize = newSize;
-        }
+        }*/
     }
 
     void MyBot::OnGameEnd()
@@ -3392,16 +3389,20 @@ namespace sc2 {
         case UNIT_TYPEID::TERRAN_REFINERY:
         case UNIT_TYPEID::TERRAN_ARMORY:
         case UNIT_TYPEID::TERRAN_BARRACKS:
+        case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB:
+        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR:
         case UNIT_TYPEID::TERRAN_BUNKER:
         case UNIT_TYPEID::TERRAN_ENGINEERINGBAY:
         case UNIT_TYPEID::TERRAN_FACTORY:
+        case UNIT_TYPEID::TERRAN_FACTORYTECHLAB:
+        case UNIT_TYPEID::TERRAN_FACTORYREACTOR:
         case UNIT_TYPEID::TERRAN_FUSIONCORE:
         case UNIT_TYPEID::TERRAN_GHOSTACADEMY:
         case UNIT_TYPEID::TERRAN_STARPORT:
+        case UNIT_TYPEID::TERRAN_STARPORTTECHLAB:
+        case UNIT_TYPEID::TERRAN_STARPORTREACTOR:
         case UNIT_TYPEID::TERRAN_SUPPLYDEPOT:
         case UNIT_TYPEID::TERRAN_MISSILETURRET:
-        case UNIT_TYPEID::TERRAN_REACTOR:
-        case UNIT_TYPEID::TERRAN_TECHLAB:
         case UNIT_TYPEID::TERRAN_SENSORTOWER:
             OnStructureCreated(unit);
             break;
@@ -3414,47 +3415,22 @@ namespace sc2 {
 
     void MyBot::OnStructureCreated(const Unit * structure)
     {
-        //int d = int(structure->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
-        //int rr = pow(structure->radius * pathingGridSize, 2);
-        //int xc = structure->pos.x * pathingGridSize;
-        //int yc = structure->pos.y * pathingGridSize;
-        //int startX = xc - d / 2;
-        //int startY = yc - d / 2;
-        //for (int y = 0; y < d; ++y)
-        //{
-        //    for (int x = 0; x < d; ++x)
-        //    {
-        //        float dd = pow(startX + x - xc, 2) + pow(startY + y - yc, 2);
-        //        if (dd < rr)
-        //            InfluenceMap[startX + x + (startY + y) * d] = -1;
-        //        else
-        //            InfluenceMap[startX + x + (startY + y) * d] = 0;
-        //    }
-        //}
-        //PrintIM();
-        /*std::vector<float> grid(1600);
-        for (int i = 0; i < 40; ++i)
+        int d = int(structure->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
+        int rr = pow(structure->radius * pathingGridSize, 2);
+        int xc = structure->pos.x * pathingGridSize;
+        int yc = structure->pos.y * pathingGridSize;
+        int startX = xc - d / 2;
+        int startY = yc - d / 2;
+        for (int y = 0; y < d; ++y)
         {
-            for (int j = 0; j < 40; ++j)
+            int yp = pow(y - d/2, 2);
+            for (int x = 0; x < d; ++x)
             {
-                float dd = pow(j - c, 2) + pow(i - c, 2);
-                if (dd < rr)
-                    grid[j + i * 40] = 1;
-                else
-                    grid[j + i * 40] = 0;
+                float dd = pow(x - d/2, 2) + yp;
+                InfluenceMap[startX + x + (startY + y) * width] = (dd < rr) ? 1 : 0;
             }
         }
-        std::ofstream out("CC.txt");
-        for (int i = 0; i < 40; i++)
-        {
-            for (int j = 0; j < 40; j++)
-            {
-                out << grid[j + i * 40];
-            }
-            out << std::endl;
-        }
-        out.close();*/
-
+        PrintIM();
     }
 
     void MyBot::PrintStatus(std::string msg)
@@ -3488,15 +3464,15 @@ namespace sc2 {
         PrintStatus("Map height: " + std::to_string(height));
         PrintStatus("Map width: " + std::to_string(width));
         std::ofstream out("InfluenceMap.txt");
-        for (int y = 0; y < height; y++)
+        for (int y = height-1; y >= 0; --y)
         {
-            for (int x = 0; x < width; x++)
+            for (int x = 0; x < width; ++x)
             {
-                //out << InfluenceMap[x + y * width];
-                if (InfluenceMap[x + y * width] == 0)
+                out << InfluenceMap[x + y * width];
+                /*if (InfluenceMap[x + y * width] == 0)
                     out << 0;
                 else
-                    out << 1;
+                    out << 1;*/
             }
             out << std::endl;
         }
@@ -3509,13 +3485,6 @@ namespace sc2 {
         //The multiplication is done due to that the returned pathing grid is the wrong size. It is the same size as placement grid.
         width = Observation()->GetGameInfo().pathing_grid.width * pathingGridSize;
         height = Observation()->GetGameInfo().pathing_grid.height * pathingGridSize;
-
-        //Test---------------------------------
-        /*std::string test = "123456";
-        width = 3 * pathingGridSize;
-        height = 2 * pathingGridSize;*/
-
-        //-------------------------------------
 
         InfluenceMap = std::vector<float>(width*height);
 
@@ -3530,13 +3499,12 @@ namespace sc2 {
                     for (int x = 0; x < pathingGridSize; ++x)
                     {
                         int xp = x + j * pathingGridSize;
-                        InfluenceMap[xp + yp] = IM[j + i * width/pathingGridSize];
-                        //InfluenceMap[xp + yp] = test[j + i * width / pathingGridSize] - 48;
+                        InfluenceMap[xp + yp] = (IM[j + i * width/pathingGridSize] == -1) ? 1 : 0;
                     }
                 }
             }
         }
-        PrintIM();
+        //PrintIM();
     }
 
     void MyBot::UpdateIM(Units units)
