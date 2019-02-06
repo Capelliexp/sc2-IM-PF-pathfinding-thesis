@@ -3391,7 +3391,7 @@ namespace sc2 {
         PrintStatus("File closed");
     }
 
-    //! Craetes the IM when the bot starts.
+    //! Craetes the influence map based on the size of the map.
     void MyBot::CreateIM()
     {
         std::string IM = Observation()->GetGameInfo().pathing_grid.data;
