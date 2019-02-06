@@ -18,6 +18,30 @@ __host__ CUDA::~CUDA() {
 
 }
 
+__host__ void CUDA::PrintGenInfo() {
+	SYSTEM_INFO siSysInfo;
+	GetSystemInfo(&siSysInfo);
+	cudaError_t blob;
+
+	int deviceCount = 0, setDevice = 0;
+	Check(cudaGetDeviceCount(&deviceCount));
+	Check(cudaSetDevice(setDevice));
+
+	int Rv, Dv;
+	cudaRuntimeGetVersion(&Rv);
+	cudaDriverGetVersion(&Dv);
+
+	std::cout <<
+		"BLOCK_AMOUNT: " << BLOCK_AMOUNT << std::endl <<
+		"THREADS_PER_BLOCK: " << THREADS_PER_BLOCK << std::endl <<
+		std::endl << "Available devices: " << deviceCount << std::endl <<
+		"Device ID in use: <" << setDevice << ">" << std::endl <<
+		"Runtime API version: " << Rv << std::endl <<
+		"Driver API version: " << Dv << std::endl;
+
+	std::cout << std::endl;
+}
+
 __host__ void CUDA::Update(clock_t dt_ticks) {
 	//float dt = ((float)dt_ticks) / CLOCKS_PER_SEC;	//get dt in seconds
 
@@ -32,7 +56,8 @@ __host__ void CUDA::Update(clock_t dt_ticks) {
 
 __host__ bool CUDA::InitializeCUDA() {
 	std::cout << "Initializing CUDA object" << std::endl;
-
+	
+	PrintGenInfo();
 	AllocateDeviceMemory();
 	TransferStaticMapToDevice();
 	CreateDeviceLookup();
@@ -47,7 +72,7 @@ __host__ void CUDA::AllocateDeviceMemory(){
 
 	cudaMalloc((void**)&static_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
 	cudaMalloc((void**)&dynamic_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
-	cudaMalloc((void**)&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice));
+	//cudaMalloc((void**)&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice));
 	//cudaMalloc((void**)&unit_array_device_pointer, 800 * sizeof(UnitStructInDevice));
 }
 
@@ -61,8 +86,6 @@ __host__ void CUDA::CreateDeviceLookup() {
 
 	int host_iterator = 0;
 	for (int i = 1; i < types.size(); ++i) {
-		std::cout << "loop " << i << std::endl;
-
 		sc2::UnitTypeData data;
 		data = types.at(i);
 		if (data.unit_type_id == sc2::UNIT_TYPEID::INVALID) continue;
@@ -103,14 +126,14 @@ __host__ void CUDA::CreateDeviceLookup() {
 	
 
 	for (int i = 0; i < host_iterator; ++i) {
-		device_unit_lookup.push_back({ host_unit_info.at(i).range, host_unit_info.at(i).is_flying,
-			host_unit_info.at(i).can_attack_air, host_unit_info.at(i).can_attack_ground });
+		/*device_unit_lookup_on_host.push_back({ host_unit_info.at(i).range, host_unit_info.at(i).is_flying,
+			host_unit_info.at(i).can_attack_air, host_unit_info.at(i).can_attack_ground });*/
+		device_unit_lookup_on_host[i] = { host_unit_info.at(i).range, host_unit_info.at(i).is_flying,
+			host_unit_info.at(i).can_attack_air, host_unit_info.at(i).can_attack_ground };
 	}
 
 	std::cout << "device_unit_lookup array filled on host" << std::endl;
-
-	cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup.data(), device_unit_lookup.size() * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice);
-
+	TransferSymbolsToDevice();
 	std::cout << "device_unit_lookup array copied to device (i think)" << std::endl;
 }
 
@@ -124,7 +147,7 @@ __host__ void CUDA::TestLookupTable(){
 	float* device_write_data;
 	cudaMalloc((void**)&device_write_data, 156 * sizeof(float));
 
-	TestDeviceLookupUsage<<<1, 156>>>(unit_lookup_device_pointer, device_write_data);
+	TestDeviceLookupUsage<<<1, 156>>>(/*unit_lookup_device_pointer, */device_write_data);
 
 	float* device_return_data = new float[156];
 	cudaMemcpy(device_return_data, device_write_data, 156 * sizeof(float), cudaMemcpyDeviceToHost);
@@ -186,4 +209,14 @@ __host__ bool CUDA::TransferStaticMapToDevice() {
 __host__ bool CUDA::TransferDynamicMapToDevice() {
 
 	return true;
+}
+
+__host__ void CUDA::Check(cudaError_t blob, std::string location, bool print_res){
+	if (blob != cudaSuccess) {
+		std::cout << "CUDA ERROR: (" << location << ") " << cudaGetErrorString(blob) << std::endl;
+		blob = cudaDeviceReset(); //might be drastic...
+	}
+	else if (print_res) {
+		std::cout << "CUDA STATUS (" << location << ") SUCESS: " << cudaGetErrorString(blob) << std::endl;
+	}
 }
