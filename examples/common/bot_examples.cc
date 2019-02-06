@@ -3259,7 +3259,6 @@ namespace sc2 {
 
     void MyBot::OnGameStart()
     {
-        BaseSelected = false;
         Point2D p = Point2D(8.0f, 8.0f);
         UnitTypeID unit = UNIT_TYPEID::TERRAN_COMMANDCENTER;
         //Debug()->DebugShowMap();
@@ -3344,6 +3343,8 @@ namespace sc2 {
             IMAddUnit(unit);
     }
 
+    //! Prints the given string to the console.
+    //!< \param msg The message to be printed to the console.
     void MyBot::PrintStatus(std::string msg)
     {
         int64_t bot_identifier = int64_t(this) & 0xFFFLL;
@@ -3370,6 +3371,7 @@ namespace sc2 {
         out.close();
     }
 
+    //! The bot is abdle to print its IM to a file.
     void MyBot::PrintIM()
     {
         std::stringstream str(std::stringstream::out | std::stringstream::binary);
@@ -3419,19 +3421,18 @@ namespace sc2 {
         }
     }
 
-    //! Function that is used to update the IM with a list of units.
+    //! Function that is used to add a list of units to the IM.
     //!< \param units The list of units to be added.
-    void MyBot::UpdateIM(Units units)
+    void MyBot::IMAddUnits(Units units)
     {
         for (const auto& unit : units)
         {
-            int x = unit->pos.x * pathingGridSize;
-            int y = unit->pos.y * pathingGridSize;
-            InfluenceMap[y + x * width] = -1;
+            IMAddUnit(unit);
         }
     }
 
     //! Function that is used to add an unit to the IM.
+    //! Uses radius to indicate which tiles that can't be pathed.
     //!< \param unit The unit to be added.
     void MyBot::IMAddUnit(const Unit* unit)
     {
@@ -3454,6 +3455,8 @@ namespace sc2 {
     }
 
     //! Function that is used to remove an unit from the IM.
+    //! We know that the tiles that the building occupied can be pathed now.
+    //! No need to calculate the radius.
     //!< \param unit The unit to be removed.
     void MyBot::IMRemoveUnit(const Unit * unit)
     {

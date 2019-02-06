@@ -57,15 +57,18 @@ public:
     void PrintIM();
 
 private:
-    //! Craetes the IM when the bot starts.
+    //! Craetes the influence map based on the size of the map.
     void CreateIM();
-    //! Function that is used to update the IM with a list of units.
+    //! Function that is used to add a list of units to the IM.
     //!< \param units The list of units to be added.
-    void UpdateIM(Units units);
+    void IMAddUnits(Units units);
     //! Function that is used to add an unit to the IM.
+    //! Uses radius to indicate which tiles that can't be pathed.
     //!< \param unit The unit to be added.
     void IMAddUnit(const Unit* unit);
     //! Function that is used to remove an unit from the IM.
+    //! We know that the tiles that the building occupied can be pathed now.
+    //! No need to calculate the radius.
     //!< \param unit The unit to be removed.
     void IMRemoveUnit(const Unit* unit);
     //! Function that is used to check if a given unit is a structure.
@@ -75,11 +78,14 @@ private:
 
 private:
 
-    bool BaseSelected;
     int lastSize;
+    //! Width that is multiplied with pathingGridSize to get actual width of the pathfinding grid
     int width;
+    //! Width that is multiplied with pathingGridSize to get actual height of the pathfinding grid
     int height;
-    int pathingGridSize = 8;    //Pathing grid is 8 time larger than what is returned from API
+    //! Pathing grid is 8 time larger than what is returned from API
+    int pathingGridSize = 8;
+    //! Vector representing the pathfinding grid for ground units.
     std::vector<float> InfluenceMap;
     std::vector<std::vector<float>> PotentialField;
     GameInfo game_info_;
