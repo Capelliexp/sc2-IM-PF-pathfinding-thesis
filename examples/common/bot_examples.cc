@@ -2,6 +2,7 @@
 #include "bot_examples.h"
 
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <string>
 #include <algorithm>
@@ -3362,27 +3363,10 @@ namespace sc2 {
 
     void MyBot::OnUnitDestroyed(const Unit * unit)
     {
+
         int i = Observation()->GetPlayerID();
         std::string str(UnitTypeToName(unit->unit_type.ToType()));
         PrintStatus("Player: " + std::to_string(i) + " Unit: " + str + " was destroyed!");
-    }
-
-    void MyBot::OnUnitIdle(const Unit * unit)
-    {
-        switch (unit->unit_type.ToType())
-        {
-        case UNIT_TYPEID::PROTOSS_ARCHON:
-        {
-            Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, Point2D(75.0f, 50.0f));
-            break;
-        }
-        default:
-            break;
-        }
-    }
-
-    void MyBot::OnUnitCreated(const Unit * unit)
-    {
         switch (unit->unit_type.ToType())
         {
         case UNIT_TYPEID::TERRAN_COMMANDCENTER:
@@ -3402,6 +3386,54 @@ namespace sc2 {
         case UNIT_TYPEID::TERRAN_STARPORTTECHLAB:
         case UNIT_TYPEID::TERRAN_STARPORTREACTOR:
         case UNIT_TYPEID::TERRAN_SUPPLYDEPOT:
+        case UNIT_TYPEID::TERRAN_SUPPLYDEPOTLOWERED:
+        case UNIT_TYPEID::TERRAN_MISSILETURRET:
+        case UNIT_TYPEID::TERRAN_SENSORTOWER:
+            OnStructureDestroyed(unit);
+            break;
+        default:
+            break;
+        }
+    }
+
+    void MyBot::OnUnitIdle(const Unit * unit)
+    {
+        switch (unit->unit_type.ToType())
+        {
+        case UNIT_TYPEID::PROTOSS_ARCHON:
+        {
+            Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, Point2D(75.0f, 50.0f));
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    void MyBot::OnUnitCreated(const Unit * unit)
+    {
+        std::string str(UnitTypeToName(unit->unit_type.ToType()));
+        PrintStatus(" Unit: " + str + " was created!");
+        switch (unit->unit_type.ToType())
+        {
+        case UNIT_TYPEID::TERRAN_COMMANDCENTER:
+        case UNIT_TYPEID::TERRAN_REFINERY:
+        case UNIT_TYPEID::TERRAN_ARMORY:
+        case UNIT_TYPEID::TERRAN_BARRACKS:
+        case UNIT_TYPEID::TERRAN_BARRACKSTECHLAB:
+        case UNIT_TYPEID::TERRAN_BARRACKSREACTOR:
+        case UNIT_TYPEID::TERRAN_BUNKER:
+        case UNIT_TYPEID::TERRAN_ENGINEERINGBAY:
+        case UNIT_TYPEID::TERRAN_FACTORY:
+        case UNIT_TYPEID::TERRAN_FACTORYTECHLAB:
+        case UNIT_TYPEID::TERRAN_FACTORYREACTOR:
+        case UNIT_TYPEID::TERRAN_FUSIONCORE:
+        case UNIT_TYPEID::TERRAN_GHOSTACADEMY:
+        case UNIT_TYPEID::TERRAN_STARPORT:
+        case UNIT_TYPEID::TERRAN_STARPORTTECHLAB:
+        case UNIT_TYPEID::TERRAN_STARPORTREACTOR:
+        case UNIT_TYPEID::TERRAN_SUPPLYDEPOT:
+        case UNIT_TYPEID::TERRAN_SUPPLYDEPOTLOWERED:
         case UNIT_TYPEID::TERRAN_MISSILETURRET:
         case UNIT_TYPEID::TERRAN_SENSORTOWER:
             OnStructureCreated(unit);
@@ -3428,6 +3460,26 @@ namespace sc2 {
             {
                 float dd = pow(x - d/2, 2) + yp;
                 InfluenceMap[startX + x + (startY + y) * width] = (dd < rr) ? 1 : 0;
+            }
+        }
+        PrintIM();
+    }
+
+    void MyBot::OnStructureDestroyed(const Unit * structure)
+    {
+        int d = int(structure->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
+        //int rr = pow(structure->radius * pathingGridSize, 2);
+        int xc = structure->pos.x * pathingGridSize;
+        int yc = structure->pos.y * pathingGridSize;
+        int startX = xc - d / 2;
+        int startY = yc - d / 2;
+        for (int y = 0; y < d; ++y)
+        {
+            //int yp = pow(y - d / 2, 2);
+            for (int x = 0; x < d; ++x)
+            {
+                //float dd = pow(x - d / 2, 2) + yp;
+                InfluenceMap[startX + x + (startY + y) * width] = 0; // (dd < rr) ? 1 : 0;
             }
         }
         PrintIM();
@@ -3463,20 +3515,29 @@ namespace sc2 {
     {
         PrintStatus("Map height: " + std::to_string(height));
         PrintStatus("Map width: " + std::to_string(width));
-        std::ofstream out("InfluenceMap.txt");
+        //std::ofstream out("InfluenceMap.txt");
+
+        std::stringstream str(std::stringstream::out | std::stringstream::binary);
         for (int y = height-1; y >= 0; --y)
         {
             for (int x = 0; x < width; ++x)
             {
-                out << InfluenceMap[x + y * width];
+                str << InfluenceMap[x + y * width];
+                //out << InfluenceMap[x + y * width];
                 /*if (InfluenceMap[x + y * width] == 0)
                     out << 0;
                 else
                     out << 1;*/
             }
-            out << std::endl;
+            str << std::endl;
+            //out << std::endl;
         }
-        out.close();
+        std::ofstream file;
+        file.open("InfluenceMap.txt", std::ofstream::binary);
+        file.write(str.str().c_str(), str.str().length());
+        file.close();
+        //out.close();
+        PrintStatus("File closed!");
     }
 
     void MyBot::CreateIM()

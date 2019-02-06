@@ -40,6 +40,7 @@ public:
     void PrintIM();
 
     void OnStructureCreated(const Unit* structure);
+    void OnStructureDestroyed(const Unit* structure);
 private:
     void CreateIM();
     void UpdateIM(Units units);
