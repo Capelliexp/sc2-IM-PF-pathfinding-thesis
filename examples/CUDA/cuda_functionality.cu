@@ -7,16 +7,12 @@
 #include <string>
 #include <iostream>
 
-//DEVICE SYMBOL VARIABLES
-__constant__ float device_test[5];
-__device__ __constant__ UnitInfoDevice device_unit_lookup_first[156];
-__device__ UnitInfoDevice* device_unit_lookup_second;
+#include "../examples/CUDA/cuda_device_functionality.cu"
 
-__host__ CUDA::CUDA(MapStorage* maps, const sc2::ObservationInterface* observations) :
-	map_storage(maps), observation(observations) {
-
-	if (!InitializeCUDA())
-		std::cout << "shit b fucked yo" << std::endl;
+__host__ CUDA::CUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug) :
+	map_storage(maps), observation(observations), debug(debug) {
+	
+	InitializeCUDA();
 }
 
 __host__ CUDA::~CUDA() {
@@ -58,55 +54,32 @@ __host__ void CUDA::Update(clock_t dt_ticks) {
 	//run generation of PFs
 }
 
-__host__ bool CUDA::InitializeCUDA() {
+__host__ void CUDA::InitializeCUDA() {
 	std::cout << "Initializing CUDA object" << std::endl;
 	
-	PrintGenInfo();
-	AllocateDeviceMemory();
-	TransferStaticMapToDevice();
-	CreateDeviceLookup();
+	// analysis -> host_transfer -> device_malloc -> device_transfer -> tests
 
+	//analysis
+	PrintGenInfo();
+
+	//host_transfer
+	CreateUnitLookupOnHost();
+	TransferStaticMapToHost();
+
+	//device_malloc
+	AllocateDeviceMemory();
+
+	//device_transfer
+	TransferStaticMapToDevice();
+	TransferUnitLookupToDevice();
+	
+	//tests
 	TestLookupTable();
 
-	return true;
 }
 
-__host__ void CUDA::TransferSymbolsToDevice() {	//function must be defined in same compilation unit as the symbols
-	//Check(cudaMemcpyToSymbol(device_unit_lookup, device_unit_lookup_on_host.data(), sizeof(device_unit_lookup_on_host.data()), 0, cudaMemcpyHostToDevice), "symbolmemcpy1", true);
-
-	//test
-	float* host_test;
-	host_test = (float*)malloc(5 * sizeof(float));
-	for (int i = 0; i < 5; ++i) host_test[i] = i / 2;
-	cudaMemcpyToSymbol(device_test, host_test, 5 * sizeof(float));
-
-	//first
-	cudaMemcpyToSymbol(device_unit_lookup_first, device_unit_lookup_on_host, 156 * sizeof(UnitInfoDevice));
-
-	//second
-	Check(cudaMalloc(&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice)), "malloc", true);
-	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host, 156 * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "memcpy", true);
-	Check(cudaMemcpyToSymbol(device_unit_lookup_second, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "memcpytosymbol", true);
-
-	//Check(cudaMemcpyToSymbol(device_unit_lookup, device_unit_lookup_on_host, 156 * sizeof(UnitInfoDevice), 0, cudaMemcpyHostToDevice), "const_lookup_symbol_transfer", true);
-};
-
-__host__ void CUDA::AllocateDeviceMemory(){
-	//THIS NEEDS TO BE DEFERRED TO AFTER WE KNOW ARRAY SIZES
-
-	cudaMalloc((void**)&static_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
-	cudaMalloc((void**)&dynamic_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
-	//cudaMalloc((void**)&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice));
-	//cudaMalloc((void**)&unit_array_device_pointer, 800 * sizeof(UnitStructInDevice));
-}
-
-__host__ void CUDA::CreateDeviceLookup() {
-
-	//host_unit_info[0] = {sc2::UNIT_TYPEID::TERRAN_WIDOWMINEBURROWED, 0, sc2::UnitTypeID::};
-
+__host__ void CUDA::CreateUnitLookupOnHost(){
 	sc2::UnitTypes types = observation->GetUnitTypeData();
-
-	std::cout << "starting unit search" << std::endl;
 
 	int host_iterator = 0;
 	for (int i = 1; i < types.size(); ++i) {
@@ -116,7 +89,7 @@ __host__ void CUDA::CreateDeviceLookup() {
 
 		std::vector<sc2::Weapon> weapons;
 		weapons = data.weapons;
-		if(weapons.size() > 0 || data.movement_speed > 0){
+		if (weapons.size() > 0 || data.movement_speed > 0) {
 			//add to "avoid-and-attack" list
 
 			host_unit_info.push_back(UnitInfo());
@@ -134,35 +107,59 @@ __host__ void CUDA::CreateDeviceLookup() {
 			host_unit_info.at(host_iterator).range = longest_weapon.range;
 			host_unit_info.at(host_iterator).device_id = host_iterator;
 			host_unit_info.at(host_iterator).id = data.unit_type_id;
-			
+
 			std::vector<sc2::Attribute> att = data.attributes;
 			if (std::find(att.begin(), att.end(), sc2::Attribute::Hover) != att.end())
 				host_unit_info.at(host_iterator).is_flying = true;
 
 			host_unit_transform.insert({ { data.unit_type_id, host_iterator } });
 
+			debug->DebugCreateUnit(data.unit_type_id, sc2::Point2D(0,0));
+			sc2::Units u = observation->GetUnits();
+			for (int i = 0; i < u.size() + 1; ++i) {
+				if (i == u.size()) {
+					std::cout << "FAILED to get radius of unit " << data.unit_type_id << std::endl;
+					for (int j = 0; j < u.size(); ++j) debug->DebugKillUnit(u.at(j));
+					break;
+				}
+				if (u.at(i)->unit_type == data.unit_type_id) {
+					host_unit_info.at(host_iterator).radius = u.at(i)->radius;
+					debug->DebugKillUnit(u.at(i));
+					break;
+				}
+			}
+
 			++host_iterator;
 		}
 	}
-	std::cout << "Created unit lookup table on host. Nr of elements: " << host_iterator << ". " << std::endl;
-	if (host_iterator != 86) 
-		std::cout << "This " << (host_iterator < 86 ? "might" : "will") << " end badly..." << std::endl;
-	
+	std::cout << "Created unit data table on host. Nr of elements: " << host_iterator << ". " << std::endl;
 
-	for (int i = 0; i < host_iterator; ++i) {
-		/*device_unit_lookup_on_host.push_back({ host_unit_info.at(i).range, host_unit_info.at(i).is_flying,
-			host_unit_info.at(i).can_attack_air, host_unit_info.at(i).can_attack_ground });*/
-		device_unit_lookup_on_host[i] = { host_unit_info.at(i).range, host_unit_info.at(i).is_flying,
-			host_unit_info.at(i).can_attack_air, host_unit_info.at(i).can_attack_ground };
-
-		std::cout << "(" << i << ", " << host_unit_info.at(i).range << ") ";
+	for (int i = 0; i < host_unit_info.size(); ++i) {
+		device_unit_lookup_on_host.push_back({ host_unit_info.at(i).range, host_unit_info.at(i).radius,
+			host_unit_info.at(i).is_flying, host_unit_info.at(i).can_attack_air,
+			host_unit_info.at(i).can_attack_ground });
 	}
 
 	std::cout << std::endl;
 
 	std::cout << "device_unit_lookup array filled on host" << std::endl;
-	TransferSymbolsToDevice();
-	std::cout << "device_unit_lookup array copied to device (i think)" << std::endl;
+}
+
+__host__ void CUDA::TransferStaticMapToHost(){}
+
+__host__ void CUDA::TransferUnitLookupToDevice(){
+	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host.data(), device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "lookup_memcpy", true);
+	Check(cudaMemcpyToSymbol(device_unit_lookup, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "lookup_symbol_memcpy", true);
+	std::cout << "device_unit_lookup array transfered to device" << std::endl;
+}
+
+__host__ void CUDA::AllocateDeviceMemory(){
+
+	cudaMalloc((void**)&static_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
+	cudaMalloc((void**)&dynamic_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
+	Check(cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice)), "unit_lookup_device_malloc", true);
+	//cudaMalloc((void**)&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice));
+	//cudaMalloc((void**)&unit_array_device_pointer, 800 * sizeof(UnitStructInDevice));
 }
 
 __host__ bool CUDA::FillDeviceUnitArray() {
@@ -171,20 +168,24 @@ __host__ bool CUDA::FillDeviceUnitArray() {
 }
 
 __host__ void CUDA::TestLookupTable(){
-	int table_length = 5;
+	int table_length = device_unit_lookup_on_host.size();
 
 	float* device_write_data;
 	cudaMalloc((void**)&device_write_data, table_length * sizeof(float));
 
-	TestDeviceLookupUsage<<<1, table_length >>>(/*unit_lookup_device_pointer, */device_write_data);
+	TestDeviceLookupUsage<<<1, table_length >>>(device_write_data);
 
 	float* device_return_data = new float[table_length];
 	cudaMemcpy(device_return_data, device_write_data, table_length * sizeof(float), cudaMemcpyDeviceToHost);
 
 	std::cout << "TestLookupTable() device return data:" << std::endl;
 	for (int i = 0; i < table_length; ++i) {
-		std::cout << device_return_data[i] << ", ";
+		if (device_write_data[i] - device_unit_lookup_on_host[i].range > 0.01) {
+			std::cout << "lookup table test FAILED" << std::endl;
+			return;
+		}
 	}
+	std::cout << "lookup table test SUCCESS" << std::endl;
 }
 
 __host__ void CUDA::TestRepellingPFGeneration() {
@@ -230,9 +231,8 @@ __host__ bool CUDA::TransferUnitsToDevice() {
 	return true;
 }
 
-__host__ bool CUDA::TransferStaticMapToDevice() {
+__host__ void CUDA::TransferStaticMapToDevice() {
 
-	return true;
 }
 
 __host__ bool CUDA::TransferDynamicMapToDevice() {
@@ -248,38 +248,4 @@ __host__ void CUDA::Check(cudaError_t blob, std::string location, bool print_res
 	else if (print_res) {
 		std::cout << "CUDA STATUS (" << location << ") SUCESS: " << cudaGetErrorString(blob) << std::endl;
 	}
-}
-
-//----------------------------------------------------------------------------------------
-
-__global__ void TestDevicePFGeneration(float* device_map) {
-	int id = threadIdx.x + blockDim.x * blockIdx.x;
-
-	//move lookup to shared
-
-	//do stuff
-}
-
-__global__ void TestDeviceIMGeneration(float* device_map) {
-	int id = threadIdx.x + blockDim.x * blockIdx.x;
-}
-
-__global__ void TestDeviceLookupUsage(float* result) {
-	int id = threadIdx.x + blockDim.x * blockIdx.x;
-
-	if (id == 1) printf("\n1");
-
-	//printf("(%d, %f) ", id, device_unit_lookup_first[id].range);
-	//result[id] = device_unit_lookup_first[id].range;
-
-	if (id == 1) printf("2");
-
-	//result[id] = (&device_unit_lookup_second[id])->range;	//this shit crashes kernel
-
-	if (id == 1) printf("3");
-
-	printf("(%d, %f) ", id, device_test[id]);
-	result[id] = device_test[id];
-
-	if (id == 1) printf("4\n");
 }

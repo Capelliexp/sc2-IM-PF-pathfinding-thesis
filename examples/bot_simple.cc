@@ -26,7 +26,7 @@ public:
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
         map_storage = new MapStorage();
-        cuda = new CUDA(map_storage, Observation());
+        cuda = new CUDA(map_storage, Observation(), Debug());
         step_clock = clock();
     };
 
