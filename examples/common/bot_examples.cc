@@ -12,6 +12,8 @@
 #include "sc2api/sc2_api.h"
 #include "sc2lib/sc2_lib.h"
 
+#include "sc2renderer/sc2_renderer.h"
+
 namespace sc2 {
 
     static int TargetSCVCount = 15;
@@ -3259,6 +3261,10 @@ namespace sc2 {
 
     void MyBot::OnGameStart()
     {
+        kFeatureLayerSize = 80;
+        kPixelDrawSize = 5;
+        kDrawSize = kFeatureLayerSize * kPixelDrawSize;
+        //sc2::renderer::Initialize("Feature layers", 50, 50, 2 * kDrawSize, 2 * kDrawSize);
         Point2D p = Point2D(8.0f, 8.0f);
         UnitTypeID unit = UNIT_TYPEID::TERRAN_COMMANDCENTER;
         //Debug()->DebugShowMap();
@@ -3279,27 +3285,50 @@ namespace sc2 {
         PrintStatus("Units for player 1 created");
 
         CreateIM();
+
+        objectives.push_back(sc2::Point2D(50.0f, 50.0f));
+
     }
 
     void MyBot::OnStep()
     {
+        if (Actions()->Commands().size() > 0)
+            int i = 20;
+        
         Units my_units = Observation()->GetUnits(Unit::Alliance::Self);
         for (const Unit* unit : my_units)
-        {
+{
             if (unit->unit_type == UNIT_TYPEID::TERRAN_SCV)
             {
-                if (!unit->is_selected)
+                std::vector<sc2::UnitOrder> orders = unit->orders;
+                if (orders.size() > 0)
                 {
+                    /*std::string order = sc2::AbilityTypeToName(orders[0].ability_id);
+                    Actions()->UnitCommand(unit, sc2::ABILITY_ID::STOP);
+                    Actions()->SendActions();
+                    Actions()->UnitCommand(unit, sc2::ABILITY_ID::MOVE, Point2D(7.0f, 5.0f), true);
+                    Actions()->SendActions();
+                    PrintStatus("Stop for " + std::string(UnitTypeToName(unit->unit_type)) + ", with command: " + order + " was called.");*/
                     float dist = Query()->PathingDistance(unit, Point2D(3, 3));
                     int i = dist;
                 }
+                if (unit->is_selected)
+                {
+                    MapPrinted = true;
+                    int i = Observation()->GetGameInfo().pathing_grid.bits_per_pixel;
+                    int d = 0 + i;
+                    //sc2::renderer::Matrix8BPPHeightMap(Observation()->GetGameInfo().pathing_grid.data.c_str(), width, height, 0, 0, kPixelDrawSize, kPixelDrawSize);
+                    //AddObjectiveToIM(objectives[0]);
+                    //PrintIM();
+                }
             }
         }
-        int i = Observation()->GetPlayerID();
+        //sc2::renderer::Render();
     }
 
     void MyBot::OnGameEnd()
     {
+        //sc2::renderer::Shutdown();
         std::cout << "Game Ended for: " << std::to_string(Control()->Proto().GetAssignedPort()) << std::endl;
     }
 
@@ -3379,7 +3408,7 @@ namespace sc2 {
         {
             for (int x = 0; x < width; ++x)
             {
-                str << InfluenceMap[x + y * width];
+                str << InfluenceMap[x + y * width] << " ";
             }
             str << std::endl;
         }
@@ -3414,7 +3443,7 @@ namespace sc2 {
                     for (int x = 0; x < pathingGridSize; ++x)
                     {
                         int xp = x + jP;
-                        InfluenceMap[xp + yp] = (IM[j + i * width/pathingGridSize] == -1) ? 1 : 0;
+                        InfluenceMap[xp + yp] = (IM[j + i * width/pathingGridSize] == -1) ? 0 : 1;
                     }
                 }
             }
@@ -3449,7 +3478,7 @@ namespace sc2 {
             for (int x = 0; x < d; ++x)
             {
                 float dd = pow(x - d / 2, 2) + yp;
-                InfluenceMap[startX + x + (startY + y) * width] = (dd < rr) ? 1 : 0;
+                InfluenceMap[startX + x + (startY + y) * width] = (dd < rr) ? 0 : 1;
             }
         }
     }
@@ -3489,6 +3518,28 @@ namespace sc2 {
             }
         }
         return is_structure;
+    }
+
+    void MyBot::AddObjectiveToIM(Point2D objective)
+    {
+        PrintStatus("Started adding objective.");
+        int start = 2 * pathingGridSize;
+        double start_s = clock();
+        int ww = width * 1.5;
+        for (int y = start; y < height-2; ++y)
+        {
+            int yp = pow(y - objective.y * pathingGridSize, 2);
+            for (int x = start; x < width-2; ++x)
+            {
+                if (InfluenceMap[x + y * width] == 1)
+                {
+                    int xp = pow(x - objective.x * pathingGridSize, 2);
+                    InfluenceMap[x + y * width] = ww - sqrt(xp + yp);
+                }
+            }
+        }
+        double stop_s = clock();
+        PrintStatus("Objective added. Took " + std::to_string((stop_s - start_s)/1000));
     }
 
 }

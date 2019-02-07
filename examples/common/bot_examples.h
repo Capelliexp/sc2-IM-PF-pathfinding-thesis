@@ -76,6 +76,8 @@ private:
     //!< \return Returns true if the unit is a structure, false otherwise.
     bool IsStructure(const Unit* unit);
 
+    void AddObjectiveToIM(Point2D objective);
+
 private:
 
     int lastSize;
@@ -84,11 +86,17 @@ private:
     //! Width that is multiplied with pathingGridSize to get actual height of the pathfinding grid
     int height;
     //! Pathing grid is 8 time larger than what is returned from API
-    int pathingGridSize = 8;
+    int pathingGridSize = 4;
     //! Vector representing the pathfinding grid for ground units.
     std::vector<float> InfluenceMap;
+    std::vector<sc2::Point2D> objectives;
     std::vector<std::vector<float>> PotentialField;
     GameInfo game_info_;
+    bool MapPrinted = false;
+
+    int kFeatureLayerSize;
+    int kPixelDrawSize;
+    int kDrawSize;
 };
 
 // Bot builds supply depots as required.
