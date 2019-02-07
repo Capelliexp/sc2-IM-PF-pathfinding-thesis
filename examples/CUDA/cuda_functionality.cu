@@ -7,6 +7,11 @@
 #include <string>
 #include <iostream>
 
+//DEVICE SYMBOL VARIABLES
+__constant__ float device_test[5];
+__device__ __constant__ UnitInfoDevice device_unit_lookup_first[156];
+__device__ UnitInfoDevice* device_unit_lookup_second;
+
 __host__ CUDA::CUDA(MapStorage* maps, const sc2::ObservationInterface* observations) :
 	map_storage(maps), observation(observations) {
 
@@ -21,7 +26,6 @@ __host__ CUDA::~CUDA() {
 __host__ void CUDA::PrintGenInfo() {
 	SYSTEM_INFO siSysInfo;
 	GetSystemInfo(&siSysInfo);
-	cudaError_t blob;
 
 	int deviceCount = 0, setDevice = 0;
 	Check(cudaGetDeviceCount(&deviceCount));
@@ -66,6 +70,26 @@ __host__ bool CUDA::InitializeCUDA() {
 
 	return true;
 }
+
+__host__ void CUDA::TransferSymbolsToDevice() {	//function must be defined in same compilation unit as the symbols
+	//Check(cudaMemcpyToSymbol(device_unit_lookup, device_unit_lookup_on_host.data(), sizeof(device_unit_lookup_on_host.data()), 0, cudaMemcpyHostToDevice), "symbolmemcpy1", true);
+
+	//test
+	float* host_test;
+	host_test = (float*)malloc(5 * sizeof(float));
+	for (int i = 0; i < 5; ++i) host_test[i] = i / 2;
+	cudaMemcpyToSymbol(device_test, host_test, 5 * sizeof(float));
+
+	//first
+	cudaMemcpyToSymbol(device_unit_lookup_first, device_unit_lookup_on_host, 156 * sizeof(UnitInfoDevice));
+
+	//second
+	Check(cudaMalloc(&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice)), "malloc", true);
+	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host, 156 * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "memcpy", true);
+	Check(cudaMemcpyToSymbol(device_unit_lookup_second, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "memcpytosymbol", true);
+
+	//Check(cudaMemcpyToSymbol(device_unit_lookup, device_unit_lookup_on_host, 156 * sizeof(UnitInfoDevice), 0, cudaMemcpyHostToDevice), "const_lookup_symbol_transfer", true);
+};
 
 __host__ void CUDA::AllocateDeviceMemory(){
 	//THIS NEEDS TO BE DEFERRED TO AFTER WE KNOW ARRAY SIZES
@@ -130,7 +154,11 @@ __host__ void CUDA::CreateDeviceLookup() {
 			host_unit_info.at(i).can_attack_air, host_unit_info.at(i).can_attack_ground });*/
 		device_unit_lookup_on_host[i] = { host_unit_info.at(i).range, host_unit_info.at(i).is_flying,
 			host_unit_info.at(i).can_attack_air, host_unit_info.at(i).can_attack_ground };
+
+		std::cout << "(" << i << ", " << host_unit_info.at(i).range << ") ";
 	}
+
+	std::cout << std::endl;
 
 	std::cout << "device_unit_lookup array filled on host" << std::endl;
 	TransferSymbolsToDevice();
@@ -143,17 +171,18 @@ __host__ bool CUDA::FillDeviceUnitArray() {
 }
 
 __host__ void CUDA::TestLookupTable(){
+	int table_length = 5;
 
 	float* device_write_data;
-	cudaMalloc((void**)&device_write_data, 156 * sizeof(float));
+	cudaMalloc((void**)&device_write_data, table_length * sizeof(float));
 
-	TestDeviceLookupUsage<<<1, 156>>>(/*unit_lookup_device_pointer, */device_write_data);
+	TestDeviceLookupUsage<<<1, table_length >>>(/*unit_lookup_device_pointer, */device_write_data);
 
-	float* device_return_data = new float[156];
-	cudaMemcpy(device_return_data, device_write_data, 156 * sizeof(float), cudaMemcpyDeviceToHost);
+	float* device_return_data = new float[table_length];
+	cudaMemcpy(device_return_data, device_write_data, table_length * sizeof(float), cudaMemcpyDeviceToHost);
 
 	std::cout << "TestLookupTable() device return data:" << std::endl;
-	for (int i = 0; i < 156; ++i) {
+	for (int i = 0; i < table_length; ++i) {
 		std::cout << device_return_data[i] << ", ";
 	}
 }
@@ -166,7 +195,7 @@ __host__ void CUDA::TestRepellingPFGeneration() {
 
 	TransferUnitsToDevice();
 
-	TestDevicePFGeneration << <BLOCK_AMOUNT, THREADS_PER_BLOCK >> > (device_map);
+	//TestDevicePFGeneration << <BLOCK_AMOUNT, THREADS_PER_BLOCK >> > (device_map);
 
 	cudaMemcpy(new_map, device_map, THREADS_IN_GRID * sizeof(float), cudaMemcpyDeviceToHost);	//transfer map to host
 	//the memcpy should copy to a host 2D array directly, not like this!
@@ -219,4 +248,38 @@ __host__ void CUDA::Check(cudaError_t blob, std::string location, bool print_res
 	else if (print_res) {
 		std::cout << "CUDA STATUS (" << location << ") SUCESS: " << cudaGetErrorString(blob) << std::endl;
 	}
+}
+
+//----------------------------------------------------------------------------------------
+
+__global__ void TestDevicePFGeneration(float* device_map) {
+	int id = threadIdx.x + blockDim.x * blockIdx.x;
+
+	//move lookup to shared
+
+	//do stuff
+}
+
+__global__ void TestDeviceIMGeneration(float* device_map) {
+	int id = threadIdx.x + blockDim.x * blockIdx.x;
+}
+
+__global__ void TestDeviceLookupUsage(float* result) {
+	int id = threadIdx.x + blockDim.x * blockIdx.x;
+
+	if (id == 1) printf("\n1");
+
+	//printf("(%d, %f) ", id, device_unit_lookup_first[id].range);
+	//result[id] = device_unit_lookup_first[id].range;
+
+	if (id == 1) printf("2");
+
+	//result[id] = (&device_unit_lookup_second[id])->range;	//this shit crashes kernel
+
+	if (id == 1) printf("3");
+
+	printf("(%d, %f) ", id, device_test[id]);
+	result[id] = device_test[id];
+
+	if (id == 1) printf("4\n");
 }
