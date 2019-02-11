@@ -76,6 +76,10 @@ private:
     //!< \return Returns true if the unit is a structure, false otherwise.
     bool IsStructure(const Unit* unit);
 
+    void SpawnEveryUnit();
+
+    void PrintUnits();
+
     void AddObjectiveToIM(Point2D objective);
 
 private:

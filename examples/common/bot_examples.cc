@@ -3273,16 +3273,19 @@ namespace sc2 {
         Debug()->DebugIgnoreResourceCost();
         Debug()->DebugCreateUnit(unit, p, 1, 1);
         Debug()->SendDebug();
-        p = Point2D(5.0f, 5.0f);
+
+        SpawnEveryUnit();
+
+        /*p = Point2D(5.0f, 5.0f);
         unit = UNIT_TYPEID::TERRAN_SCV;
         Debug()->DebugCreateUnit(unit, p, 1, 1);
-        Debug()->SendDebug();
+        Debug()->SendDebug();*/
 
-        p = Point2D(25.0f, 8.0f);
+        /*p = Point2D(25.0f, 8.0f);
         unit = UNIT_TYPEID::PROTOSS_PYLON;
         Debug()->DebugCreateUnit(unit, p, 2, 1);
         Debug()->SendDebug();
-        PrintStatus("Units for player 1 created");
+        PrintStatus("Units for player 1 created");*/
 
         CreateIM();
 
@@ -3317,6 +3320,7 @@ namespace sc2 {
                     MapPrinted = true;
                     int i = Observation()->GetGameInfo().pathing_grid.bits_per_pixel;
                     int d = 0 + i;
+                    PrintUnits();
                     //sc2::renderer::Matrix8BPPHeightMap(Observation()->GetGameInfo().pathing_grid.data.c_str(), width, height, 0, 0, kPixelDrawSize, kPixelDrawSize);
                     //AddObjectiveToIM(objectives[0]);
                     //PrintIM();
@@ -3339,6 +3343,95 @@ namespace sc2 {
         if (IsStructure(unit))
             IMAddUnit(unit);
         PrintIM();
+    }
+
+    void MyBot::SpawnEveryUnit()
+    {
+        Point2D p = Point2D(8.0f, 8.0f);
+        std::vector<UnitTypeID> units;
+        units.push_back(UNIT_TYPEID::TERRAN_BANSHEE);
+        units.push_back(UNIT_TYPEID::TERRAN_BATTLECRUISER);
+        units.push_back(UNIT_TYPEID::TERRAN_CYCLONE);
+        units.push_back(UNIT_TYPEID::TERRAN_GHOST);
+        units.push_back(UNIT_TYPEID::TERRAN_HELLION);
+        units.push_back(UNIT_TYPEID::TERRAN_LIBERATOR);
+        units.push_back(UNIT_TYPEID::TERRAN_MARAUDER);
+        units.push_back(UNIT_TYPEID::TERRAN_MARINE);
+        units.push_back(UNIT_TYPEID::TERRAN_MEDIVAC);
+        units.push_back(UNIT_TYPEID::TERRAN_MULE);
+        units.push_back(UNIT_TYPEID::TERRAN_RAVEN);
+        units.push_back(UNIT_TYPEID::TERRAN_REAPER);
+        units.push_back(UNIT_TYPEID::TERRAN_SCV);
+        units.push_back(UNIT_TYPEID::TERRAN_SIEGETANK);
+        units.push_back(UNIT_TYPEID::TERRAN_THOR);
+        units.push_back(UNIT_TYPEID::TERRAN_VIKINGFIGHTER);
+        units.push_back(UNIT_TYPEID::TERRAN_WIDOWMINE);
+        units.push_back(UNIT_TYPEID::PROTOSS_ADEPT);
+        units.push_back(UNIT_TYPEID::PROTOSS_ARCHON);
+        units.push_back(UNIT_TYPEID::PROTOSS_CARRIER);
+        units.push_back(UNIT_TYPEID::PROTOSS_COLOSSUS);
+        units.push_back(UNIT_TYPEID::PROTOSS_DARKTEMPLAR);
+        units.push_back(UNIT_TYPEID::PROTOSS_DISRUPTOR);
+        units.push_back(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR);
+        units.push_back(UNIT_TYPEID::PROTOSS_IMMORTAL);
+        units.push_back(UNIT_TYPEID::PROTOSS_INTERCEPTOR);
+        units.push_back(UNIT_TYPEID::PROTOSS_MOTHERSHIP);
+        units.push_back(UNIT_TYPEID::PROTOSS_MOTHERSHIPCORE);
+        units.push_back(UNIT_TYPEID::PROTOSS_OBSERVER);
+        units.push_back(UNIT_TYPEID::PROTOSS_ORACLE);
+        units.push_back(UNIT_TYPEID::PROTOSS_PHOENIX);
+        units.push_back(UNIT_TYPEID::PROTOSS_PROBE);
+        units.push_back(UNIT_TYPEID::PROTOSS_SENTRY);
+        units.push_back(UNIT_TYPEID::PROTOSS_STALKER);
+        units.push_back(UNIT_TYPEID::PROTOSS_TEMPEST);
+        units.push_back(UNIT_TYPEID::PROTOSS_VOIDRAY);
+        units.push_back(UNIT_TYPEID::PROTOSS_WARPPRISM);
+        units.push_back(UNIT_TYPEID::PROTOSS_ZEALOT);
+        units.push_back(UNIT_TYPEID::ZERG_BANELING);
+        units.push_back(UNIT_TYPEID::ZERG_BROODLING);
+        units.push_back(UNIT_TYPEID::ZERG_BROODLORD);
+        units.push_back(UNIT_TYPEID::ZERG_CHANGELING);
+        units.push_back(UNIT_TYPEID::ZERG_CORRUPTOR);
+        units.push_back(UNIT_TYPEID::ZERG_DRONE);
+        units.push_back(UNIT_TYPEID::ZERG_HYDRALISK);
+        units.push_back(UNIT_TYPEID::ZERG_INFESTOR);
+        units.push_back(UNIT_TYPEID::ZERG_LOCUSTMP);
+        units.push_back(UNIT_TYPEID::ZERG_LURKERMP);
+        units.push_back(UNIT_TYPEID::ZERG_MUTALISK);
+        units.push_back(UNIT_TYPEID::ZERG_OVERLORD);
+        units.push_back(UNIT_TYPEID::ZERG_OVERSEER);
+        units.push_back(UNIT_TYPEID::ZERG_QUEEN);
+        units.push_back(UNIT_TYPEID::ZERG_RAVAGER);
+        units.push_back(UNIT_TYPEID::ZERG_ROACH);
+        units.push_back(UNIT_TYPEID::ZERG_SWARMHOSTMP);
+        units.push_back(UNIT_TYPEID::ZERG_ULTRALISK);
+        units.push_back(UNIT_TYPEID::ZERG_VIPER);
+        units.push_back(UNIT_TYPEID::ZERG_ZERGLING);
+
+        for (auto unit : units)
+        {
+            Debug()->DebugCreateUnit(unit, p, 1, 1);
+            Debug()->SendDebug();
+        }
+        
+    }
+
+    void MyBot::PrintUnits()
+    {
+        std::stringstream str(std::stringstream::out | std::stringstream::binary);
+        Units my_units = Observation()->GetUnits(Unit::Alliance::Self);
+
+        for (auto unit : my_units)
+        {
+            str << unit->unit_type.to_string() << " Radius: " << unit->radius << std::endl;
+        }
+
+        std::ofstream file;
+        file.open("Units.txt", std::ofstream::binary);
+        PrintStatus("File open and printing to file");
+        file.write(str.str().c_str(), str.str().length());
+        file.close();
+        PrintStatus("File closed");
     }
 
     void MyBot::OnUnitDestroyed(const Unit * unit)
