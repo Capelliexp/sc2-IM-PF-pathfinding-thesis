@@ -3315,7 +3315,7 @@ namespace sc2 {
                     float dist = Query()->PathingDistance(unit, Point2D(3, 3));
                     int i = dist;
                 }
-                if (unit->is_selected)
+                if (unit->is_selected && !MapPrinted)
                 {
                     MapPrinted = true;
                     int i = Observation()->GetGameInfo().pathing_grid.bits_per_pixel;
@@ -3420,10 +3420,10 @@ namespace sc2 {
     {
         std::stringstream str(std::stringstream::out | std::stringstream::binary);
         Units my_units = Observation()->GetUnits(Unit::Alliance::Self);
-
+        str << "Unit ID, Radius" << std::endl;
         for (auto unit : my_units)
         {
-            str << unit->unit_type.to_string() << " Radius: " << unit->radius << std::endl;
+            str << unit->unit_type.to_string() << "," << unit->radius << std::endl;
         }
 
         std::ofstream file;
