@@ -85,63 +85,65 @@ __host__ void CUDA::CreateUnitLookupOnHost(){
 	sc2::UnitTypes types = observation->GetUnitTypeData();
 
 	int host_iterator = 0;
-	for (int i = 1; i < types.size(); ++i) {
-		sc2::UnitTypeData data;
-		data = types.at(i);
+	for (int i = 1; i < types.size(); ++i)
+	{
+		sc2::UnitTypeData data = types.at(i);
+		//Check for units that are not considered valid.
 		if (data.unit_type_id == sc2::UNIT_TYPEID::INVALID) continue;
+		std::vector<sc2::Attribute> att = data.attributes;
+		if (data.weapons.size() == 0 && std::find(att.begin(), att.end(), sc2::Attribute::Structure) != att.end()) continue;
 
-		std::vector<sc2::Weapon> weapons;
-		weapons = data.weapons;
-		if (weapons.size() > 0 || data.movement_speed > 0) {
-			//add to "avoid-and-attack" list
+		host_unit_info.push_back(UnitInfo());
 
-			host_unit_info.push_back(UnitInfo());
+		std::vector<sc2::Weapon> weapons = data.weapons;
+		//Can be an int instead.
+		sc2::Weapon longest_weapon;
+		longest_weapon.range = 0;
+		for (auto& const weapon : weapons)
+		{
+			if (weapon.range > longest_weapon.range)
+				longest_weapon = weapon;
 
-			sc2::Weapon longest_weapon;
-			longest_weapon.range = 0;
-
-			for (auto& const weapon : weapons) {
-				if (weapon.range > longest_weapon.range) longest_weapon = weapon;
-
-				if (weapon.type == sc2::Weapon::TargetType::Ground) host_unit_info.at(host_iterator).can_attack_air = false;
-				else if (weapon.type == sc2::Weapon::TargetType::Air) host_unit_info.at(host_iterator).can_attack_ground = false;
-			}
-
-			host_unit_info.at(host_iterator).range = longest_weapon.range;
-			host_unit_info.at(host_iterator).device_id = host_iterator;
-			host_unit_info.at(host_iterator).id = data.unit_type_id;
-
-			std::vector<sc2::Attribute> att = data.attributes;
-			if (std::find(att.begin(), att.end(), sc2::Attribute::Hover) != att.end())
-				host_unit_info.at(host_iterator).is_flying = true;
-
-			host_unit_transform.insert({ { data.unit_type_id, host_iterator } });
-			
-			/*
-			//failed attempt att doing it the easy way... :(
-
-			debug->DebugCreateUnit(data.unit_type_id, sc2::Point2D(0,0));
-			debug->SendDebug();
-			actions->SendActions();
-			actions_feature_layer->SendActions();
-			sc2::Units u = observation->GetUnits();
-			for (int i = 0; i < u.size() + 1; ++i) {
-				if (i == u.size()) {
-					std::cout << "FAILED to get radius of unit: ''" << data.unit_type_id << "''" << std::endl;
-					for (int j = 0; j < u.size(); ++j) debug->DebugKillUnit(u.at(j));
-					break;
-				}
-				if (u.at(i)->unit_type == data.unit_type_id) {
-					host_unit_info.at(host_iterator).radius = u.at(i)->radius;
-					debug->DebugKillUnit(u.at(i));
-					break;
-				}
-			}
-			*/
-
-			++host_iterator;
+			if (weapon.type == sc2::Weapon::TargetType::Ground)
+				host_unit_info.at(host_iterator).can_attack_air = false;
+			else if (weapon.type == sc2::Weapon::TargetType::Air)
+				host_unit_info.at(host_iterator).can_attack_ground = false;
 		}
+		host_unit_info.at(host_iterator).range = longest_weapon.range;
+		host_unit_info.at(host_iterator).device_id = host_iterator;
+		host_unit_info.at(host_iterator).id = data.unit_type_id;
+
+			
+		if (std::find(att.begin(), att.end(), sc2::Attribute::Hover) != att.end())
+			host_unit_info.at(host_iterator).is_flying = true;
+
+		host_unit_transform.insert({ { data.unit_type_id, host_iterator } });
+
+		/*
+		//failed attempt att doing it the easy way... :(
+
+		debug->DebugCreateUnit(data.unit_type_id, sc2::Point2D(0,0));
+		debug->SendDebug();
+		actions->SendActions();
+		actions_feature_layer->SendActions();
+		sc2::Units u = observation->GetUnits();
+		for (int i = 0; i < u.size() + 1; ++i) {
+			if (i == u.size()) {
+				std::cout << "FAILED to get radius of unit: ''" << data.unit_type_id << "''" << std::endl;
+				for (int j = 0; j < u.size(); ++j) debug->DebugKillUnit(u.at(j));
+				break;
+			}
+			if (u.at(i)->unit_type == data.unit_type_id) {
+				host_unit_info.at(host_iterator).radius = u.at(i)->radius;
+				debug->DebugKillUnit(u.at(i));
+				break;
+			}
+		}
+		*/
+
+		++host_iterator;
 	}
+	//TODO: Print the map to a file.
 	std::cout << "Created unit data table on host. Nr of elements: " << host_iterator << ". " << std::endl;
 
 	for (int i = 0; i < host_unit_info.size(); ++i) {
