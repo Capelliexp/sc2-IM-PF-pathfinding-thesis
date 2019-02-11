@@ -6,11 +6,13 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <cmath>
 
 #include "../examples/CUDA/cuda_device_functionality.cu"
 
-__host__ CUDA::CUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug) :
-	map_storage(maps), observation(observations), debug(debug) {
+__host__ CUDA::CUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
+	sc2::ActionFeatureLayerInterface* actions_feature_layer) : map_storage(maps), observation(observations), debug(debug), actions(actions),
+	actions_feature_layer(actions_feature_layer){
 	
 	InitializeCUDA();
 }
@@ -51,6 +53,7 @@ __host__ void CUDA::Update(clock_t dt_ticks) {
 	}
 
 	FillDeviceUnitArray();
+	TransferUnitsToDevice();
 	//run generation of PFs
 }
 
@@ -113,12 +116,18 @@ __host__ void CUDA::CreateUnitLookupOnHost(){
 				host_unit_info.at(host_iterator).is_flying = true;
 
 			host_unit_transform.insert({ { data.unit_type_id, host_iterator } });
+			
+			/*
+			//failed attempt att doing it the easy way... :(
 
 			debug->DebugCreateUnit(data.unit_type_id, sc2::Point2D(0,0));
+			debug->SendDebug();
+			actions->SendActions();
+			actions_feature_layer->SendActions();
 			sc2::Units u = observation->GetUnits();
 			for (int i = 0; i < u.size() + 1; ++i) {
 				if (i == u.size()) {
-					std::cout << "FAILED to get radius of unit " << data.unit_type_id << std::endl;
+					std::cout << "FAILED to get radius of unit: ''" << data.unit_type_id << "''" << std::endl;
 					for (int j = 0; j < u.size(); ++j) debug->DebugKillUnit(u.at(j));
 					break;
 				}
@@ -128,6 +137,7 @@ __host__ void CUDA::CreateUnitLookupOnHost(){
 					break;
 				}
 			}
+			*/
 
 			++host_iterator;
 		}
@@ -148,39 +158,39 @@ __host__ void CUDA::CreateUnitLookupOnHost(){
 __host__ void CUDA::TransferStaticMapToHost(){}
 
 __host__ void CUDA::TransferUnitLookupToDevice(){
-	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host.data(), device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "lookup_memcpy", true);
-	Check(cudaMemcpyToSymbol(device_unit_lookup, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "lookup_symbol_memcpy", true);
+	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host.data(), device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "lookup_memcpy");
+	Check(cudaMemcpyToSymbol(device_unit_lookup, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "lookup_symbol_memcpy");
 	std::cout << "device_unit_lookup array transfered to device" << std::endl;
 }
 
 __host__ void CUDA::AllocateDeviceMemory(){
-
 	cudaMalloc((void**)&static_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
 	cudaMalloc((void**)&dynamic_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
-	Check(cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice)), "unit_lookup_device_malloc", true);
+	cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice));
 	//cudaMalloc((void**)&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice));
-	//cudaMalloc((void**)&unit_array_device_pointer, 800 * sizeof(UnitStructInDevice));
+	cudaMalloc((void**)&device_unit_array, 800 * sizeof(Entity));	//might extend size during runtime
 }
 
 __host__ bool CUDA::FillDeviceUnitArray() {
 
+	
 	return true;
 }
 
 __host__ void CUDA::TestLookupTable(){
 	int table_length = device_unit_lookup_on_host.size();
 
-	float* device_write_data;
-	cudaMalloc((void**)&device_write_data, table_length * sizeof(float));
+	float* write_data_d;
+	cudaMalloc((void**)&write_data_d, table_length * sizeof(float));
 
-	TestDeviceLookupUsage<<<1, table_length >>>(device_write_data);
+	TestDeviceLookupUsage<<<1, table_length >>>(write_data_d);
 
-	float* device_return_data = new float[table_length];
-	cudaMemcpy(device_return_data, device_write_data, table_length * sizeof(float), cudaMemcpyDeviceToHost);
+	float* return_data = new float[table_length];
+	cudaMemcpy(return_data, write_data_d, table_length * sizeof(float), cudaMemcpyDeviceToHost);
 
 	std::cout << "TestLookupTable() device return data:" << std::endl;
 	for (int i = 0; i < table_length; ++i) {
-		if (device_write_data[i] - device_unit_lookup_on_host[i].range > 0.01) {
+		if (std::abs(return_data[i] - device_unit_lookup_on_host[i].range) > 0.01) {
 			std::cout << "lookup table test FAILED" << std::endl;
 			return;
 		}
@@ -194,9 +204,9 @@ __host__ void CUDA::TestRepellingPFGeneration() {
 
 	cudaMalloc((void**)&device_map, THREADS_IN_GRID * sizeof(float));	//allocate space for map on device
 
-	TransferUnitsToDevice();
+	//TransferUnitsToDevice();
 
-	//TestDevicePFGeneration << <BLOCK_AMOUNT, THREADS_PER_BLOCK >> > (device_map);
+	TestDeviceRepellingPFGeneration<<<BLOCK_AMOUNT, THREADS_PER_BLOCK, map_storage->units.size() * sizeof(Entity)>>>(device_map);
 
 	cudaMemcpy(new_map, device_map, THREADS_IN_GRID * sizeof(float), cudaMemcpyDeviceToHost);	//transfer map to host
 	//the memcpy should copy to a host 2D array directly, not like this!
@@ -205,7 +215,7 @@ __host__ void CUDA::TestRepellingPFGeneration() {
 
 }
 
-__host__ void CUDA::TestAttractingPFGeneration(float range, bool is_flying, bool can_attack_air, bool can_attack_ground) {
+__host__ void CUDA::TestAttractingPFGeneration() {
 	
 }
 
