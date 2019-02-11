@@ -28,7 +28,7 @@ Texture alignment : 512 bytes
 
 //DEVICE SYMBOL VARIABLES
 __device__ __constant__ UnitInfoDevice* device_unit_lookup;
-__device__ __shared__ Entity* device_unit_array;	//probably wrong, needed as argument
+//__device__ __shared__ Entity* device_unit_array;	//probably wrong, needed as argument
 
 __global__ void TestDeviceLookupUsage(float* result) {
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
@@ -44,7 +44,14 @@ __global__ void TestDeviceAttractingPFGeneration(float* device_map) {
 	//do stuff
 }
 
-__global__ void TestDeviceRepellingPFGeneration(float* device_map){}
+__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map){
+	extern __shared__ Entity unit_list_s[];
+	int id = threadIdx.x + blockDim.x * blockIdx.x;
+
+	if (id < nr_of_units) unit_list_s[id] = device_unit_list_pointer[id];
+
+	__syncthreads();
+}
 
 __global__ void TestDeviceIMGeneration(float* device_map) {
 	int id = threadIdx.x + blockDim.x * blockIdx.x;

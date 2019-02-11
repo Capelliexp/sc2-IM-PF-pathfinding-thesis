@@ -12,6 +12,7 @@
 
 #define MAP_X 10 
 #define MAP_Y 10 
+#define GRID_DIVISION 1 // 1 grid's sub grid size = GRID_DIVISION^2 
 #define bot_faction_unit_type_count 5
 
 //read bookmarks

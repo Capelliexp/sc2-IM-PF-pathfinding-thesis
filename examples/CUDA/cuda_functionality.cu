@@ -168,7 +168,7 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	cudaMalloc((void**)&dynamic_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
 	cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice));
 	//cudaMalloc((void**)&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice));
-	cudaMalloc((void**)&device_unit_array, 800 * sizeof(Entity));	//might extend size during runtime
+	cudaMalloc((void**)&device_unit_list_pointer, 800 * sizeof(Entity));	//might extend size during runtime
 }
 
 __host__ bool CUDA::FillDeviceUnitArray() {
@@ -192,25 +192,34 @@ __host__ void CUDA::TestLookupTable(){
 	for (int i = 0; i < table_length; ++i) {
 		if (std::abs(return_data[i] - device_unit_lookup_on_host[i].range) > 0.01) {
 			std::cout << "lookup table test FAILED" << std::endl;
+			delete return_data;
+			cudaFree(write_data_d);
 			return;
 		}
 	}
 	std::cout << "lookup table test SUCCESS" << std::endl;
+
+	delete return_data;
+	cudaFree(write_data_d);
 }
 
 __host__ void CUDA::TestRepellingPFGeneration() {
-	float* device_map;
-	float* new_map = new float[THREADS_IN_GRID];
+	cudaPitchedPtr device_map;
+	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X * GRID_DIVISION * sizeof(Entity), MAP_Y * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
 
-	cudaMalloc((void**)&device_map, THREADS_IN_GRID * sizeof(float));	//allocate space for map on device
+	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), host_unit_list.size() * sizeof(Entity), 
+		cudaMemcpyHostToDevice), "PFGeneration cudaMemcpy to device");
 
-	//TransferUnitsToDevice();
+	TestDeviceRepellingPFGeneration<<<BLOCK_AMOUNT, THREADS_PER_BLOCK, (host_unit_list.size() * sizeof(Entity))>>>
+		(device_unit_list_pointer, host_unit_list.size(), device_map);
+	
+	float* return_data = new float[THREADS_IN_GRID];
+	Check(cudaMemcpy(return_data, device_unit_list_pointer, THREADS_IN_GRID * sizeof(float), cudaMemcpyDeviceToHost),
+		"PFGeneration cudaMemcpy to host");
 
-	TestDeviceRepellingPFGeneration<<<BLOCK_AMOUNT, THREADS_PER_BLOCK, map_storage->units.size() * sizeof(Entity)>>>(device_map);
+	//check
 
-	cudaMemcpy(new_map, device_map, THREADS_IN_GRID * sizeof(float), cudaMemcpyDeviceToHost);	//transfer map to host
-	//the memcpy should copy to a host 2D array directly, not like this!
-
+	delete return_data;
 	//cudaFree(device_map);	//do not free, space will be used next frame
 
 }
