@@ -1,3 +1,16 @@
+/*! \file bot_example.h
+    \brief A few different bots that can be used in sc2
+
+    In this class there is the bots:
+    MarineMicroBot
+    MyBot
+    TerranBot
+    MultiplayerBot
+    ProtossMultiplayerBot
+    ZergMultiplayerBot
+    TerranMultiplayerBot
+*/
+
 #pragma once
 
 #include "sc2api/sc2_interfaces.h"
@@ -23,21 +36,71 @@ private:
 };
 
 
-// My bot for testing
+//! My bot for starcraft 2 that creates IMs and PFs
 class MyBot : public sc2::Agent {
 public:
     virtual void OnGameStart() final;
     virtual void OnStep() final;
     virtual void OnGameEnd() final;
+    virtual void OnUnitEnterVision(const Unit* unit) final;
+    virtual void OnUnitDestroyed(const Unit* unit) final;
+    virtual void OnUnitIdle(const Unit* unit) final;
+    virtual void OnUnitCreated(const Unit* unit) final;
 
+    //! Prints the given string to the console.
+    //!< \param msg The message to be printed to the console.
     void PrintStatus(std::string msg);
-
-    GameInfo game_info_;
 
     void PrintMap(sc2::ImageData map, std::string name);
 
+    //! The bot is abdle to print its IM to a file.
+    void PrintIM();
+
 private:
-    bool BaseSelected;
+    //! Craetes the influence map based on the size of the map.
+    void CreateIM();
+    //! Function that is used to add a list of units to the IM.
+    //!< \param units The list of units to be added.
+    void IMAddUnits(Units units);
+    //! Function that is used to add an unit to the IM.
+    //! Uses radius to indicate which tiles that can't be pathed.
+    //!< \param unit The unit to be added.
+    void IMAddUnit(const Unit* unit);
+    //! Function that is used to remove an unit from the IM.
+    //! We know that the tiles that the building occupied can be pathed now.
+    //! No need to calculate the radius.
+    //!< \param unit The unit to be removed.
+    void IMRemoveUnit(const Unit* unit);
+    //! Function that is used to check if a given unit is a structure.
+    //!< \param unit The unit to be checked.
+    //!< \return Returns true if the unit is a structure, false otherwise.
+    bool IsStructure(const Unit* unit);
+
+    void SpawnEveryUnit();
+
+    void PrintUnits();
+
+    void AddObjectiveToIM(Point2D objective);
+
+private:
+
+    int lastSize;
+    //! Width that is multiplied with pathingGridSize to get actual width of the pathfinding grid
+    int width;
+    //! Width that is multiplied with pathingGridSize to get actual height of the pathfinding grid
+    int height;
+    //! Pathing grid is 8 time larger than what is returned from API
+    int pathingGridSize = 4;
+    //! Vector representing the pathfinding grid for ground units.
+    std::vector<float> InfluenceMap;
+    std::vector<sc2::Point2D> objectives;
+    std::vector<std::vector<float>> PotentialField;
+    GameInfo game_info_;
+    bool MapPrinted = false;
+
+    int kFeatureLayerSize;
+    int kPixelDrawSize;
+    int kDrawSize;
 };
 
 // Bot builds supply depots as required.

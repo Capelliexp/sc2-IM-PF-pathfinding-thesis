@@ -30,18 +30,19 @@ int main(int argc, char* argv[]) {
     }
 
     // Add the custom bot, it will control the players.
-    sc2::MyBot myBot;
+    sc2::MyBot myBot, myOtherBot;
     sc2::TerranBot bot1, bot2;
     Human human_bot;
 
     sc2::Agent* player_one = &myBot;
+    sc2::Agent* player_two = &myOtherBot;
     if (PlayerOneIsHuman) {
         player_one = &human_bot;
     }
 
     coordinator.SetParticipants({
         CreateParticipant(sc2::Race::Terran, player_one),
-        //CreateParticipant(sc2::Race::Terran, &bot2),
+        //CreateParticipant(sc2::Race::Terran, player_two),
     });
 
     // Start the game.
@@ -61,7 +62,8 @@ int main(int argc, char* argv[]) {
     }
 
     myBot.Control()->DumpProtoUsage();
-    bot2.Control()->DumpProtoUsage();
+    myOtherBot.Control()->DumpProtoUsage();
+    //bot2.Control()->DumpProtoUsage();
 
     return 0;
 }
