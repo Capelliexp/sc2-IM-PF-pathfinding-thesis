@@ -78,7 +78,7 @@ __host__ void CUDA::InitializeCUDA() {
 	
 	//tests
 	TestLookupTable();
-	TestRepellingPFGeneration();
+	Test3DArrayUsage();
 
 }
 
@@ -189,7 +189,6 @@ __host__ void CUDA::TestLookupTable(){
 	float* return_data = new float[table_length];
 	cudaMemcpy(return_data, write_data_d, table_length * sizeof(float), cudaMemcpyDeviceToHost);
 
-	std::cout << "TestLookupTable() device return data:" << std::endl;
 	for (int i = 0; i < table_length; ++i) {
 		if (std::abs(return_data[i] - device_unit_lookup_on_host[i].range) > 0.01) {
 			std::cout << "lookup table test FAILED" << std::endl;
@@ -204,29 +203,56 @@ __host__ void CUDA::TestLookupTable(){
 	cudaFree(write_data_d);
 }
 
-__host__ void CUDA::TestRepellingPFGeneration() {
-	//cudaPitchedPtr device_map;
-	//Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X * GRID_DIVISION * sizeof(float), MAP_Y * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
-	float* device_map;
-	size_t pitch;
-	Check(cudaMallocPitch(&device_map, &pitch, MAP_X * GRID_DIVISION * sizeof(float), MAP_Y), "PFGeneration mallocpitch");
+__host__ void CUDA::Test3DArrayUsage() {
+	cudaPitchedPtr device_map;
+	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X * GRID_DIVISION * sizeof(float), MAP_Y * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
+	//float* device_map;
+	//size_t pitch;
+	//Check(cudaMallocPitch(&device_map, &pitch, MAP_X * GRID_DIVISION * sizeof(float), MAP_Y * GRID_DIVISION), "PFGeneration mallocpitch");
 
 	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), host_unit_list.size() * sizeof(Entity), 
 		cudaMemcpyHostToDevice), "PFGeneration cudaMemcpy to device");
 
-	std::cout << "hoho";
-	std::cout << "hoho";
+	TestDevice3DArrayUsage<<<1, MAP_SIZE, (host_unit_list.size() * sizeof(Entity))>>>
+		(device_unit_list_pointer, host_unit_list.size(), device_map);
 
-	TestDeviceRepellingPFGeneration<<<BLOCK_AMOUNT, THREADS_PER_BLOCK, (host_unit_list.size() * sizeof(Entity))>>>
-		(device_unit_list_pointer, host_unit_list.size(), device_map, pitch);
+	float return_data[MAP_X][MAP_Y][1];
+	cudaMemcpy3DParms par = { 0 };
+	par.srcPtr.ptr = device_map.ptr;
+	par.srcPtr.pitch = device_map.pitch;
+	par.srcPtr.xsize = MAP_X;
+	par.srcPtr.ysize = MAP_Y;
+	par.dstPtr.ptr = return_data;
+	par.dstPtr.pitch = MAP_X * sizeof(float);
+	par.dstPtr.xsize = MAP_X;
+	par.dstPtr.ysize = MAP_Y;
+	par.extent.width = MAP_X * sizeof(float);
+	par.extent.height = MAP_Y;
+	par.extent.depth = 1;
+	par.kind = cudaMemcpyDeviceToHost;
+
+	/*Check(cudaMemcpy(return_data, device_map, MAP_SIZE * sizeof(float), cudaMemcpyDeviceToHost),
+		"PFGeneration cudaMemcpy to host", true);*/
+
+	Check(cudaMemcpy3D(&par), "memcpy3D", true);
 	
-	float* return_data = new float[THREADS_IN_GRID];
-	Check(cudaMemcpy(return_data, device_unit_list_pointer, THREADS_IN_GRID * sizeof(float), cudaMemcpyDeviceToHost),
-		"PFGeneration cudaMemcpy to host");
+	Check(cudaDeviceSynchronize());
 
+	
 	//check
-
-	delete return_data;
+	int it = 0;
+	for (int i = 0; i < MAP_X; ++i) {
+		for (int j = 0; j < MAP_Y; ++j) {
+			if (std::abs(return_data[j][i][1] - (++it)) > 0.01) {
+				std::cout << "Repelling PF Generation test FAILED, " << return_data[j][i][1] << ", " << it << std::endl;
+				cudaFree(device_map.ptr);
+				return;
+			}
+		}
+	}
+	std::cout << "Repelling PF Generation test SUCCESS" << std::endl;
+	std::cout << std::endl;
+	
 	//cudaFree(device_map);	//do not free, space will be used next frame
 
 }

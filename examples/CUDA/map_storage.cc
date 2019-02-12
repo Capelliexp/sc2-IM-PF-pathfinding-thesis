@@ -1,7 +1,7 @@
 #include "../examples/CUDA/map_storage.hpp"
 
 MapStorage::MapStorage() {
-    unit_attraction_PF.reserve(bot_faction_unit_type_count);
+    //unit_attraction_PF.reserve(bot_faction_unit_type_count);
     update_terrain = true;
 }
 

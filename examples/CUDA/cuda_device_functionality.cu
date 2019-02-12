@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../examples/CUDA/cuda_header.cuh"
+#include "../examples/CUDA/cuda_device_utility.cu"
 
 /*
 1080 deviceQuery:
@@ -26,10 +27,6 @@ Maximum memory pitch : 2147483647 bytes
 Texture alignment : 512 bytes
 */
 
-//DEVICE SYMBOL VARIABLES
-__device__ __constant__ UnitInfoDevice* device_unit_lookup;
-//__device__ __shared__ Entity* device_unit_array;	//probably wrong, needed as argument
-
 __global__ void TestDeviceLookupUsage(float* result) {
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -44,15 +41,38 @@ __global__ void TestDeviceAttractingPFGeneration(float* device_map) {
 	//do stuff
 }
 
-__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, float* device_map, size_t pitch){
+__global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map){
 	extern __shared__ Entity unit_list_s[];
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
+	int x = (id % MAP_X), y = (id / MAP_X);
+
+	if (id == 0) printf("start\n");
 
 	if (id < nr_of_units) unit_list_s[id] = device_unit_list_pointer[id];
 
 	__syncthreads();
 
-	//float* pElement = (float*)((char*)device_map + Row * pitch) + Column;
+	if (id == 0) printf("after cpy\n");
+
+	char* devPtr = (char*)device_map.ptr;
+	size_t pitch = device_map.pitch;
+	size_t slicePitch = pitch * MAP_Y;	//not required bcs we have depth 1
+
+	//SetFloatMapPos(device_map, pitch, x, y, (float)id);
+
+	if (id == 0) printf("after ptr calc\n");
+
+
+	char* slice = devPtr + 0;
+	float* row = (float*)(slice + y * pitch);
+	
+	if (id == 0) printf("b4 write\n");
+	
+	row[x] = (float)id;
+	
+	if (id == 0) printf("after write\n");
+
+	printf("(<%d, %d>, %f)", x, y, (float)id);
 
 }
 

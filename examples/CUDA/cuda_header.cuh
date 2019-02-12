@@ -29,6 +29,9 @@
 //https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory
 //https://stackoverflow.com/questions/5531247/allocating-shared-memory
 //https://github.com/NVIDIA-developer-blog/code-samples/blob/master/series/cuda-cpp/shared-memory/shared-memory.cu
+//http://www.orangeowlsolutions.com/archives/817
+//Check(cudaPeekAtLastError());
+//Check(cudaDeviceSynchronize());
 
 #define BLOCK_AMOUNT 1 
 #define THREADS_PER_BLOCK 512
@@ -59,7 +62,8 @@ typedef struct {
 
 //DEVICE FUNCTIONS
 __global__ void TestDeviceAttractingPFGeneration(float* device_map);
-__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map, size_t pitch);
+__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
+__global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
 __global__ void TestDeviceIMGeneration(float* device_map);
 __global__ void TestDeviceLookupUsage(float* result);
 
@@ -89,6 +93,7 @@ public:
 
 	//Kernel launches
 	__host__ void TestRepellingPFGeneration();
+	__host__ void Test3DArrayUsage();
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
 	__host__ void TestLookupTable();
