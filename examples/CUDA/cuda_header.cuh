@@ -59,7 +59,7 @@ typedef struct {
 
 //DEVICE FUNCTIONS
 __global__ void TestDeviceAttractingPFGeneration(float* device_map);
-__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
+__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map, size_t pitch);
 __global__ void TestDeviceIMGeneration(float* device_map);
 __global__ void TestDeviceLookupUsage(float* result);
 

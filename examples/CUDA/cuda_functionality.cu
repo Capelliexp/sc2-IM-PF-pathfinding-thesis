@@ -78,6 +78,7 @@ __host__ void CUDA::InitializeCUDA() {
 	
 	//tests
 	TestLookupTable();
+	TestRepellingPFGeneration();
 
 }
 
@@ -204,14 +205,20 @@ __host__ void CUDA::TestLookupTable(){
 }
 
 __host__ void CUDA::TestRepellingPFGeneration() {
-	cudaPitchedPtr device_map;
-	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X * GRID_DIVISION * sizeof(Entity), MAP_Y * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
+	//cudaPitchedPtr device_map;
+	//Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X * GRID_DIVISION * sizeof(float), MAP_Y * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
+	float* device_map;
+	size_t pitch;
+	Check(cudaMallocPitch(&device_map, &pitch, MAP_X * GRID_DIVISION * sizeof(float), MAP_Y), "PFGeneration mallocpitch");
 
 	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), host_unit_list.size() * sizeof(Entity), 
 		cudaMemcpyHostToDevice), "PFGeneration cudaMemcpy to device");
 
+	std::cout << "hoho";
+	std::cout << "hoho";
+
 	TestDeviceRepellingPFGeneration<<<BLOCK_AMOUNT, THREADS_PER_BLOCK, (host_unit_list.size() * sizeof(Entity))>>>
-		(device_unit_list_pointer, host_unit_list.size(), device_map);
+		(device_unit_list_pointer, host_unit_list.size(), device_map, pitch);
 	
 	float* return_data = new float[THREADS_IN_GRID];
 	Check(cudaMemcpy(return_data, device_unit_list_pointer, THREADS_IN_GRID * sizeof(float), cudaMemcpyDeviceToHost),

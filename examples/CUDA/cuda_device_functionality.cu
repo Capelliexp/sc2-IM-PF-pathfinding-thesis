@@ -44,13 +44,16 @@ __global__ void TestDeviceAttractingPFGeneration(float* device_map) {
 	//do stuff
 }
 
-__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map){
+__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, float* device_map, size_t pitch){
 	extern __shared__ Entity unit_list_s[];
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
 
 	if (id < nr_of_units) unit_list_s[id] = device_unit_list_pointer[id];
 
 	__syncthreads();
+
+	//float* pElement = (float*)((char*)device_map + Row * pitch) + Column;
+
 }
 
 __global__ void TestDeviceIMGeneration(float* device_map) {
