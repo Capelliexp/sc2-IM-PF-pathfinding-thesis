@@ -83,8 +83,8 @@ public:
 	//Other functionality
 	__host__ void CreateUnitRadiusTable();
 	__host__ bool DeleteAllIMs();
-	__host__ void PrintUnitInfoToFile(std::string fileName);
-	__host__ void ReadUnitInfoFromFile(std::string fileName);
+	__host__ void PrintUnitInfoToFile(std::string filename);
+	__host__ void ReadUnitInfoFromFile(std::string filename);
 
 	//Kernel launches
 	__host__ void TestRepellingPFGeneration();

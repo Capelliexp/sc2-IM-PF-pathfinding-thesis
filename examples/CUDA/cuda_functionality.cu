@@ -9,7 +9,6 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
-#include <filesystem>
 
 #include "../examples/CUDA/cuda_device_functionality.cu"
 
@@ -88,77 +87,70 @@ __host__ void CUDA::CreateUnitLookupOnHost(){
 	sc2::UnitTypes types = observation->GetUnitTypeData();
 
 	std::string file = "unitInfo.txt";
-	//if (std::filesystem::exists(file))
-	//{
-	//	ReadUnitInfoFromFile(file);
-	//}
-	//else
-	//{
-	int host_iterator = 0;
-	for (int i = 1; i < types.size(); ++i)
-	{
-		sc2::UnitTypeData data = types.at(i);
-		//Check for units that are not considered valid.
-		std::string str = sc2::UnitTypeToName(data.unit_type_id.ToType());
-		if (str.find("PROTOSS") != std::string::npos || str.find("TERRAN") != std::string::npos || str.find("ZERG") != std::string::npos)
-		{
-			std::vector<sc2::Attribute> att = data.attributes;
-			if (data.weapons.size() == 0 && std::find(att.begin(), att.end(), sc2::Attribute::Structure) != att.end()) continue;
-			host_unit_info.push_back(UnitInfo());
+	if (map_storage->CheckIfFileExists(file))
+		ReadUnitInfoFromFile(file);
+	else {
+		int host_iterator = 0;
+		for (int i = 1; i < types.size(); ++i) {
+			sc2::UnitTypeData data = types.at(i);
+			//Check for units that are not considered valid.
+			std::string str = sc2::UnitTypeToName(data.unit_type_id.ToType());
+			if (str.find("PROTOSS") != std::string::npos || str.find("TERRAN") != std::string::npos || str.find("ZERG") != std::string::npos) {
+				std::vector<sc2::Attribute> att = data.attributes;
+				if (data.weapons.size() == 0 && std::find(att.begin(), att.end(), sc2::Attribute::Structure) != att.end()) continue;
+				host_unit_info.push_back(UnitInfo());
 
-			std::vector<sc2::Weapon> weapons = data.weapons;
-			int longest_weapon_range;
-			longest_weapon_range = 0;
-			for (auto& const weapon : weapons)
-			{
-				if (weapon.range > longest_weapon_range)
-					longest_weapon_range = weapon.range;
+				std::vector<sc2::Weapon> weapons = data.weapons;
+				int longest_weapon_range;
+				longest_weapon_range = 0;
+				for (auto& const weapon : weapons) {
+					if (weapon.range > longest_weapon_range)
+						longest_weapon_range = weapon.range;
 
-				if (weapon.type == sc2::Weapon::TargetType::Ground)
-					host_unit_info.at(host_iterator).can_attack_air = false;
-				else if (weapon.type == sc2::Weapon::TargetType::Air)
-					host_unit_info.at(host_iterator).can_attack_ground = false;
-			}
-			host_unit_info.at(host_iterator).range = longest_weapon_range;
-			host_unit_info.at(host_iterator).device_id = host_iterator;
-			host_unit_info.at(host_iterator).id = data.unit_type_id;
-
-
-			if (std::find(att.begin(), att.end(), sc2::Attribute::Hover) != att.end())
-				host_unit_info.at(host_iterator).is_flying = true;
-
-			host_unit_transform.insert({ { data.unit_type_id, host_iterator } });
-
-			/*
-			//failed attempt att doing it the easy way... :(
-
-			debug->DebugCreateUnit(data.unit_type_id, sc2::Point2D(0,0));
-			debug->SendDebug();
-			actions->SendActions();
-			actions_feature_layer->SendActions();
-			sc2::Units u = observation->GetUnits();
-			for (int i = 0; i < u.size() + 1; ++i) {
-				if (i == u.size()) {
-					std::cout << "FAILED to get radius of unit: ''" << data.unit_type_id << "''" << std::endl;
-					for (int j = 0; j < u.size(); ++j) debug->DebugKillUnit(u.at(j));
-					break;
+					if (weapon.type == sc2::Weapon::TargetType::Ground)
+						host_unit_info.at(host_iterator).can_attack_air = false;
+					else if (weapon.type == sc2::Weapon::TargetType::Air)
+						host_unit_info.at(host_iterator).can_attack_ground = false;
 				}
-				if (u.at(i)->unit_type == data.unit_type_id) {
-					host_unit_info.at(host_iterator).radius = u.at(i)->radius;
-					debug->DebugKillUnit(u.at(i));
-					break;
-				}
-			}
-			*/
+				host_unit_info.at(host_iterator).range = longest_weapon_range;
+				host_unit_info.at(host_iterator).device_id = host_iterator;
+				host_unit_info.at(host_iterator).id = data.unit_type_id;
 
-			++host_iterator;
+
+				if (std::find(att.begin(), att.end(), sc2::Attribute::Hover) != att.end())
+					host_unit_info.at(host_iterator).is_flying = true;
+
+				host_unit_transform.insert({ { data.unit_type_id, host_iterator } });
+
+				/*
+				//failed attempt att doing it the easy way... :(
+
+				debug->DebugCreateUnit(data.unit_type_id, sc2::Point2D(0,0));
+				debug->SendDebug();
+				actions->SendActions();
+				actions_feature_layer->SendActions();
+				sc2::Units u = observation->GetUnits();
+				for (int i = 0; i < u.size() + 1; ++i) {
+					if (i == u.size()) {
+						std::cout << "FAILED to get radius of unit: ''" << data.unit_type_id << "''" << std::endl;
+						for (int j = 0; j < u.size(); ++j) debug->DebugKillUnit(u.at(j));
+						break;
+					}
+					if (u.at(i)->unit_type == data.unit_type_id) {
+						host_unit_info.at(host_iterator).radius = u.at(i)->radius;
+						debug->DebugKillUnit(u.at(i));
+						break;
+					}
+				}
+				*/
+
+				++host_iterator;
+			}
 		}
+		PrintUnitInfoToFile(file);
+		std::cout << "Created unit data table on host. Nr of elements: " << host_iterator << ". " << std::endl;
 	}
-	PrintUnitInfoToFile(file);
-	std::cout << "Created unit data table on host. Nr of elements: " << host_iterator << ". " << std::endl;
-	//}
-	for (int i = 0; i < host_unit_info.size(); ++i)
-	{
+	for (int i = 0; i < host_unit_info.size(); ++i) {
 		device_unit_lookup_on_host.push_back({ host_unit_info.at(i).range, host_unit_info.at(i).radius,
 			host_unit_info.at(i).is_flying, host_unit_info.at(i).can_attack_air,
 			host_unit_info.at(i).can_attack_ground });
@@ -272,13 +264,11 @@ __host__ void CUDA::Check(cudaError_t blob, std::string location, bool print_res
 	}
 }
 
-__host__ void CUDA::PrintUnitInfoToFile(std::string fileName)
-{
+__host__ void CUDA::PrintUnitInfoToFile(std::string filename) {
 	std::stringstream str(std::stringstream::out);
 	str << "UnitID, DeviceID, Radius, WeaponRange, CanAttackGround, CanAttackAir, IsFlying" << std::endl;
 
-	for (UnitInfo unit : this->host_unit_info)
-	{
+	for (UnitInfo unit : this->host_unit_info) {
 		str << unit.id << "," << unit.device_id << ","
 			<< unit.radius << "," << unit.range << ","
 			<< unit.can_attack_ground << "," << unit.can_attack_air << ","
@@ -286,23 +276,20 @@ __host__ void CUDA::PrintUnitInfoToFile(std::string fileName)
 	}
 
 	std::ofstream file;
-	file.open(fileName);
+	file.open(filename);
 	file.write(str.str().c_str(), str.str().length());
 	file.close();
 }
 
-__host__ void CUDA::ReadUnitInfoFromFile(std::string fileName)
-{
+__host__ void CUDA::ReadUnitInfoFromFile(std::string filename) {
 	this->host_unit_info.clear();
-	std::ifstream inFile(fileName);
+	std::ifstream inFile(filename);
 	std::string line;
 	std::getline(inFile, line);	//Remove the first line
 	int host_iterator = 0;
-	int pos = line.find(",");
-	while (std::getline(inFile, line))
-	{
+	while (std::getline(inFile, line)) {
 		UnitInfo unit;
-
+		int pos = line.find(",");
 		unit.id = std::stoi(line.substr(0, pos));
 		line.erase(0, pos + 1);
 		
