@@ -2,9 +2,8 @@
 
 #include "../examples/CUDA/cuda_header.cuh"
 
-//DEVICE SYMBOL VARIABLES
+//DEVICE SYMBOL VARIABLES (const & global)
 __device__ __constant__ UnitInfoDevice* device_unit_lookup;
-//__device__ __shared__ Entity* device_unit_array;	//probably wrong, needed as argument
 
 __device__ float GetFloatMapPos(float* ptr, size_t pitch, int x, int y) {
 	return *((float*)((char*)ptr + y * pitch) + x);

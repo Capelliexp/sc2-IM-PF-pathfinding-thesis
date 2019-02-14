@@ -54,14 +54,13 @@ __host__ void CUDA::Update(clock_t dt_ticks) {
 
 	FillDeviceUnitArray();
 	TransferUnitsToDevice();
+
 	//run generation of PFs
 }
 
 __host__ void CUDA::InitializeCUDA() {
 	std::cout << "Initializing CUDA object" << std::endl;
 	
-	// analysis -> host_transfer -> device_malloc -> device_transfer -> tests
-
 	//analysis
 	PrintGenInfo();
 
@@ -165,10 +164,9 @@ __host__ void CUDA::TransferUnitLookupToDevice(){
 }
 
 __host__ void CUDA::AllocateDeviceMemory(){
-	cudaMalloc((void**)&static_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
-	cudaMalloc((void**)&dynamic_map_device_pointer, MAP_X * MAP_Y * sizeof(bool));
+	cudaMalloc((void**)&static_map_device_pointer, MAP_SIZE * sizeof(bool));
+	cudaMalloc((void**)&dynamic_map_device_pointer, MAP_SIZE * sizeof(bool));
 	cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice));
-	//cudaMalloc((void**)&unit_lookup_device_pointer, 156 * sizeof(UnitInfoDevice));
 	cudaMalloc((void**)&device_unit_list_pointer, 800 * sizeof(Entity));	//might extend size during runtime
 }
 

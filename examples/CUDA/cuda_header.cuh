@@ -103,7 +103,7 @@ public:
 	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
 
 private:
-	MapStorage* map_storage;	//pointer to Starcraft's map & data interface
+	MapStorage* map_storage;
 	const sc2::ObservationInterface* observation;
 	sc2::DebugInterface* debug;
 	sc2::ActionInterface* actions;
@@ -113,7 +113,6 @@ private:
 	cudaPitchedPtr static_map_device_pointer;	//data in map_storage
 	cudaPitchedPtr dynamic_map_device_pointer;	//data in map_storage
 	UnitInfoDevice* unit_lookup_device_pointer;
-	//UnitStructInDevice* unit_array_device_pointer;
 	Entity* device_unit_list_pointer;
 
 	//data
