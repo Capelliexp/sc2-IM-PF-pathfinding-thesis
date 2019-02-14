@@ -10,11 +10,7 @@
 #include "../examples/CUDA/cuda_device_functionality.cu"
 #include "../examples/CUDA/cuda_device_tests.cu"
 
-__host__ CUDA::CUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
-	sc2::ActionFeatureLayerInterface* actions_feature_layer) : map_storage(maps), observation(observations), debug(debug), actions(actions),
-	actions_feature_layer(actions_feature_layer){
-	
-	InitializeCUDA();
+__host__ CUDA::CUDA(){	
 }
 
 __host__ CUDA::~CUDA() {
@@ -58,9 +54,16 @@ __host__ void CUDA::Update(clock_t dt_ticks) {
 	//run generation of PFs
 }
 
-__host__ void CUDA::InitializeCUDA() {
+__host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
+	sc2::ActionFeatureLayerInterface* actions_feature_layer){
 	std::cout << "Initializing CUDA object" << std::endl;
 	
+	this->map_storage = maps;
+	this->observation = observations;
+	this->debug = debug;
+	this->actions = actions;
+	this->actions_feature_layer = actions_feature_layer;
+
 	//analysis
 	PrintGenInfo();
 
@@ -79,6 +82,22 @@ __host__ void CUDA::InitializeCUDA() {
 	TestLookupTable();
 	Test3DArrayUsage();
 
+}
+
+__host__ const sc2::ObservationInterface* CUDA::GetObservation(){
+	return observation;
+}
+
+__host__ sc2::DebugInterface* CUDA::GetDebug(){
+	return debug;
+}
+
+__host__ sc2::ActionInterface* CUDA::GetAction(){
+	return actions;
+}
+
+__host__ sc2::ActionFeatureLayerInterface* CUDA::GetActionFeature(){
+	return actions_feature_layer;
 }
 
 __host__ void CUDA::CreateUnitLookupOnHost(){
