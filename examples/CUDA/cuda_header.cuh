@@ -84,7 +84,7 @@ public:
 	//Runtime functionality
 	__host__ void Update(clock_t dt_ticks);
 	__host__ bool FillDeviceUnitArray();
-	__host__ bool TransferUnitsToDevice();
+	__host__ void TransferUnitsToDevice();
 	__host__ bool TransferDynamicMapToDevice();
 
 	//Other functionality
@@ -93,7 +93,7 @@ public:
 
 	//Kernel launches
 	__host__ void TestRepellingPFGeneration();
-	__host__ void Test3DArrayUsage();
+	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
 	__host__ void TestLookupTable();

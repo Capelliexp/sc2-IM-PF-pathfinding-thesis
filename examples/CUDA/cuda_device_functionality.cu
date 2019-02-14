@@ -46,34 +46,18 @@ __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
 	int x = (id % MAP_X), y = (id / MAP_X);
 
-	if (id == 0) printf("start\n");
-
 	if (id < nr_of_units) unit_list_s[id] = device_unit_list_pointer[id];
 
 	__syncthreads();
-
-	if (id == 0) printf("after cpy\n");
 
 	char* devPtr = (char*)device_map.ptr;
 	size_t pitch = device_map.pitch;
 	size_t slicePitch = pitch * MAP_Y;	//not required bcs we have depth 1
 
-	//SetFloatMapPos(device_map, pitch, x, y, (float)id);
-
-	if (id == 0) printf("after ptr calc\n");
-
-
 	char* slice = devPtr + 0;
 	float* row = (float*)(slice + y * pitch);
 	
-	if (id == 0) printf("b4 write\n");
-	
 	row[x] = (float)id;
-	
-	if (id == 0) printf("after write\n");
-
-	printf("(<%d, %d>, %f)", x, y, (float)id);
-
 }
 
 __global__ void TestDeviceIMGeneration(float* device_map) {

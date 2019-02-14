@@ -206,12 +206,8 @@ __host__ void CUDA::TestLookupTable(){
 __host__ void CUDA::Test3DArrayUsage() {
 	cudaPitchedPtr device_map;
 	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X * GRID_DIVISION * sizeof(float), MAP_Y * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
-	//float* device_map;
-	//size_t pitch;
-	//Check(cudaMallocPitch(&device_map, &pitch, MAP_X * GRID_DIVISION * sizeof(float), MAP_Y * GRID_DIVISION), "PFGeneration mallocpitch");
 
-	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), host_unit_list.size() * sizeof(Entity), 
-		cudaMemcpyHostToDevice), "PFGeneration cudaMemcpy to device");
+
 
 	TestDevice3DArrayUsage<<<1, MAP_SIZE, (host_unit_list.size() * sizeof(Entity))>>>
 		(device_unit_list_pointer, host_unit_list.size(), device_map);
@@ -231,30 +227,23 @@ __host__ void CUDA::Test3DArrayUsage() {
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
-	/*Check(cudaMemcpy(return_data, device_map, MAP_SIZE * sizeof(float), cudaMemcpyDeviceToHost),
-		"PFGeneration cudaMemcpy to host", true);*/
-
 	Check(cudaMemcpy3D(&par), "memcpy3D", true);
 	
 	Check(cudaDeviceSynchronize());
-
 	
 	//check
 	int it = 0;
 	for (int i = 0; i < MAP_X; ++i) {
 		for (int j = 0; j < MAP_Y; ++j) {
-			if (std::abs(return_data[j][i][1] - (++it)) > 0.01) {
-				std::cout << "Repelling PF Generation test FAILED, " << return_data[j][i][1] << ", " << it << std::endl;
-				cudaFree(device_map.ptr);
+			if (return_data[i][j][0] != i * MAP_X + j) {
+				std::cout << "Repelling PF Generation test FAILED" << std::endl;
 				return;
 			}
 		}
 	}
 	std::cout << "Repelling PF Generation test SUCCESS" << std::endl;
-	std::cout << std::endl;
 	
 	//cudaFree(device_map);	//do not free, space will be used next frame
-
 }
 
 __host__ void CUDA::TestAttractingPFGeneration() {
@@ -269,18 +258,9 @@ __host__ void CUDA::TestIMGeneration(sc2::Point2D destination, bool air_route) {
 	//cudaMemcpy();
 }
 
-__host__ bool CUDA::TransferUnitsToDevice() {
-	//std::vector<UnitStructInDevice> vec;
-	//vec.reserve(map_storage->units.size());
-
-
-	for (auto const& unit : map_storage->units) {
-
-	}
-
-	//transfer to GPU ...
-
-	return true;
+__host__ void CUDA::TransferUnitsToDevice() {
+	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), host_unit_list.size() * sizeof(Entity),
+		cudaMemcpyHostToDevice), "TransferUnitsToDevice");
 }
 
 __host__ void CUDA::TransferStaticMapToDevice() {
