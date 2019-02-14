@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../examples/CUDA/cuda_header.cuh"
-//#include "../examples/CUDA/map_storage.hpp"
 
 #include <stdio.h>
 #include <string>
@@ -9,6 +8,7 @@
 #include <cmath>
 
 #include "../examples/CUDA/cuda_device_functionality.cu"
+#include "../examples/CUDA/cuda_device_tests.cu"
 
 __host__ CUDA::CUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
 	sc2::ActionFeatureLayerInterface* actions_feature_layer) : map_storage(maps), observation(observations), debug(debug), actions(actions),
@@ -263,12 +263,12 @@ __host__ void CUDA::Test3DArrayUsage() {
 	for (int i = 0; i < MAP_X; ++i) {
 		for (int j = 0; j < MAP_Y; ++j) {
 			if (return_data[i][j][0] != i * MAP_X + j) {
-				std::cout << "Repelling PF Generation test FAILED" << std::endl;
+				std::cout << "3D Array Usage test FAILED" << std::endl;
 				return;
 			}
 		}
 	}
-	std::cout << "Repelling PF Generation test SUCCESS" << std::endl;
+	std::cout << "3D Array Usage test SUCCESS" << std::endl;
 
 	//cudaFree(device_map);	//do not free, space will be used next frame
 }

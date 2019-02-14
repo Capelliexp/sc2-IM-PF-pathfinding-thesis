@@ -37,7 +37,7 @@
 #define THREADS_PER_BLOCK 512
 #define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
 
-struct UnitInfo {
+typedef struct {
 	sc2::UNIT_TYPEID id = sc2::UNIT_TYPEID::INVALID;
 	unsigned int device_id = 0;
 	float radius = 0;
@@ -45,7 +45,7 @@ struct UnitInfo {
 	bool is_flying = false;
 	bool can_attack_air = true;
 	bool can_attack_ground = true;
-};
+} UnitInfo;
 
 typedef struct {
 	float range;
@@ -53,13 +53,13 @@ typedef struct {
 	bool is_flying;
 	bool can_attack_air;
 	bool can_attack_ground;
-} UnitInfoDevice;	//must be C-style
+} UnitInfoDevice;
 
 typedef struct {
 	unsigned int id;	//this is NOT the UNIT_TYPEID, it is the converted device_id
 	struct { float x; float y; } pos;
 	bool enemy;
-} Entity;	//must be C-style
+} Entity;
 
 //DEVICE FUNCTIONS
 __global__ void TestDeviceAttractingPFGeneration(float* device_map);
