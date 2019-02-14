@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../examples/CUDA/cuda_header.cuh"
+#include "../examples/CUDA/cuda_device_utility.cu"
 
 /*
 1080 deviceQuery:
@@ -26,26 +27,3 @@ Maximum memory pitch : 2147483647 bytes
 Texture alignment : 512 bytes
 */
 
-//DEVICE SYMBOL VARIABLES
-__device__ __constant__ UnitInfoDevice* device_unit_lookup;
-__device__ __shared__ Entity* device_unit_array;	//probably wrong, needed as argument
-
-__global__ void TestDeviceLookupUsage(float* result) {
-	int id = threadIdx.x + blockDim.x * blockIdx.x;
-
-	result[id] = device_unit_lookup[id].range;
-}
-
-__global__ void TestDeviceAttractingPFGeneration(float* device_map) {
-	int id = threadIdx.x + blockDim.x * blockIdx.x;
-
-	//move lookup to shared
-
-	//do stuff
-}
-
-__global__ void TestDeviceRepellingPFGeneration(float* device_map){}
-
-__global__ void TestDeviceIMGeneration(float* device_map) {
-	int id = threadIdx.x + blockDim.x * blockIdx.x;
-}

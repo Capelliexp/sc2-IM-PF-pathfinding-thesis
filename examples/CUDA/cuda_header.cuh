@@ -26,12 +26,18 @@
 //https://devtalk.nvidia.com/default/topic/482986/how-do-you-copy-an-array-into-constant-memory-/
 //https://stackoverflow.com/questions/28821743/sharing-roots-and-weights-for-many-gauss-legendre-quadrature-in-gpus/28822918#28822918
 //https://devblogs.nvidia.com/using-shared-memory-cuda-cc/
+//https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory
+//https://stackoverflow.com/questions/5531247/allocating-shared-memory
+//https://github.com/NVIDIA-developer-blog/code-samples/blob/master/series/cuda-cpp/shared-memory/shared-memory.cu
+//http://www.orangeowlsolutions.com/archives/817
+//Check(cudaPeekAtLastError());
+//Check(cudaDeviceSynchronize());
 
 #define BLOCK_AMOUNT 1 
 #define THREADS_PER_BLOCK 512
 #define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
 
-struct UnitInfo {
+typedef struct {
 	sc2::UNIT_TYPEID id = sc2::UNIT_TYPEID::INVALID;
 	unsigned int device_id = 0;
 	float radius = 0;
@@ -39,7 +45,7 @@ struct UnitInfo {
 	bool is_flying = false;
 	bool can_attack_air = true;
 	bool can_attack_ground = true;
-};
+} UnitInfo;
 
 typedef struct {
 	float range;
@@ -47,16 +53,18 @@ typedef struct {
 	bool is_flying;
 	bool can_attack_air;
 	bool can_attack_ground;
-} UnitInfoDevice;	//must be C-style
+} UnitInfoDevice;
 
 typedef struct {
 	unsigned int id;	//this is NOT the UNIT_TYPEID, it is the converted device_id
 	struct { float x; float y; } pos;
-} Entity;	//must be C-style
+	bool enemy;
+} Entity;
 
 //DEVICE FUNCTIONS
 __global__ void TestDeviceAttractingPFGeneration(float* device_map);
-__global__ void TestDeviceRepellingPFGeneration(float* device_map);
+__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
+__global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
 __global__ void TestDeviceIMGeneration(float* device_map);
 __global__ void TestDeviceLookupUsage(float* result);
 
@@ -76,8 +84,8 @@ public:
 	
 	//Runtime functionality
 	__host__ void Update(clock_t dt_ticks);
-	__host__ bool FillDeviceUnitArray();
-	__host__ bool TransferUnitsToDevice();
+	__host__ void FillDeviceUnitArray();
+	__host__ void TransferUnitsToDevice();
 	__host__ bool TransferDynamicMapToDevice();
 
 	//Other functionality
@@ -86,29 +94,31 @@ public:
 
 	//Kernel launches
 	__host__ void TestRepellingPFGeneration();
+	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
 	__host__ void TestLookupTable();
 
 	//Error checking
 	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
+
 private:
-	MapStorage* map_storage;	//pointer to Starcraft's map & data interface
+	MapStorage* map_storage;
 	const sc2::ObservationInterface* observation;
 	sc2::DebugInterface* debug;
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
 	//device memory pointers
-	bool* static_map_device_pointer;	//data in map_storage
-	bool* dynamic_map_device_pointer;	//data in map_storage
+	cudaPitchedPtr static_map_device_pointer;	//data in map_storage
+	cudaPitchedPtr dynamic_map_device_pointer;	//data in map_storage
 	UnitInfoDevice* unit_lookup_device_pointer;
-	//UnitStructInDevice* unit_array_device_pointer;
-	//__device__ __shared__ Entity* device_unit_array;
+	Entity* device_unit_list_pointer;
 
 	//data
 	std::vector<UnitInfo> host_unit_info; 
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;
 	std::unordered_map<sc2::UNIT_TYPEID, unsigned int> host_unit_transform;
+	std::vector<Entity> host_unit_list;
 };
 #endif
