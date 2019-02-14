@@ -85,6 +85,10 @@ public:
 	__host__ bool DeleteAllIMs();
 	__host__ void PrintUnitInfoToFile(std::string filename);
 	__host__ void ReadUnitInfoFromFile(std::string filename);
+	__host__ std::vector<int> GetUnitsID();
+	__host__ void SetRadiusForUnits(std::vector<float> radius);
+	__host__ int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
+	__host__ int GetSizeOfUnitInfoList();
 
 	//Kernel launches
 	__host__ void TestRepellingPFGeneration();

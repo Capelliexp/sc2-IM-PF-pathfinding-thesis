@@ -322,3 +322,26 @@ __host__ void CUDA::ReadUnitInfoFromFile(std::string filename) {
 		++host_iterator;
 	}
 }
+
+__host__ std::vector<int> CUDA::GetUnitsID() {
+	std::vector<int> unit_IDs;
+	for (UnitInfo unit : host_unit_info) {
+		unit_IDs.push_back(unit.id);
+	}
+	return unit_IDs;
+}
+
+__host__ void CUDA::SetRadiusForUnits(std::vector<float> radius) {
+	for (int i = 0; i < radius.size(); ++i) {
+		host_unit_info[i].radius = radius[i];
+	}
+	PrintUnitInfoToFile("unitInfo.txt");
+}
+
+__host__ int CUDA::GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID) {
+	return host_unit_transform.at(typeID);
+}
+
+__host__ int CUDA::GetSizeOfUnitInfoList() {
+	return host_unit_info.size();
+}
