@@ -58,6 +58,7 @@ typedef struct {
 typedef struct {
 	unsigned int id;	//this is NOT the UNIT_TYPEID, it is the converted device_id
 	struct { float x; float y; } pos;
+	bool enemy;
 } Entity;	//must be C-style
 
 //DEVICE FUNCTIONS
@@ -83,7 +84,7 @@ public:
 	
 	//Runtime functionality
 	__host__ void Update(clock_t dt_ticks);
-	__host__ bool FillDeviceUnitArray();
+	__host__ void FillDeviceUnitArray();
 	__host__ void TransferUnitsToDevice();
 	__host__ bool TransferDynamicMapToDevice();
 
@@ -100,6 +101,7 @@ public:
 
 	//Error checking
 	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
+
 private:
 	MapStorage* map_storage;	//pointer to Starcraft's map & data interface
 	const sc2::ObservationInterface* observation;

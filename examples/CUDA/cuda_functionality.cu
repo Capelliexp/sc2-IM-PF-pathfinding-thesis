@@ -172,10 +172,25 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	cudaMalloc((void**)&device_unit_list_pointer, 800 * sizeof(Entity));	//might extend size during runtime
 }
 
-__host__ bool CUDA::FillDeviceUnitArray() {
+__host__ void CUDA::FillDeviceUnitArray() {
+	host_unit_list.clear();
+	host_unit_list.resize(map_storage->units.size());
 
-	
-	return true;
+	int device_list_length = map_storage->units.size();
+	for (int i = 0; i < map_storage->units.size(); ++i) {
+		std::unordered_map<sc2::UNIT_TYPEID, unsigned int>::const_iterator it = host_unit_transform.find(map_storage->units.at(i).id);
+		if (it == host_unit_transform.end()) {
+			host_unit_list.resize(host_unit_list.size() - 1);
+			std::cout << "WARNING: invalid entity in map_storage unit vector" << std::endl;
+			continue;
+		}
+
+		host_unit_list.at(device_list_length).id = it->second;
+		host_unit_list.at(device_list_length).pos = { map_storage->units.at(i).position.x, map_storage->units.at(i).position.y };
+		host_unit_list.at(device_list_length).enemy = map_storage->units.at(i).enemy;
+
+		device_list_length++;
+	}	
 }
 
 __host__ void CUDA::TestLookupTable(){
@@ -207,7 +222,7 @@ __host__ void CUDA::Test3DArrayUsage() {
 	cudaPitchedPtr device_map;
 	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X * GRID_DIVISION * sizeof(float), MAP_Y * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
 
-
+	TransferUnitsToDevice();	//unnecessary for the test
 
 	TestDevice3DArrayUsage<<<1, MAP_SIZE, (host_unit_list.size() * sizeof(Entity))>>>
 		(device_unit_list_pointer, host_unit_list.size(), device_map);
