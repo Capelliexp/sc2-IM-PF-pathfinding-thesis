@@ -134,7 +134,7 @@ namespace sc2 {
 
     bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type) {
         Units my_units = observation->GetUnits(Unit::Alliance::Self);
-        std::random_shuffle(my_units.begin(), my_units.end()); // Doesn't work, or doesn't work well.
+        std::shuffle(my_units.begin(), my_units.end(), std::mt19937(std::random_device()()));
         for (const auto unit : my_units) {
             if (unit->unit_type == unit_type) {
                 unit_out = unit;
@@ -3312,14 +3312,14 @@ namespace sc2 {
                     Actions()->UnitCommand(unit, sc2::ABILITY_ID::MOVE, Point2D(7.0f, 5.0f), true);
                     Actions()->SendActions();
                     PrintStatus("Stop for " + std::string(UnitTypeToName(unit->unit_type)) + ", with command: " + order + " was called.");*/
-                    float dist = Query()->PathingDistance(unit, Point2D(3, 3));
-                    int i = dist;
+                    /*float dist = Query()->PathingDistance(unit, Point2D(3, 3));
+                    int i = dist;*/
                 }
                 if (unit->is_selected && !MapPrinted)
                 {
                     MapPrinted = true;
-                    int i = Observation()->GetGameInfo().pathing_grid.bits_per_pixel;
-                    int d = 0 + i;
+                    /*int i = Observation()->GetGameInfo().pathing_grid.bits_per_pixel;
+                    int d = 0 + i;*/
                     PrintUnits();
                     //sc2::renderer::Matrix8BPPHeightMap(Observation()->GetGameInfo().pathing_grid.data.c_str(), width, height, 0, 0, kPixelDrawSize, kPixelDrawSize);
                     //AddObjectiveToIM(objectives[0]);
@@ -3559,18 +3559,18 @@ namespace sc2 {
     void MyBot::IMAddUnit(const Unit* unit)
     {
         int d = int(unit->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
-        int rr = pow(unit->radius * pathingGridSize, 2);
-        int xc = unit->pos.x * pathingGridSize;
-        int yc = unit->pos.y * pathingGridSize;
+        int rr = (int)pow(unit->radius * pathingGridSize, 2);
+        int xc = (int)unit->pos.x * pathingGridSize;
+        int yc = (int)unit->pos.y * pathingGridSize;
         int startX = xc - d / 2;
         int startY = yc - d / 2;
 
         for (int y = 0; y < d; ++y)
         {
-            int yp = pow(y - d / 2, 2);
+            int yp = (int)pow(y - d / 2, 2);
             for (int x = 0; x < d; ++x)
             {
-                float dd = pow(x - d / 2, 2) + yp;
+                float dd = (float)pow(x - d / 2, 2) + yp;
                 InfluenceMap[startX + x + (startY + y) * width] = (dd < rr) ? 0 : 1;
             }
         }
@@ -3583,8 +3583,8 @@ namespace sc2 {
     void MyBot::IMRemoveUnit(const Unit * unit)
     {
         int d = int(unit->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
-        int xc = unit->pos.x * pathingGridSize;
-        int yc = unit->pos.y * pathingGridSize;
+        int xc = (int)unit->pos.x * pathingGridSize;
+        int yc = (int)unit->pos.y * pathingGridSize;
         int startX = xc - d / 2;
         int startY = yc - d / 2;
 
@@ -3621,12 +3621,12 @@ namespace sc2 {
         int ww = width * 1.5;
         for (int y = start; y < height-2; ++y)
         {
-            int yp = pow(y - objective.y * pathingGridSize, 2);
+            int yp = (int)pow(y - objective.y * pathingGridSize, 2);
             for (int x = start; x < width-2; ++x)
             {
                 if (InfluenceMap[x + y * width] == 1)
                 {
-                    int xp = pow(x - objective.x * pathingGridSize, 2);
+                    int xp = (int)pow(x - objective.x * pathingGridSize, 2);
                     InfluenceMap[x + y * width] = ww - sqrt(xp + yp);
                 }
             }
