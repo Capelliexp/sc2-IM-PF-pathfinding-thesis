@@ -69,12 +69,14 @@ __global__ void TestDeviceIMGeneration(float* device_map);
 __global__ void TestDeviceLookupUsage(float* result);
 
 class CUDA {
+	//friend class MapStorage;
+
 public:
-	__host__ CUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, sc2::ActionFeatureLayerInterface* actions_feature_layer);
+	__host__ CUDA();
 	__host__ ~CUDA();
 
 	//Initialization (requires cleanup)
-	__host__ void InitializeCUDA();
+	__host__ void InitializeCUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, sc2::ActionFeatureLayerInterface* actions_feature_layer);
 	__host__ void PrintGenInfo();
 	__host__ void CreateUnitLookupOnHost();
 	__host__ void TransferStaticMapToHost();
@@ -89,6 +91,10 @@ public:
 	__host__ bool TransferDynamicMapToDevice();
 
 	//Other functionality
+	__host__ const sc2::ObservationInterface* GetObservation();
+	__host__ sc2::DebugInterface* GetDebug();
+	__host__ sc2::ActionInterface* GetAction();
+	__host__ sc2::ActionFeatureLayerInterface* GetActionFeature();
 	__host__ void CreateUnitRadiusTable();
 	__host__ bool DeleteAllIMs();
 	__host__ void PrintUnitInfoToFile(std::string filename);
