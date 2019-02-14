@@ -52,6 +52,8 @@ public:
 	friend class CUDA;	//might be wrong? used to access private maps & units
 
 	void Test();
+	bool CheckIfFileExists(std::string filename);
+
 
 	std::list<Destination_IM> destinations_ground_IM;
 	std::list<Destination_IM> destinations_air_IM;
