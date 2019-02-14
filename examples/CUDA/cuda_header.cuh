@@ -37,8 +37,8 @@
 #define THREADS_PER_BLOCK 512
 #define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
 
-typedef struct {
-	sc2::UNIT_TYPEID id = sc2::UNIT_TYPEID::INVALID;
+struct UnitInfo {
+	int id = 0;		//sc2::UNIT_TYPEID::INVALID
 	unsigned int device_id = 0;
 	float radius = 0;
 	float range = 0;
@@ -91,6 +91,12 @@ public:
 	//Other functionality
 	__host__ void CreateUnitRadiusTable();
 	__host__ bool DeleteAllIMs();
+	__host__ void PrintUnitInfoToFile(std::string filename);
+	__host__ void ReadUnitInfoFromFile(std::string filename);
+	__host__ std::vector<int> GetUnitsID();
+	__host__ void SetRadiusForUnits(std::vector<float> radius);
+	__host__ int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
+	__host__ int GetSizeOfUnitInfoList();
 
 	//Kernel launches
 	__host__ void TestRepellingPFGeneration();
@@ -116,7 +122,7 @@ private:
 	Entity* device_unit_list_pointer;
 
 	//data
-	std::vector<UnitInfo> host_unit_info; 
+	std::vector<UnitInfo> host_unit_info;
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;
 	std::unordered_map<sc2::UNIT_TYPEID, unsigned int> host_unit_transform;
 	std::vector<Entity> host_unit_list;
