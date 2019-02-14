@@ -83,8 +83,8 @@ public:
 	//Other functionality
 	__host__ void CreateUnitRadiusTable();
 	__host__ bool DeleteAllIMs();
-	__host__ void PrintUnitInfoToFile(std::string fileName, std::vector<UnitInfo> unitInfo);
-	__host__ std::vector<UnitInfo> ReadUnitInfoFromFile(std::string fileName);
+	__host__ void PrintUnitInfoToFile(std::string fileName);
+	__host__ void ReadUnitInfoFromFile(std::string fileName);
 
 	//Kernel launches
 	__host__ void TestRepellingPFGeneration();
@@ -109,7 +109,7 @@ private:
 	//__device__ __shared__ Entity* device_unit_array;
 
 	//data
-	std::vector<UnitInfo> host_unit_info; 
+	std::vector<UnitInfo> host_unit_info;
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;
 	std::unordered_map<sc2::UNIT_TYPEID, unsigned int> host_unit_transform;
 };

@@ -69,7 +69,6 @@ __host__ void CUDA::InitializeCUDA() {
 	PrintGenInfo();
 
 	//host_transfer
-	
 	CreateUnitLookupOnHost();
 	TransferStaticMapToHost();
 
@@ -88,6 +87,13 @@ __host__ void CUDA::InitializeCUDA() {
 __host__ void CUDA::CreateUnitLookupOnHost(){
 	sc2::UnitTypes types = observation->GetUnitTypeData();
 
+	std::string file = "unitInfo.txt";
+	//if (std::filesystem::exists(file))
+	//{
+	//	ReadUnitInfoFromFile(file);
+	//}
+	//else
+	//{
 	int host_iterator = 0;
 	for (int i = 1; i < types.size(); ++i)
 	{
@@ -148,17 +154,16 @@ __host__ void CUDA::CreateUnitLookupOnHost(){
 			++host_iterator;
 		}
 	}
-	PrintUnitInfoToFile("unitInfo", host_unit_info);
-
+	PrintUnitInfoToFile(file);
 	std::cout << "Created unit data table on host. Nr of elements: " << host_iterator << ". " << std::endl;
-	for (int i = 0; i < host_unit_info.size(); ++i) {
+	//}
+	for (int i = 0; i < host_unit_info.size(); ++i)
+	{
 		device_unit_lookup_on_host.push_back({ host_unit_info.at(i).range, host_unit_info.at(i).radius,
 			host_unit_info.at(i).is_flying, host_unit_info.at(i).can_attack_air,
 			host_unit_info.at(i).can_attack_ground });
 	}
-
 	std::cout << std::endl;
-
 	std::cout << "device_unit_lookup array filled on host" << std::endl;
 }
 
@@ -267,12 +272,12 @@ __host__ void CUDA::Check(cudaError_t blob, std::string location, bool print_res
 	}
 }
 
-__host__ void CUDA::PrintUnitInfoToFile(std::string fileName, std::vector<UnitInfo> unitInfo)
+__host__ void CUDA::PrintUnitInfoToFile(std::string fileName)
 {
 	std::stringstream str(std::stringstream::out);
 	str << "UnitID, DeviceID, Radius, WeaponRange, CanAttackGround, CanAttackAir, IsFlying" << std::endl;
 
-	for (UnitInfo unit : unitInfo)
+	for (UnitInfo unit : this->host_unit_info)
 	{
 		str << unit.id << "," << unit.device_id << ","
 			<< unit.radius << "," << unit.range << ","
@@ -281,21 +286,23 @@ __host__ void CUDA::PrintUnitInfoToFile(std::string fileName, std::vector<UnitIn
 	}
 
 	std::ofstream file;
-	file.open(fileName + ".txt");
+	file.open(fileName);
 	file.write(str.str().c_str(), str.str().length());
 	file.close();
 }
 
-__host__ std::vector<UnitInfo> ReadUnitInfoFromFile(std::string fileName)
+__host__ void CUDA::ReadUnitInfoFromFile(std::string fileName)
 {
-	std::vector<UnitInfo> unitInfo;
-	std::ifstream inFile(fileName + "txt");
+	this->host_unit_info.clear();
+	std::ifstream inFile(fileName);
 	std::string line;
 	std::getline(inFile, line);	//Remove the first line
+	int host_iterator = 0;
+	int pos = line.find(",");
 	while (std::getline(inFile, line))
 	{
 		UnitInfo unit;
-		int pos = line.find(",");
+
 		unit.id = std::stoi(line.substr(0, pos));
 		line.erase(0, pos + 1);
 		
@@ -323,6 +330,8 @@ __host__ std::vector<UnitInfo> ReadUnitInfoFromFile(std::string fileName)
 		unit.is_flying = std::stoi(line.substr(0, pos));
 		line.erase(0, pos + 1);
 
+		this->host_unit_info.push_back(unit);
+		this->host_unit_transform.insert({ { sc2::UNIT_TYPEID(unit.id), host_iterator } });
+		++host_iterator;
 	}
-	return unitInfo;
 }
