@@ -37,7 +37,7 @@
 #define THREADS_PER_BLOCK 512
 #define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
 
-struct UnitInfo {
+typedef struct {
 	int id = 0;		//sc2::UNIT_TYPEID::INVALID
 	unsigned int device_id = 0;
 	float radius = 0;
