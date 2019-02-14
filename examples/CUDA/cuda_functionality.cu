@@ -193,13 +193,27 @@ __host__ void CUDA::FillDeviceUnitArray() {
 	}	
 }
 
-__host__ void CUDA::TestLookupTable(){
+__host__ void CUDA::TransferUnitsToDevice() {
+	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), host_unit_list.size() * sizeof(Entity),
+		cudaMemcpyHostToDevice), "TransferUnitsToDevice");
+}
+
+__host__ void CUDA::TransferStaticMapToDevice() {
+
+}
+
+__host__ bool CUDA::TransferDynamicMapToDevice() {
+
+	return true;
+}
+
+__host__ void CUDA::TestLookupTable() {
 	int table_length = device_unit_lookup_on_host.size();
 
 	float* write_data_d;
 	cudaMalloc((void**)&write_data_d, table_length * sizeof(float));
 
-	TestDeviceLookupUsage<<<1, table_length >>>(write_data_d);
+	TestDeviceLookupUsage << <1, table_length >> > (write_data_d);
 
 	float* return_data = new float[table_length];
 	cudaMemcpy(return_data, write_data_d, table_length * sizeof(float), cudaMemcpyDeviceToHost);
@@ -224,7 +238,7 @@ __host__ void CUDA::Test3DArrayUsage() {
 
 	TransferUnitsToDevice();	//unnecessary for the test
 
-	TestDevice3DArrayUsage<<<1, MAP_SIZE, (host_unit_list.size() * sizeof(Entity))>>>
+	TestDevice3DArrayUsage << <1, MAP_SIZE, (host_unit_list.size() * sizeof(Entity)) >> >
 		(device_unit_list_pointer, host_unit_list.size(), device_map);
 
 	float return_data[MAP_X][MAP_Y][1];
@@ -242,10 +256,10 @@ __host__ void CUDA::Test3DArrayUsage() {
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
-	Check(cudaMemcpy3D(&par), "memcpy3D", true);
-	
+	Check(cudaMemcpy3D(&par), "memcpy3D");
+
 	Check(cudaDeviceSynchronize());
-	
+
 	//check
 	int it = 0;
 	for (int i = 0; i < MAP_X; ++i) {
@@ -257,12 +271,12 @@ __host__ void CUDA::Test3DArrayUsage() {
 		}
 	}
 	std::cout << "Repelling PF Generation test SUCCESS" << std::endl;
-	
+
 	//cudaFree(device_map);	//do not free, space will be used next frame
 }
 
 __host__ void CUDA::TestAttractingPFGeneration() {
-	
+
 }
 
 __host__ void CUDA::TestIMGeneration(sc2::Point2D destination, bool air_route) {
@@ -271,20 +285,6 @@ __host__ void CUDA::TestIMGeneration(sc2::Point2D destination, bool air_route) {
 	//TestDevice << <BLOCK_AMOUNT, THREADS_PER_BLOCK >> > ();
 
 	//cudaMemcpy();
-}
-
-__host__ void CUDA::TransferUnitsToDevice() {
-	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), host_unit_list.size() * sizeof(Entity),
-		cudaMemcpyHostToDevice), "TransferUnitsToDevice");
-}
-
-__host__ void CUDA::TransferStaticMapToDevice() {
-
-}
-
-__host__ bool CUDA::TransferDynamicMapToDevice() {
-
-	return true;
 }
 
 __host__ void CUDA::Check(cudaError_t blob, std::string location, bool print_res){
