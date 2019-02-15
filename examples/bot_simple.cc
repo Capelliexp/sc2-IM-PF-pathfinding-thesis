@@ -5,6 +5,8 @@
 
 #include "sc2utils/sc2_manage_process.h"
 
+#include "ChatParser/ChatParser.h"
+
 //#include "cuda_wrapper.hpp"
 #include "CUDA/cuda_header.cuh"
 #include "CUDA/map_storage.hpp"
@@ -26,6 +28,7 @@ public:
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
         map_storage = new MapStorage();
+        chat_parser = new ChatParser();
         cuda = new CUDA();
         cuda->InitializeCUDA(map_storage, Observation(), Debug(), Actions(), ActionsFeatureLayer());
         map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
@@ -35,7 +38,11 @@ public:
 
     virtual void OnStep() final {
         uint32_t game_loop = Observation()->GetGameLoop();
-
+        std::vector<sc2::ChatMessage> msg = Observation()->GetChatMessages();
+        if (msg.size() > 0)
+        {
+            int i = 0;
+        }
         /*if (game_loop % 100 == 0) {
             sc2::Units units = Observation()->GetUnits(sc2::Unit::Alliance::Self);
             for (auto& it_unit : units) {
@@ -87,6 +94,7 @@ private:
     MapStorage* map_storage;
     CUDA* cuda;
     clock_t step_clock;
+    ChatParser* chat_parser;
 
 };
 
