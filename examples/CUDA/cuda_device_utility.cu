@@ -26,7 +26,7 @@ __device__ float FloatDistance(int posX1, int posY1, int posX2, int posY2) {
 	return rsqrtf(a + b);
 }
 
-__device__ int IntDistance(int posX1, int posY1, int posX2, int posY2) {
+__device__ int BlockDistance(int posX1, int posY1, int posX2, int posY2) {
 	int a = fabsf(posX1 - posX2);
 	int b = fabsf(posY1 - posY2);
 	return a + b;

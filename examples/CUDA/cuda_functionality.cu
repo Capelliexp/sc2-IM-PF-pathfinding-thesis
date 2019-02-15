@@ -83,6 +83,7 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	//tests
 	TestLookupTable();
 	Test3DArrayUsage();
+	RepellingPFGeneration();
 
 }
 
@@ -187,10 +188,12 @@ __host__ void CUDA::TransferUnitLookupToDevice(){
 }
 
 __host__ void CUDA::AllocateDeviceMemory(){
-	cudaMalloc((void**)&static_map_device_pointer, MAP_SIZE * sizeof(bool));
-	cudaMalloc((void**)&dynamic_map_device_pointer, MAP_SIZE * sizeof(bool));
-	cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice));
-	cudaMalloc((void**)&device_unit_list_pointer, 800 * sizeof(Entity));	//might extend size during runtime
+	cudaMalloc3D(&static_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//static map
+	cudaMalloc3D(&dynamic_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//dynamic map
+	cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice));	//lookup table (global on device)
+	cudaMalloc((void**)&device_unit_list_pointer, 800 * sizeof(Entity));	//unit list (might extend size during runtime)
+	cudaMalloc3D(&repelling_pf_ground_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling on ground
+	cudaMalloc3D(&repelling_pf_air_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling in air
 }
 
 __host__ void CUDA::FillDeviceUnitArray() {
@@ -228,6 +231,42 @@ __host__ bool CUDA::TransferDynamicMapToDevice() {
 	return true;
 }
 
+/*KERNAL LAUNCHES START*/
+
+__host__ void CUDA::RepellingPFGeneration(){
+	DeviceRepellingPFGeneration<<<1, MAP_SIZE_R, (host_unit_list.size() * sizeof(Entity))>>>
+		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+
+	cudaMemcpy3DParms par = { 0 };
+	par.srcPtr.ptr = repelling_pf_ground_map_pointer.ptr;
+	par.srcPtr.pitch = repelling_pf_ground_map_pointer.pitch;
+	par.srcPtr.xsize = MAP_X_R;
+	par.srcPtr.ysize = MAP_Y_R;
+	par.dstPtr.ptr = map_storage->ground_avoidance_PF;
+	par.dstPtr.pitch = MAP_X_R * sizeof(float);
+	par.dstPtr.xsize = MAP_X_R;
+	par.dstPtr.ysize = MAP_Y_R;
+	par.extent.width = MAP_X_R * sizeof(float);
+	par.extent.height = MAP_Y_R;
+	par.extent.depth = 1;
+	par.kind = cudaMemcpyDeviceToHost;
+
+	Check(cudaMemcpy3D(&par), "ground PF memcpy3D", true);
+
+	par.srcPtr.ptr = repelling_pf_air_map_pointer.ptr;
+	par.srcPtr.pitch = repelling_pf_air_map_pointer.pitch;
+	par.dstPtr.ptr = map_storage->air_avoidance_PF;
+
+	Check(cudaMemcpy3D(&par), "air PF memcpy3D", true);
+
+	Check(cudaDeviceSynchronize());
+
+	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
+	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R,MAP_Y_R, "air");
+
+	getchar();
+}
+
 __host__ void CUDA::TestLookupTable() {
 	int table_length = device_unit_lookup_on_host.size();
 
@@ -255,25 +294,25 @@ __host__ void CUDA::TestLookupTable() {
 
 __host__ void CUDA::Test3DArrayUsage() {
 	cudaPitchedPtr device_map;
-	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X * GRID_DIVISION * sizeof(float), MAP_Y * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
+	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * GRID_DIVISION * sizeof(float), MAP_Y_R * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
 
 	TransferUnitsToDevice();	//unnecessary for the test
 
 	TestDevice3DArrayUsage << <1, MAP_SIZE, (host_unit_list.size() * sizeof(Entity)) >> >
 		(device_unit_list_pointer, host_unit_list.size(), device_map);
 
-	float return_data[MAP_X][MAP_Y][1];
+	float return_data[MAP_X_R][MAP_Y_R][1];
 	cudaMemcpy3DParms par = { 0 };
 	par.srcPtr.ptr = device_map.ptr;
 	par.srcPtr.pitch = device_map.pitch;
-	par.srcPtr.xsize = MAP_X;
-	par.srcPtr.ysize = MAP_Y;
+	par.srcPtr.xsize = MAP_X_R;
+	par.srcPtr.ysize = MAP_Y_R;
 	par.dstPtr.ptr = return_data;
-	par.dstPtr.pitch = MAP_X * sizeof(float);
-	par.dstPtr.xsize = MAP_X;
-	par.dstPtr.ysize = MAP_Y;
-	par.extent.width = MAP_X * sizeof(float);
-	par.extent.height = MAP_Y;
+	par.dstPtr.pitch = MAP_X_R * sizeof(float);
+	par.dstPtr.xsize = MAP_X_R;
+	par.dstPtr.ysize = MAP_Y_R;
+	par.extent.width = MAP_X_R * sizeof(float);
+	par.extent.height = MAP_Y_R;
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
@@ -283,8 +322,8 @@ __host__ void CUDA::Test3DArrayUsage() {
 
 	//check
 	int it = 0;
-	for (int i = 0; i < MAP_X; ++i) {
-		for (int j = 0; j < MAP_Y; ++j) {
+	for (int i = 0; i < MAP_X_R; ++i) {
+		for (int j = 0; j < MAP_Y_R; ++j) {
 			if (return_data[i][j][0] != i * MAP_X + j) {
 				std::cout << "3D Array Usage test FAILED" << std::endl;
 				return;
@@ -307,6 +346,8 @@ __host__ void CUDA::TestIMGeneration(sc2::Point2D destination, bool air_route) {
 
 	//cudaMemcpy();
 }
+
+/*KERNAL LAUNCHES END*/
 
 __host__ void CUDA::Check(cudaError_t blob, std::string location, bool print_res){
 	if (blob != cudaSuccess) {

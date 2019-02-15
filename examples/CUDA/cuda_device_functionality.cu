@@ -27,3 +27,19 @@ Maximum memory pitch : 2147483647 bytes
 Texture alignment : 512 bytes
 */
 
+__global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
+	extern __shared__ Entity unit_list_s[];
+	int id = threadIdx.x + blockDim.x * blockIdx.x;
+	int x = (id % MAP_X_R), y = (id / MAP_X_R);
+
+	if (id < nr_of_units) unit_list_s[id] = device_unit_list_pointer[id];
+
+	__syncthreads();
+
+	char* devPtr = (char*)device_map_ground.ptr;
+	size_t pitch = device_map_ground.pitch;
+
+	float* row = (float*)(devPtr + y * pitch);
+
+	row[x] = (float)id;
+}

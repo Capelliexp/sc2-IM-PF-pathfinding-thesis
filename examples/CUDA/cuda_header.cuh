@@ -62,10 +62,11 @@ typedef struct {
 } Entity;
 
 //DEVICE FUNCTIONS
-__global__ void TestDeviceAttractingPFGeneration(float* device_map);
-__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
+__global__ void DeviceAttractingPFGeneration(float* device_map);
+__global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
+__global__ void DeviceIMGeneration(float* device_map);
+
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
-__global__ void TestDeviceIMGeneration(float* device_map);
 __global__ void TestDeviceLookupUsage(float* result);
 
 class CUDA {
@@ -105,7 +106,7 @@ public:
 	__host__ int GetSizeOfUnitInfoList();
 
 	//Kernel launches
-	__host__ void TestRepellingPFGeneration();
+	__host__ void RepellingPFGeneration();
 	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
@@ -122,8 +123,12 @@ private:
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
 	//device memory pointers
-	cudaPitchedPtr static_map_device_pointer;	//data in map_storage
-	cudaPitchedPtr dynamic_map_device_pointer;	//data in map_storage
+	cudaPitchedPtr static_map_device_pointer;
+	cudaPitchedPtr dynamic_map_device_pointer;
+
+	cudaPitchedPtr repelling_pf_ground_map_pointer;
+	cudaPitchedPtr repelling_pf_air_map_pointer;
+
 	UnitInfoDevice* unit_lookup_device_pointer;
 	Entity* device_unit_list_pointer;
 

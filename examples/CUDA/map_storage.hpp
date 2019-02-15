@@ -18,7 +18,12 @@
 #define MAP_X 10 
 #define MAP_Y 10 
 #define MAP_SIZE MAP_X*MAP_Y
+
 #define GRID_DIVISION 1 // 1 grid's sub grid size = GRID_DIVISION^2 
+#define MAP_X_R MAP_X*GRID_DIVISION
+#define MAP_Y_R MAP_Y*GRID_DIVISION
+#define MAP_SIZE_R MAP_SIZE*GRID_DIVISION*GRID_DIVISION
+
 
 //read bookmarks
 
@@ -65,7 +70,7 @@ public:
 
 
 	void PrintStatus(std::string msg);
-	void PrintMap(sc2::ImageData map, std::string name);
+	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 
 	//! The bot is abdle to print its IM to a file.
 	void PrintIM();
@@ -73,11 +78,11 @@ public:
 	std::list<Destination_IM> destinations_ground_IM;
 	std::list<Destination_IM> destinations_air_IM;
 
-	float ground_avoidance_PF[MAP_X][MAP_Y];
-	float air_avoidance_PF[MAP_X][MAP_Y];
+	float ground_avoidance_PF[MAP_X_R][MAP_Y_R][1];
+	float air_avoidance_PF[MAP_X_R][MAP_Y_R][1];
 
 	//std::vector<Attraction> unit_attraction_PF;
-	std::unordered_map<sc2::UNIT_TYPEID, float[MAP_X][MAP_Y]> unit_attraction_PF;
+	std::unordered_map<sc2::UNIT_TYPEID, float[MAP_X_R][MAP_Y_R]> unit_attraction_PF;
 
 private:
 	//! Craetes the influence map based on the size of the map.
@@ -115,8 +120,9 @@ private:
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
-	bool static_terrain[MAP_X][MAP_Y];	//update at start
-	bool dynamic_terrain[MAP_X][MAP_Y];	//update on-building-creation, on-building-destruction, on-building-vision
+	bool static_terrain[MAP_X_R][MAP_Y_R];	//update at start
+	bool dynamic_terrain[MAP_X_R][MAP_Y_R];	//update on-building-creation, on-building-destruction, on-building-vision
+
 	std::vector<Unit> units;	//update per frame, includes movable units and hostile structures
 
 	bool update_terrain;
