@@ -28,11 +28,15 @@ public:
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
         map_storage = new MapStorage();
-        chat_parser = new ChatParser(Debug());
+        chat_parser = new ChatParser(Observation(), Debug());
         cuda = new CUDA();
         cuda->InitializeCUDA(map_storage, Observation(), Debug(), Actions(), ActionsFeatureLayer());
         map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
         step_clock = clock();
+
+        Debug()->DebugCreateUnit(sc2::UNIT_TYPEID::TERRAN_MARINE, sc2::Point2D(10, 10), 1, 1);
+        Debug()->SendDebug();
+
         //SpawnAllUnits();
     };
 
@@ -118,7 +122,7 @@ int main(int argc, char* argv[]) {
         CreateParticipant(sc2::Race::Terran, &bot),
         CreateComputer(sc2::Race::Terran)
     });
-    coordinator.SetRealtime(true);
+    coordinator.SetRealtime(false);
     // Start the game.
     coordinator.LaunchStarcraft();
 

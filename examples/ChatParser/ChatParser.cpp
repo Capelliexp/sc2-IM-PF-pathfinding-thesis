@@ -2,10 +2,11 @@
 
 #include <algorithm>
 
-ChatParser::ChatParser(const sc2::DebugInterface* debug)
+ChatParser::ChatParser(const sc2::ObservationInterface* observer, const sc2::DebugInterface* debug)
 {
+	this->observer = observer;
 	this->debug = debug;
-	this->valid_commands = { "MOVE", "ADDTOGROUP", "CREATEGROUP", "REMOVEGROUP", "SPAWN", "SETBEHAVIORFORGROUP", "GETGROUPS"};
+	this->valid_commands = { "GOTO", "ADDTOGROUP", "CREATEGROUP", "REMOVEGROUP", "SPAWN", "SETBEHAVIORFORGROUP", "GETGROUPS"};
 	this->valid_sub_commands = { "UNIT", "BEHAVIOR", "SENDCOMMAND"};
 	this->taking_sub_commands = false;
 }
@@ -21,12 +22,12 @@ std::vector<std::string> ChatParser::AddCommandToList(std::vector<sc2::ChatMessa
 		std::string msg = message.message;
 		std::transform(msg.begin(), msg.end(), msg.begin(), ::toupper);
 		int command = FindMatch(msg);
-		if (command == -1) {
+		if (command != -1) {
 			if (!taking_sub_commands) {
 				commands.push_back(msg);
 				switch (command)
 				{
-				case 0:	//Move
+				case 0:	//GoTo
 				case 1:	//AddToGroup
 					taking_sub_commands = true;
 					break;
@@ -49,6 +50,7 @@ std::vector<std::string> ChatParser::AddCommandToList(std::vector<sc2::ChatMessa
 				case 0:	//Unit 
 				case 1:	//Behavior 
 					commands.push_back(msg);
+					break;
 				case 2:	//SendCommand
 					taking_sub_commands = false;
 					ExecuteCommands();
@@ -70,7 +72,6 @@ int ChatParser::FindMatch(std::string message)
 	if (!taking_sub_commands) {
 		for (int i = 0; i < valid_commands.size(); ++i) {
 			if (message.find(valid_commands[i]) == 0) {
-				
 				return i;
 			}
 		}
@@ -78,8 +79,6 @@ int ChatParser::FindMatch(std::string message)
 	else {
 		for (int i = 0; i < valid_sub_commands.size(); ++i) {
 			if (message.find(valid_sub_commands[i]) == 0) {
-				if (i == 2)
-					taking_sub_commands = false;
 				return i;
 			}
 		}
@@ -89,4 +88,5 @@ int ChatParser::FindMatch(std::string message)
 
 void ChatParser::ExecuteCommands()
 {
+
 }

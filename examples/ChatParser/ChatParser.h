@@ -9,7 +9,7 @@
 class ChatParser
 {
 public:
-    ChatParser(const sc2::DebugInterface* debug);
+    ChatParser(const sc2::ObservationInterface* observer, const sc2::DebugInterface* debug);
     ~ChatParser();
 
     //! Function that adds the given messages to the commands, if they are valid.
@@ -36,5 +36,6 @@ private:
     //! If we are supposed to take sub-commands
     bool taking_sub_commands;
 
+    const sc2::ObservationInterface* observer;
     const sc2::DebugInterface* debug;
 };
