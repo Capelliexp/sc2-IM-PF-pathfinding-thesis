@@ -28,7 +28,7 @@ public:
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
         map_storage = new MapStorage();
-        chat_parser = new ChatParser();
+        chat_parser = new ChatParser(Debug());
         cuda = new CUDA();
         cuda->InitializeCUDA(map_storage, Observation(), Debug(), Actions(), ActionsFeatureLayer());
         map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
@@ -38,10 +38,16 @@ public:
 
     virtual void OnStep() final {
         uint32_t game_loop = Observation()->GetGameLoop();
-        std::vector<sc2::ChatMessage> msg = Observation()->GetChatMessages();
-        if (msg.size() > 0)
+        std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
+        std::vector<std::string> out_messages;
+        if (in_messages.size() > 0)
         {
-            int i = 0;
+            out_messages = chat_parser->AddCommandToList(in_messages);
+            if (out_messages.size() > 0) {
+                for (std::string message : out_messages) {
+                    Actions()->SendChat(message);
+                }
+            }
         }
         /*if (game_loop % 100 == 0) {
             sc2::Units units = Observation()->GetUnits(sc2::Unit::Alliance::Self);
