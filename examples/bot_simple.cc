@@ -30,7 +30,7 @@ public:
         cuda->InitializeCUDA(map_storage, Observation(), Debug(), Actions(), ActionsFeatureLayer());
         map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
         step_clock = clock();
-        //SpawnAllUnits();
+        SpawnAllUnits();
     };
 
     virtual void OnStep() final {
@@ -44,10 +44,10 @@ public:
             }
         }*/
 
-        /*if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
+        if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
             GatherRadius();
             get_radius = false;
-        }*/
+        }
 
         cuda->Update(clock() - step_clock);
 
@@ -75,12 +75,15 @@ public:
 
     void GatherRadius() {
         sc2::Units units = Observation()->GetUnits(sc2::Unit::Alliance::Self);
-        std::vector<float> unitRadius(cuda->GetSizeOfUnitInfoList());
+        std::vector<float> unit_radius(cuda->GetSizeOfUnitInfoList());
+        std::vector<bool> unit_is_flying(cuda->GetSizeOfUnitInfoList());
         for (auto& unit : units) {
             int pos = cuda->GetPosOFUnitInHostUnitVec(unit->unit_type);
-            unitRadius[pos] = unit->radius;
+            unit_radius[pos] = unit->radius;
+            unit_is_flying[pos] = unit->is_flying;
         }
-        cuda->SetRadiusForUnits(unitRadius);
+        cuda->SetRadiusForUnits(unit_radius);
+        cuda->SetIsFlyingForUnits(unit_is_flying);
     }
 
 private:

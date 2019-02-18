@@ -392,6 +392,13 @@ __host__ void CUDA::SetRadiusForUnits(std::vector<float> radius) {
 	PrintUnitInfoToFile("unitInfo.txt");
 }
 
+__host__ void CUDA::SetIsFlyingForUnits(std::vector<bool> is_flying) {
+	for (int i = 0; i < is_flying.size(); ++i) {
+		host_unit_info[i].is_flying = is_flying[i];
+	}
+	PrintUnitInfoToFile("unitInfo.txt");
+}
+
 __host__ int CUDA::GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID) {
 	return host_unit_transform.at(typeID);
 }

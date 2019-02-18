@@ -101,6 +101,7 @@ public:
 	__host__ void ReadUnitInfoFromFile(std::string filename);
 	__host__ std::vector<int> GetUnitsID();
 	__host__ void SetRadiusForUnits(std::vector<float> radius);
+	__host__ void SetIsFlyingForUnits(std::vector<bool> is_flying);
 	__host__ int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
 	__host__ int GetSizeOfUnitInfoList();
 
