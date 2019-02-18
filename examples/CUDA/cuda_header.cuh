@@ -131,7 +131,7 @@ private:
 
 	UnitInfoDevice* unit_lookup_device_pointer;
 	Entity* device_unit_list_pointer;
-
+	
 	//data
 	std::vector<UnitInfo> host_unit_info;
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;

@@ -20,10 +20,10 @@ __device__ void SetMapValue(cudaPitchedPtr map, int x, int y, float value) {
 	row[x] = value;
 }
 
-__device__ float FloatDistance(int posX1, int posY1, int posX2, int posY2) {
-	float a = powf(posX1 - posX2, 2);
-	float b = powf(posY1 - posY2, 2);
-	return rsqrtf(a + b);
+__device__ float FloatDistance(float posX1, float posY1, float posX2, float posY2) {
+	float a = powf(posX2 - posX1, 2);
+	float b = powf(posY2 - posY1, 2);
+	return sqrtf(a + b) / GRID_DIVISION;
 }
 
 __device__ int BlockDistance(int posX1, int posY1, int posX2, int posY2) {

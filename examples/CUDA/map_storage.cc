@@ -35,8 +35,8 @@ void MapStorage::Test() {
             dynamic_terrain[x][y] = x - y;
         }
 
-    units.push_back({ sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 3, 3 }, true });
-    units.push_back({ sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 6, 6 }, false});
+    units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 5, 5 }, true });
+    //units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 6, 6 }, false});
 }
 
 //---------------------------------------------------------------
@@ -77,7 +77,7 @@ void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::str
     int width = x;
     for (int i = 0; i < y; i++)
     {
-        for (int j = 0; j < width; j++) out << map[i][j][0];
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
         out << std::endl;
     }
     out.close();

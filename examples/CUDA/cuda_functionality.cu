@@ -83,6 +83,9 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	//tests
 	TestLookupTable();
 	Test3DArrayUsage();
+
+	FillDeviceUnitArray();
+	TransferUnitsToDevice();
 	RepellingPFGeneration();
 
 }
@@ -200,7 +203,8 @@ __host__ void CUDA::FillDeviceUnitArray() {
 	host_unit_list.clear();
 	host_unit_list.resize(map_storage->units.size());
 
-	int device_list_length = map_storage->units.size();
+	//int device_list_length = map_storage->units.size();
+	int device_list_length = 0;
 	for (int i = 0; i < map_storage->units.size(); ++i) {
 		std::unordered_map<sc2::UNIT_TYPEID, unsigned int>::const_iterator it = host_unit_transform.find(map_storage->units.at(i).id);
 		if (it == host_unit_transform.end()) {
@@ -210,7 +214,7 @@ __host__ void CUDA::FillDeviceUnitArray() {
 		}
 
 		host_unit_list.at(device_list_length).id = it->second;
-		host_unit_list.at(device_list_length).pos = { map_storage->units.at(i).position.x, map_storage->units.at(i).position.y };
+		host_unit_list.at(device_list_length).pos = { map_storage->units.at(i).position.x * GRID_DIVISION, map_storage->units.at(i).position.y * GRID_DIVISION };
 		host_unit_list.at(device_list_length).enemy = map_storage->units.at(i).enemy;
 
 		device_list_length++;
@@ -218,8 +222,11 @@ __host__ void CUDA::FillDeviceUnitArray() {
 }
 
 __host__ void CUDA::TransferUnitsToDevice() {
-	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), host_unit_list.size() * sizeof(Entity),
-		cudaMemcpyHostToDevice), "TransferUnitsToDevice");
+
+	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), 
+		host_unit_list.size() * sizeof(Entity),
+		cudaMemcpyHostToDevice),
+		"TransferUnitsToDevice");
 }
 
 __host__ void CUDA::TransferStaticMapToDevice() {
@@ -234,6 +241,8 @@ __host__ bool CUDA::TransferDynamicMapToDevice() {
 /*KERNAL LAUNCHES START*/
 
 __host__ void CUDA::RepellingPFGeneration(){
+	std::cout << "Starting RepellingPFGeneration with unit_size: " << host_unit_list.size() << std::endl;
+
 	DeviceRepellingPFGeneration<<<1, MAP_SIZE_R, (host_unit_list.size() * sizeof(Entity))>>>
 		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
 
@@ -298,7 +307,7 @@ __host__ void CUDA::Test3DArrayUsage() {
 
 	TransferUnitsToDevice();	//unnecessary for the test
 
-	TestDevice3DArrayUsage << <1, MAP_SIZE, (host_unit_list.size() * sizeof(Entity)) >> >
+	TestDevice3DArrayUsage << <1, MAP_SIZE_R, (host_unit_list.size() * sizeof(Entity)) >> >
 		(device_unit_list_pointer, host_unit_list.size(), device_map);
 
 	float return_data[MAP_X_R][MAP_Y_R][1];
@@ -324,7 +333,7 @@ __host__ void CUDA::Test3DArrayUsage() {
 	int it = 0;
 	for (int i = 0; i < MAP_X_R; ++i) {
 		for (int j = 0; j < MAP_Y_R; ++j) {
-			if (return_data[i][j][0] != i * MAP_X + j) {
+			if (return_data[i][j][0] != i * MAP_X_R + j) {
 				std::cout << "3D Array Usage test FAILED" << std::endl;
 				return;
 			}

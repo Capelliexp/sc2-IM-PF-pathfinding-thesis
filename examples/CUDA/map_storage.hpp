@@ -17,12 +17,12 @@
 
 #define MAP_X 10 
 #define MAP_Y 10 
-#define MAP_SIZE MAP_X*MAP_Y
+#define MAP_SIZE (MAP_X*MAP_Y)
 
-#define GRID_DIVISION 1 // 1 grid's sub grid size = GRID_DIVISION^2 
-#define MAP_X_R MAP_X*GRID_DIVISION
-#define MAP_Y_R MAP_Y*GRID_DIVISION
-#define MAP_SIZE_R MAP_SIZE*GRID_DIVISION*GRID_DIVISION
+#define GRID_DIVISION 2 // 1 grid's sub grid size = GRID_DIVISION^2 
+#define MAP_X_R (MAP_X*GRID_DIVISION)
+#define MAP_Y_R (MAP_Y*GRID_DIVISION)
+#define MAP_SIZE_R (MAP_SIZE*GRID_DIVISION*GRID_DIVISION)
 
 
 //read bookmarks
@@ -47,7 +47,7 @@ struct Unit {
 
 struct Destination_IM {
 	sc2::Point2D destination;
-	float map[MAP_X][MAP_Y];
+	float map[MAP_X_R][MAP_Y_R];
 };
 
 //struct Attraction {

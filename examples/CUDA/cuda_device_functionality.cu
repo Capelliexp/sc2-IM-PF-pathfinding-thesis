@@ -30,16 +30,36 @@ Texture alignment : 512 bytes
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
 	extern __shared__ Entity unit_list_s[];
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
-	int x = (id % MAP_X_R), y = (id / MAP_X_R);
+	int x_build = (id % MAP_X), y_build = (id / MAP_X), x_sub = (id % MAP_X_R), y_sub = (id / MAP_X_R);
+
+	char* ground_map = (char*)device_map_ground.ptr;
+	char* air_map = (char*)device_map_air.ptr;
 
 	if (id < nr_of_units) unit_list_s[id] = device_unit_list_pointer[id];
 
 	__syncthreads();
 
-	char* devPtr = (char*)device_map_ground.ptr;
-	size_t pitch = device_map_ground.pitch;
+	float ground_charge = 0;
+	float air_charge = 0;
+	float dist = 0;
+	for (int i = 0; i < nr_of_units; ++i) {
+		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
+		float range_sub = unit.range;
 
-	float* row = (float*)(devPtr + y * pitch);
-
-	row[x] = (float)id;
+		if ((dist = (FloatDistance(unit_list_s[i].pos.x, unit_list_s[i].pos.y, x_sub, y_sub) + 0.0001)) < range_sub) {
+			ground_charge += ((range_sub / dist) * unit.can_attack_ground * unit_list_s[i].enemy);
+			air_charge += ((range_sub / dist) * unit.can_attack_air * unit_list_s[i].enemy);
+		}
+	}
+	
+	((float*)(ground_map + y_sub * device_map_ground.pitch))[x_sub] = ground_charge;
+	((float*)(air_map + y_sub * device_map_ground.pitch))[x_sub] = air_charge;
 }
+/*
+We could rewrite this to run 2 "passes".
+* First to find and calc every unit PF-data affecting every tex_coord. 
+* Second to add together all the affecting values and write to the array.
+
+The only difference is that all the threads are writing to global memory
+at the same time. Might be beneficial?
+*/
