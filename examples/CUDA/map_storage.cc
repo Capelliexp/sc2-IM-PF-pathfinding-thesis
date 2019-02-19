@@ -29,14 +29,14 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 }
 
 void MapStorage::Test() {
-    for (int x = 0; x < MAP_X; ++x)
-        for (int y = 0; y < MAP_Y; ++y) {
+    for (int x = 0; x < MAP_X_R; ++x)
+        for (int y = 0; y < MAP_Y_R; ++y) {
             static_terrain[x][y] = x - y;
             dynamic_terrain[x][y] = x - y;
         }
 
-    units.push_back({ sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 3, 3 }, true });
-    units.push_back({ sc2::UNIT_TYPEID::ZERG_HYDRALISK, { 6, 6 }, false});
+    units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 50, 50 }, true });
+    //units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 6, 6 }, false});
 }
 
 //---------------------------------------------------------------
@@ -51,21 +51,33 @@ void MapStorage::PrintStatus(std::string msg)
     std::cout << "map_storage: " << msg << std::endl;
 }
 
-void MapStorage::PrintMap(sc2::ImageData map, std::string file)
+//void MapStorage::PrintMap(sc2::ImageData map, std::string file)
+//{
+//    PrintStatus("Map height: " + std::to_string(map.height));
+//    PrintStatus("Map width: " + std::to_string(map.width));
+//    std::ofstream out(file + ".txt");
+//    int width = map.width;
+//    for (int i = 0; i < map.height; i++)
+//    {
+//        for (int j = 0; j < width; j++)
+//        {
+//            if (map.data[j + i * width] == 0)
+//                out << 0;
+//            else
+//                out << 1;
+//        }
+//        out << std::endl;
+//    }
+//    out.close();
+//}
+
+void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file)
 {
-    PrintStatus("Map height: " + std::to_string(map.height));
-    PrintStatus("Map width: " + std::to_string(map.width));
     std::ofstream out(file + ".txt");
-    int width = map.width;
-    for (int i = 0; i < map.height; i++)
+    int width = x;
+    for (int i = 0; i < y; i++)
     {
-        for (int j = 0; j < width; j++)
-        {
-            if (map.data[j + i * width] == 0)
-                out << 0;
-            else
-                out << 1;
-        }
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
         out << std::endl;
     }
     out.close();
