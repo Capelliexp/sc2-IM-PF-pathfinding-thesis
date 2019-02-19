@@ -15,8 +15,8 @@
 
 //#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
 
-#define MAP_X 10 
-#define MAP_Y 10 
+#define MAP_X 100
+#define MAP_Y 100
 #define MAP_SIZE (MAP_X*MAP_Y)
 
 #define GRID_DIVISION 2 // 1 grid's sub grid size = GRID_DIVISION^2 

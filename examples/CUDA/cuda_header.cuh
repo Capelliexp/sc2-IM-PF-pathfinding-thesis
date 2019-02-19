@@ -10,6 +10,7 @@
 #include <math.h>
 #include <unordered_map>
 #include <windows.h>
+#include <cmath>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -34,7 +35,7 @@
 //Check(cudaDeviceSynchronize());
 
 #define BLOCK_AMOUNT 1 
-#define THREADS_PER_BLOCK 512
+#define THREADS_PER_BLOCK 1024
 #define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
 
 typedef struct {
@@ -121,6 +122,10 @@ private:
 	sc2::DebugInterface* debug;
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
+
+	dim3 dim_block;
+	dim3 dim_grid;
+	int threads_in_grid;
 
 	//device memory pointers
 	cudaPitchedPtr static_map_device_pointer;

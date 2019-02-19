@@ -66,6 +66,12 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	this->actions = actions;
 	this->actions_feature_layer = actions_feature_layer;
 
+	dim_block = { 16, 64, 1 };
+	unsigned int x = (unsigned int)(ceil(MAP_X_R / (float)dim_block.x) + 0.5);
+	unsigned int y = (unsigned int)(ceil(MAP_Y_R / (float)dim_block.y) + 0.5);
+	dim_grid = { x, y, 1 };
+	threads_in_grid = (dim_block.x * dim_block.y) * (dim_grid.x * dim_grid.y);
+
 	//analysis
 	PrintGenInfo();
 
@@ -243,7 +249,7 @@ __host__ bool CUDA::TransferDynamicMapToDevice() {
 __host__ void CUDA::RepellingPFGeneration(){
 	std::cout << "Starting RepellingPFGeneration with unit_size: " << host_unit_list.size() << std::endl;
 
-	DeviceRepellingPFGeneration<<<1, MAP_SIZE_R, (host_unit_list.size() * sizeof(Entity))>>>
+	DeviceRepellingPFGeneration<<<dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity))>>>
 		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
 
 	cudaMemcpy3DParms par = { 0 };
