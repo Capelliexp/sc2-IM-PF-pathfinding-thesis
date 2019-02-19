@@ -5,7 +5,7 @@
 
 #include "sc2utils/sc2_manage_process.h"
 
-#include "ChatParser/ChatParser.h"
+#include "ChatCommands/ChatCommands.h"
 
 //#include "cuda_wrapper.hpp"
 #include "CUDA/cuda_header.cuh"
@@ -20,15 +20,15 @@ class FooBot : public sc2::Agent {
 public:
     uint32_t restarts_;
     bool get_radius = true;
-    FooBot() :
-        restarts_(0) {
+    FooBot(std::string map) :
+        restarts_(0), map(map) {
     }
 
     virtual void OnGameStart() final {
         std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
 
         map_storage = new MapStorage();
-        chat_parser = new ChatParser(Observation(), Debug());
+        ChatCommands = new ChatCommands(Observation(), Debug(), map);
         cuda = new CUDA();
         cuda->InitializeCUDA(map_storage, Observation(), Debug(), Actions(), ActionsFeatureLayer());
         map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
@@ -46,7 +46,7 @@ public:
         std::vector<std::string> out_messages;
         if (in_messages.size() > 0)
         {
-            out_messages = chat_parser->AddCommandToList(in_messages);
+            out_messages = chat_commands->AddCommandToList(in_messages);
             if (out_messages.size() > 0) {
                 for (std::string message : out_messages) {
                     Actions()->SendChat(message);
@@ -104,8 +104,8 @@ private:
     MapStorage* map_storage;
     CUDA* cuda;
     clock_t step_clock;
-    ChatParser* chat_parser;
-
+    ChatCommands* chat_commands;
+    std::string map;
 };
 
 //*************************************************************************************************
@@ -115,8 +115,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    std::string map = "empty50";
     // Add the custom bot, it will control the players.
-    FooBot bot;
+    FooBot bot(map);
 
     coordinator.SetParticipants({
         CreateParticipant(sc2::Race::Terran, &bot),
@@ -128,7 +129,7 @@ int main(int argc, char* argv[]) {
 
     // Step forward the game simulation.
     bool do_break = false;
-    char* str = "Test/EditorTest.SC2Map";
+    char* str = "Test/"+ map.c_str +".SC2Map";
     while (!do_break) {
         //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
         coordinator.StartGame(str);
