@@ -2,16 +2,9 @@
 
 #include <algorithm>
 
-ChatCommands::ChatCommands(const sc2::ObservationInterface* observer, const sc2::DebugInterface* debug, std::string map)
+ChatCommands::ChatCommands(int map)
 {
-	this->observer = observer;
-	this->debug = debug;
-
-	if		(map == "empty50")		this->map = 1;
-	else if (map == "empty200")		this->map = 2;
-	else if (map == "height")		this->map = 3;
-	else if (map == "labyrinth")	this->map = 4;
-	else if (map == "wall")			this->map = 5;
+	this->map = map;
 
 	switch (this->map)
 	{
@@ -40,15 +33,11 @@ ChatCommands::~ChatCommands()
 
 }
 
-int ChatCommands::AddCommandToList(std::vector<sc2::ChatMessage> messages)
+int ChatCommands::AddCommandToList(std::string message)
 {
 	for (int i = 0; i < valid_commands.size(); ++i) {
-
+		if (message == valid_commands[i])
+			return i;
 	}
-	return 0;
-}
-
-void ChatCommands::ExecuteCommands()
-{
-
+	return -1;
 }
