@@ -3,6 +3,13 @@
 #include "../examples/CUDA/cuda_header.cuh"
 #include "../examples/CUDA/cuda_device_utility.cu"
 
+/*
+PF Todo:
+* Quad-tree for units
+* Compare simultaneous global write vs non-simultaneous
+* Compare different block sizes & dimensions
+*/
+
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
 	extern __shared__ Entity unit_list_s[];
 
@@ -40,9 +47,14 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge;
 }
 
-/*
-Todo:
-* Quad-tree for units
-* Compare simultaneous global write vs non-simultaneous
-* Compare different block sizes & dimensions
-*/
+__global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map){
+
+}
+
+__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, cudaPitchedPtr static_map) {
+
+}
+
+__global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map) {
+
+}

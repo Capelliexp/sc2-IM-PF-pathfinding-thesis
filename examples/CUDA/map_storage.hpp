@@ -45,15 +45,16 @@ struct Unit {
 	bool enemy = false;
 };
 
-struct Destination_IM {
-	sc2::Point2D destination;
+struct Attracting_PF {
+	int id;
 	float map[MAP_X_R][MAP_Y_R];
 };
 
-//struct Attraction {
-//	sc2::UNIT_TYPEID id = sc2::UNIT_TYPEID::INVALID;
-//	float map[map_x][map_y];
-//};
+struct Destination_IM {
+	bool air_path = false;
+	sc2::Point2D destination;
+	float map[MAP_X_R][MAP_Y_R];
+};
 
 class MapStorage {
 	friend class CUDA;	//might be wrong? used to access private maps & units
