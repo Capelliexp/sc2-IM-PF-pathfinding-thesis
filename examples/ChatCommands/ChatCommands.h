@@ -15,7 +15,7 @@ public:
     //! Function that executes the given command if it is valid for the map.
     //!< \param messages A list of messages from the chat.
     //!< \return Returns an int specifying what test to execute.
-    int AddCommandToList(std::string messages);
+    int ParseCommands(std::string messages);
 
 private:
 

@@ -30,7 +30,9 @@ int main(int argc, char* argv[]) {
 
     // Step forward the game simulation.
     bool do_break = false;
-    char* str = "Test/"+ map.c_str +".SC2Map";
+    map = std::string("Test/" + map + ".SC2Map");
+    char* str = new char[map.size()];
+    std::strcpy(str, map.c_str());
     while (!do_break) {
         //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
         coordinator.StartGame(str);

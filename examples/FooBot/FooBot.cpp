@@ -1,11 +1,15 @@
 #include "FooBot.h"
 
-FooBot::FooBot(std::string map) : restarts_(0) {
-	if (map == "empty50")		this->map = 1;
+FooBot::FooBot(std::string map, bool spaw_alla_units) : 
+	restarts_(0), 
+	spawn_all_units(spaw_alla_units) {
+	this->command = 0;
+	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
 	else if (map == "height")		this->map = 3;
 	else if (map == "labyrinth")	this->map = 4;
 	else if (map == "wall")			this->map = 5;
+	else							this->map = 0;	//Not a valid testmap
 }
 
 void FooBot::OnGameStart() {
@@ -18,20 +22,22 @@ void FooBot::OnGameStart() {
 	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
 	step_clock = clock();
 
-	Debug()->DebugCreateUnit(sc2::UNIT_TYPEID::TERRAN_MARINE, sc2::Point2D(10, 10), 1, 1);
-	Debug()->SendDebug();
+	Debug()->DebugFastBuild();
+	Debug()->DebugGiveAllResources();
 
-	//SpawnAllUnits();
+	/*Debug()->DebugCreateUnit(sc2::UNIT_TYPEID::ZERG_DRONE, sc2::Point2D(10, 10), 1, 1);
+	Debug()->SendDebug();*/
+
+	if (spawn_all_units) SpawnAllUnits();
 }
 
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 	std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
-	int command;
-	if (in_messages.size() > 0)
-	{
-		command = chat_commands->AddCommandToList(in_messages[0].message);
-	}
+	if (in_messages.size() > 0 && command == 0)
+		command = chat_commands->ParseCommands(in_messages[0].message);
+	ExecuteCommand();
+
 	/*if (game_loop % 100 == 0) {
 		sc2::Units units = Observation()->GetUnits(sc2::Unit::Alliance::Self);
 		for (auto& it_unit : units) {
@@ -40,11 +46,12 @@ void FooBot::OnStep() {
 		}
 	}*/
 
-	/*if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
-		GatherRadius();
-		get_radius = false;
-	}*/
-
+	if (spawn_all_units) {
+		if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
+			GatherRadius();
+			get_radius = false;
+		}
+	}
 	cuda->Update(clock() - step_clock);
 
 	step_clock = clock();
@@ -56,17 +63,16 @@ void FooBot::OnGameEnd() {
 
 	delete cuda;
 	delete map_storage;
+	delete chat_commands;
 }
 
 void FooBot::SpawnAllUnits() {
 	std::vector<int> unit_IDs = cuda->GetUnitsID();
-	for (int unit_ID : unit_IDs)
-	{
+	for (int unit_ID : unit_IDs) {
 		sc2::Point2D p = sc2::FindRandomLocation(Observation()->GetGameInfo());
 		Debug()->DebugCreateUnit(sc2::UNIT_TYPEID(unit_ID), p, 1, 1);
 		Debug()->SendDebug();
 	}
-
 }
 
 void FooBot::GatherRadius() {
@@ -79,11 +85,99 @@ void FooBot::GatherRadius() {
 	cuda->SetRadiusForUnits(unitRadius);
 }
 
-void FooBot::ExecuteCommand(int command) {
-	switch (map)
-	{
+void FooBot::ExecuteCommand() {
+	switch (map) {
+	case 1:
+		CommandsOnEmpty50();
+		break;
+	case 2:
+		CommandsOnEmpty200();
+		break;
+	case 3:
+		CommandsOnHeight();
+		break;
+	case 4:
+		CommandsOnLabyrinth();
+		break;
+	case 5:
+		CommandsOnWall();
+		break;
 	default:
+		command = 0;
 		break;
 	}
+}
+
+void FooBot::SpawnUnits(sc2::UNIT_TYPEID unit_id, int amount, sc2::Point2D pos, int player) {
+	Debug()->DebugCreateUnit(unit_id, pos, player, amount);
+	Debug()->SendDebug();
+	spawn_units = false;
+}
+
+void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement) {
+	//Start custom pathfinding here
+	Actions()->UnitCommand(units, type_of_movement, pos);
+}
+
+void FooBot::CommandsOnEmpty50() {
+	switch (command) {
+	case 1:
+		if (spawn_units)
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5, 5));
+		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE);
+			command = 0;
+			spawn_units = true;
+		}
+		break;
+	case 2:
+		if (spawn_units)
+		{
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5, 5));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(25, 25), 2);
+		}
+		else if (CheckIfUnitsSpawned(2, { sc2::UNIT_TYPEID::TERRAN_MARINE, sc2::UNIT_TYPEID::PROTOSS_ZEALOT }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE);
+			command = 0;
+			spawn_units = true;
+		}
+		break;
+	case 3:
+		break;
+	case 4:
+		break;
+	case 5:
+		break;
+	case 6:
+		break;
+	case 7:
+		break;
+	default:
+		command = 0;
+		break;
+	}
+}
+
+void FooBot::CommandsOnEmpty200() {
+}
+
+void FooBot::CommandsOnHeight() {
+}
+
+void FooBot::CommandsOnLabyrinth() {
+}
+
+void FooBot::CommandsOnWall() {
+}
+
+bool FooBot::CheckIfUnitsSpawned(int amount, std::vector<sc2::UnitTypeID> types) {
+	int counter = 0;
+	for (sc2::UnitTypeID type : types)
+		counter += Observation()->GetUnits(sc2::IsUnit(type)).size();
+	if (counter == amount)
+		return true;
+	return false;
 }
 
