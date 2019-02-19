@@ -74,6 +74,8 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	threads_in_grid = (dim_block.x * dim_block.y) * (dim_grid.x * dim_grid.y);
 
 	unit_list_max_length = 800;
+	unit_type_attracting_pf_pointers.reserve(100);
+	im_pointers.reserve(100);
 
 	//analysis
 	PrintGenInfo();
@@ -280,9 +282,19 @@ __host__ void CUDA::RepellingPFGeneration(){
 	//Check(cudaDeviceSynchronize());
 }
 
-__host__ void CUDA::IMGeneration(sc2::Point2D destination, bool air_path) {
-	DeviceRepellingPFGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >
-		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+__host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
+
+	cudaPitchedPtr device_map;
+	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
+
+	InfluenceMapPointer im_ptr;
+	im_ptr.destination = destination;
+	im_ptr.map_ptr = device_map;
+
+	im_pointers.push_back(im_ptr);
+
+	DeviceGroundIMGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >
+		(destination, device_map, dynamic_map, static_map);
 }
 
 __host__ void CUDA::TestLookupTable() {

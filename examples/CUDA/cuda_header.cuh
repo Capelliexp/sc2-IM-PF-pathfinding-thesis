@@ -1,5 +1,5 @@
 #pragma once
-
+vo
 #ifndef CUDA_HEADER
 #define CUDA_HEADER
 
@@ -76,12 +76,11 @@ typedef struct {
 } AttractingFieldPointer;
 
 typedef struct {
-	sc2::Point2D destination;
+	IntPoint2D destination;
 	cudaPitchedPtr map_ptr;
-	cudaMemcpy3DParms parameters;
 } InfluenceMapPointer;
 
-//DEVICE FUNCTIONS
+//DEVICE FUNCTIONSFritjof är bäst
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, cudaPitchedPtr static_map);
@@ -129,7 +128,7 @@ public:
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration();
-	__host__ void IMGeneration(sc2::Point2D destination, bool air_path);
+	__host__ void IMGeneration(IntPoint2D destination, bool air_path);
 	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
@@ -156,10 +155,9 @@ private:
 	Entity* device_unit_list_pointer;
 	cudaPitchedPtr repelling_pf_ground_map_pointer;
 	cudaPitchedPtr repelling_pf_air_map_pointer;
-	std::vector<AttractingFieldPointer> unit_type_attracting_pf_pointer;
-	std::vector<InfluenceMapPointer> im_pointer;
+	std::vector<AttractingFieldPointer> unit_type_attracting_pf_pointers;
+	std::vector<InfluenceMapPointer> im_pointers;
 
-	
 	//data
 	std::vector<UnitInfo> host_unit_info;
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;
