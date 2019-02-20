@@ -18,11 +18,11 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
 	int id_global = x + y * blockDim.x;
 
-	//cull threads outside of tex
-	if (x > MAP_X_R || y > MAP_Y_R) return;
-
 	//move unit list to shared memory
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
+
+	//cull threads outside of tex
+	if (x > MAP_X_R || y > MAP_Y_R) return;
 
 	__syncthreads();
 
@@ -52,6 +52,13 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 }
 
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, cudaPitchedPtr static_map) {
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	int y = threadIdx.y + blockIdx.y * blockDim.y;
+	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
+	int id_global = x + y * blockDim.x;
+
+	//cull threads outside of tex
+	if (x > MAP_X_R || y > MAP_Y_R) return;
 
 }
 

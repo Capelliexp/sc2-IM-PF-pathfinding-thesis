@@ -101,6 +101,8 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
+	IMGeneration(IntPoint2D{ 50, 50 }, false);
+
 }
 
 __host__ const sc2::ObservationInterface* CUDA::GetObservation(){
@@ -293,8 +295,37 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 
 	im_pointers.push_back(im_ptr);
 
-	DeviceGroundIMGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >
-		(destination, device_map, dynamic_map, static_map);
+	if (!air_path) {
+		DeviceGroundIMGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >
+			(destination, device_map, dynamic_map_device_pointer, static_map_device_pointer);
+	}
+	else {
+		/*DeviceAirIMGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >
+			(destination, device_map);*/
+	}
+
+
+	float res[MAP_X_R][MAP_Y_R][1];
+
+	cudaMemcpy3DParms par = { 0 };
+	par.srcPtr.ptr = device_map.ptr;
+	par.srcPtr.pitch = device_map.pitch;
+	par.srcPtr.xsize = MAP_X_R;
+	par.srcPtr.ysize = MAP_Y_R;
+	par.dstPtr.ptr = res;
+	par.dstPtr.pitch = MAP_X_R * sizeof(float);
+	par.dstPtr.xsize = MAP_X_R;
+	par.dstPtr.ysize = MAP_Y_R;
+	par.extent.width = MAP_X_R * sizeof(float);
+	par.extent.height = MAP_Y_R;
+	par.extent.depth = 1;
+	par.kind = cudaMemcpyDeviceToHost;
+
+	Check(cudaMemcpy3D(&par), "IM memcpy3D");
+
+	Check(cudaDeviceSynchronize());
+	map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "ground");
+	map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "air");
 }
 
 __host__ void CUDA::TestLookupTable() {

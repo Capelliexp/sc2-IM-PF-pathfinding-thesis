@@ -1,5 +1,5 @@
 #pragma once
-vo
+
 #ifndef CUDA_HEADER
 #define CUDA_HEADER
 
@@ -80,7 +80,7 @@ typedef struct {
 	cudaPitchedPtr map_ptr;
 } InfluenceMapPointer;
 
-//DEVICE FUNCTIONSFritjof är bäst
+//DEVICE FUNCTIONS
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, cudaPitchedPtr static_map);
