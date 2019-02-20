@@ -31,6 +31,7 @@ private:
     void SpawnUnits(sc2::UNIT_TYPEID unit_id, int amount, sc2::Point2D pos, int player = 1);
     //! Function to set destination for the given units and the behavior.
     void SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement);
+    void SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior);
 
     void CommandsOnEmpty50();
     void CommandsOnEmpty200();

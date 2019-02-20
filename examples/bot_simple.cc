@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
         CreateParticipant(sc2::Race::Terran, &bot),
         CreateComputer(sc2::Race::Terran)
     });
-    coordinator.SetRealtime(false);
+    coordinator.SetRealtime(true);
     // Start the game.
     coordinator.LaunchStarcraft();
 
