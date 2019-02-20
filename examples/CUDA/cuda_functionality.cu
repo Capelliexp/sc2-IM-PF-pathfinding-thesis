@@ -67,7 +67,8 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	this->actions = actions;
 	this->actions_feature_layer = actions_feature_layer;
 
-	dim_block = { 16, 64, 1 };
+	//dim_block = { 16, 64, 1 };
+	dim_block = { 2, 2, 1 };
 	unsigned int x = (unsigned int)(ceil(MAP_X_R / (float)dim_block.x) + 0.5);
 	unsigned int y = (unsigned int)(ceil(MAP_Y_R / (float)dim_block.y) + 0.5);
 	dim_grid = { x, y, 1 };
@@ -324,8 +325,7 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	Check(cudaMemcpy3D(&par), "IM memcpy3D");
 
 	Check(cudaDeviceSynchronize());
-	map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "ground");
-	map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "air");
+	map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "IM");
 }
 
 __host__ void CUDA::TestLookupTable() {

@@ -35,7 +35,7 @@ void MapStorage::Test() {
             dynamic_terrain[x][y] = x - y;
         }
 
-    units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 50, 50 }, true });
+    units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 20, 20 }, true });
     //units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 6, 6 }, false});
 }
 

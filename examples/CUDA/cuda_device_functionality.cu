@@ -52,13 +52,23 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 }
 
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, cudaPitchedPtr static_map) {
-	int x = threadIdx.x + blockIdx.x * blockDim.x;
-	int y = threadIdx.y + blockIdx.y * blockDim.y;
-	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
-	int id_global = x + y * blockDim.x;
+	int block_size = blockDim.x*blockDim.y;
+	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
+
+	int original_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int original_y = threadIdx.y + blockIdx.y * blockDim.y;
+
+	int id_block = blockIdx.x + blockIdx.y * gridDim.x;
+	int id_global = threadIdx.x + id_block * block_size + threadIdx.y * blockDim.x;
+	int new_id_global = (id_global + (id_global % block_size) * block_size) % grid_size;
+	
+	int x = new_id_global % (gridDim.x * blockDim.x);
+	int y = new_id_global / (float)(gridDim.x * blockDim.x);
 
 	//cull threads outside of tex
 	if (x > MAP_X_R || y > MAP_Y_R) return;
+
+	((float*)(((char*)device_map.ptr) + original_y * device_map.pitch))[original_x] = new_id_global;
 
 }
 
