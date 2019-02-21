@@ -113,14 +113,15 @@ void FooBot::SpawnUnits(sc2::UNIT_TYPEID unit_id, int amount, sc2::Point2D pos, 
 	Debug()->SendDebug();
 }
 
-void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement, int start, int end) {
+void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement, sc2::Point2D start, sc2::Point2D end) {
 	//Start custom pathfinding here
-	if (start == -1)
+	if (start.x == -1)
 		Actions()->UnitCommand(units, type_of_movement, pos);
 	else {
 		sc2::Units subUnits;
-		for (int i = start; i < end; ++i) {
-			subUnits.push_back(units[i]);
+		for (int i = 0; i < units.size(); ++i) {
+			if (sc2::Point2D(units[i]->pos) >= start && sc2::Point2D(units[i]->pos) <= end)
+				subUnits.push_back(units[i]);
 		}
 		Actions()->UnitCommand(subUnits, type_of_movement, pos);
 	}
@@ -240,8 +241,8 @@ void FooBot::CommandsOnEmpty50() {
 		}
 		else if (CheckIfUnitsSpawned(10, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
 		{
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE, 0, 5);
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(5, 5), sc2::ABILITY_ID::MOVE, 5, 10);
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE, sc2::Point2D(3), sc2::Point2D(8));
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(5, 5), sc2::ABILITY_ID::MOVE, sc2::Point2D(43), sc2::Point2D(48));
 			spawn_units = true;
 			command = 0;
 		}
