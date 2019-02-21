@@ -15,17 +15,14 @@
 
 //#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
 
-#define MAP_X 4
-#define MAP_Y 4
+#define MAP_X 50
+#define MAP_Y 50
 #define MAP_SIZE (MAP_X*MAP_Y)
 
 #define GRID_DIVISION 1 // 1 grid's sub grid size = GRID_DIVISION^2 
 #define MAP_X_R (MAP_X*GRID_DIVISION)
 #define MAP_Y_R (MAP_Y*GRID_DIVISION)
 #define MAP_SIZE_R (MAP_SIZE*GRID_DIVISION*GRID_DIVISION)
-
-
-//read bookmarks
 
 /*
 Textures:
@@ -72,6 +69,8 @@ public:
 
 	void PrintStatus(std::string msg);
 	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	void PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	void PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 
 	//! The bot is abdle to print its IM to a file.
 	void PrintIM();
@@ -121,8 +120,8 @@ private:
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
-	bool static_terrain[MAP_X_R][MAP_Y_R];	//update at start
-	bool dynamic_terrain[MAP_X_R][MAP_Y_R];	//update on-building-creation, on-building-destruction, on-building-vision
+	//bool static_terrain[MAP_X_R][MAP_Y_R];	//update at start
+	int dynamic_terrain[MAP_X_R][MAP_Y_R][1];	//update on-building-creation, on-building-destruction, on-building-vision
 
 	std::vector<Unit> units;	//update per frame, includes movable units and hostile structures
 

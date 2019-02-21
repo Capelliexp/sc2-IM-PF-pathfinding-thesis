@@ -68,7 +68,7 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	this->actions_feature_layer = actions_feature_layer;
 
 	//dim_block = { 16, 64, 1 };
-	dim_block = { 2, 2, 1 };
+	dim_block = { 8, 8, 1 };
 	unsigned int x = (unsigned int)(ceil(MAP_X_R / (float)dim_block.x) + 0.5);
 	unsigned int y = (unsigned int)(ceil(MAP_Y_R / (float)dim_block.y) + 0.5);
 	dim_grid = { x, y, 1 };
@@ -207,7 +207,7 @@ __host__ void CUDA::TransferUnitLookupToDevice(){
 }
 
 __host__ void CUDA::AllocateDeviceMemory(){
-	cudaMalloc3D(&static_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//static map
+	//cudaMalloc3D(&static_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//static map
 	cudaMalloc3D(&dynamic_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//dynamic map
 	cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice));	//lookup table (global on device)
 	cudaMalloc((void**)&device_unit_list_pointer, unit_list_max_length * sizeof(Entity));	//unit list (might extend size during runtime)
@@ -298,7 +298,7 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 
 	if (!air_path) {
 		DeviceGroundIMGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >
-			(destination, device_map, dynamic_map_device_pointer, static_map_device_pointer);
+			(destination, device_map, dynamic_map_device_pointer/*, static_map_device_pointer*/);
 	}
 	else {
 		/*DeviceAirIMGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >

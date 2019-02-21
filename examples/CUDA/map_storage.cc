@@ -26,13 +26,17 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     this->debug = debug;
     this->actions = actions;
     this->actions_feature_layer = actions_feature_layer;
+
+    CreateIM();
+    //PrintIM();
+    PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
 }
 
 void MapStorage::Test() {
     for (int x = 0; x < MAP_X_R; ++x)
         for (int y = 0; y < MAP_Y_R; ++y) {
-            static_terrain[x][y] = x - y;
-            dynamic_terrain[x][y] = x - y;
+            //static_terrain[x][y] = x - y;
+            //dynamic_terrain[x][y][0] = x - y;
         }
 
     units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 20, 20 }, true });
@@ -83,6 +87,30 @@ void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::str
     out.close();
 }
 
+void MapStorage::PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file)
+{
+    std::ofstream out(file + ".txt");
+    int width = x;
+    for (int i = 0; i < y; i++)
+    {
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
+        out << std::endl;
+    }
+    out.close();
+}
+
+void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file)
+{
+    std::ofstream out(file + ".txt");
+    int width = x;
+    for (int i = 0; i < y; i++)
+    {
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
+        out << std::endl;
+    }
+    out.close();
+}
+
 //! The bot is abdle to print its IM to a file.
 void MapStorage::PrintIM()
 {
@@ -108,25 +136,26 @@ void MapStorage::CreateIM()
 {
     std::string IM = observation->GetGameInfo().pathing_grid.data;    //here
     //The multiplication is done due to that the returned pathing grid is the wrong size. It is the same size as placement grid.
-    width = observation->GetGameInfo().pathing_grid.width * pathingGridSize;
-    height = observation->GetGameInfo().pathing_grid.height * pathingGridSize;
+    width = observation->GetGameInfo().pathing_grid.width * GRID_DIVISION;
+    height = observation->GetGameInfo().pathing_grid.height * GRID_DIVISION;
 
-    InfluenceMap = std::vector<float>(width*height);
+    //InfluenceMap = std::vector<float>(width*height);
 
     //Fill a 8x8 cube with the same value
-    for (int i = 0; i < height / pathingGridSize; ++i)
+    for (int i = 0; i < height / GRID_DIVISION; ++i)
     {
-        int iP = i * pathingGridSize;
-        for (int j = 0; j < width / pathingGridSize; ++j)
+        int iP = i * GRID_DIVISION;
+        for (int j = 0; j < width / GRID_DIVISION; ++j)
         {
-            int jP = j * pathingGridSize;
-            for (int y = 0; y < pathingGridSize; ++y)
+            int jP = j * GRID_DIVISION;
+            for (int y = 0; y < GRID_DIVISION; ++y)
             {
-                int yp = (y + iP) * width;
-                for (int x = 0; x < pathingGridSize; ++x)
+                int yp = (y + iP);
+                for (int x = 0; x < GRID_DIVISION; ++x)
                 {
                     int xp = x + jP;
-                    InfluenceMap[xp + yp] = (IM[j + i * width / pathingGridSize] == -1) ? 0 : 1;
+                    //InfluenceMap[xp + yp] = (IM[j + i * width / GRID_DIVISION] == -1) ? 0 : 1;
+                    dynamic_terrain[yp][xp][0] = (IM[j + i * width / GRID_DIVISION] == -1) ? 0 : 1;
                 }
             }
         }

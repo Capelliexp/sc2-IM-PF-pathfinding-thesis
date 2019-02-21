@@ -83,7 +83,7 @@ typedef struct {
 //DEVICE FUNCTIONS
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
-__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, cudaPitchedPtr static_map);
+__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map/*, cudaPitchedPtr static_map*/);
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map);
 
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
@@ -149,7 +149,7 @@ private:
 	int threads_in_grid;
 
 	//device memory pointers
-	cudaPitchedPtr static_map_device_pointer;
+	//cudaPitchedPtr static_map_device_pointer;
 	cudaPitchedPtr dynamic_map_device_pointer;
 	UnitInfoDevice* unit_lookup_device_pointer;
 	Entity* device_unit_list_pointer;
