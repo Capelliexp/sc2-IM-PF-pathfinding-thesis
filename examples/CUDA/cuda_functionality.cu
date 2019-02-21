@@ -67,12 +67,17 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	this->actions = actions;
 	this->actions_feature_layer = actions_feature_layer;
 
-	//dim_block = { 16, 64, 1 };
-	dim_block = { 8, 8, 1 };
-	unsigned int x = (unsigned int)(ceil(MAP_X_R / (float)dim_block.x) + 0.5);
-	unsigned int y = (unsigned int)(ceil(MAP_Y_R / (float)dim_block.y) + 0.5);
-	dim_grid = { x, y, 1 };
-	threads_in_grid = (dim_block.x * dim_block.y) * (dim_grid.x * dim_grid.y);
+	dim_block_high = { 32, 32, 1 };
+	unsigned int x1 = (unsigned int)(ceil(MAP_X_R / (float)dim_block_high.x) + 0.5);
+	unsigned int y1 = (unsigned int)(ceil(MAP_Y_R / (float)dim_block_high.y) + 0.5);
+	dim_grid_high = { x1, y1, 1 };
+	threads_in_grid_high = (dim_block_high.x * dim_block_high.y) * (dim_grid_high.x * dim_grid_high.y);
+
+	dim_block_low = { 8, 4, 1 };
+	unsigned int x2 = (unsigned int)(ceil(MAP_X_R / (float)dim_block_low.x) + 0.5);
+	unsigned int y2 = (unsigned int)(ceil(MAP_Y_R / (float)dim_block_low.y) + 0.5);
+	dim_grid_low = { x2, y2, 1 };
+	threads_in_grid_low = (dim_block_low.x * dim_block_low.y) * (dim_grid_low.x * dim_grid_low.y);
 
 	unit_list_max_length = 800;
 	unit_type_attracting_pf_pointers.reserve(100);
@@ -213,6 +218,9 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	cudaMalloc((void**)&device_unit_list_pointer, unit_list_max_length * sizeof(Entity));	//unit list (might extend size during runtime)
 	cudaMalloc3D(&repelling_pf_ground_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling on ground
 	cudaMalloc3D(&repelling_pf_air_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling in air
+	Check(cudaMalloc((void**)&global_memory_im_list_storage, 512000000 * sizeof(short)), "big AF allocation", true);	//big AF list for A* open/closed list
+
+	Check(cudaPeekAtLastError(), "cuda allocation peek", true);
 }
 
 __host__ void CUDA::FillDeviceUnitArray() {
@@ -257,7 +265,7 @@ __host__ bool CUDA::TransferDynamicMapToDevice() {
 /*KERNAL LAUNCHES START*/
 
 __host__ void CUDA::RepellingPFGeneration(){
-	DeviceRepellingPFGeneration<<<dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity))>>>
+	DeviceRepellingPFGeneration<<<dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity))>>>
 		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
 
 	cudaMemcpy3DParms par = { 0 };
@@ -297,14 +305,16 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	im_pointers.push_back(im_ptr);
 
 	if (!air_path) {
-		DeviceGroundIMGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >
-			(destination, device_map, dynamic_map_device_pointer/*, static_map_device_pointer*/);
+		DeviceGroundIMGeneration <<<dim_grid_low, dim_block_low>>>
+			(destination, device_map, dynamic_map_device_pointer, global_memory_im_list_storage);
 	}
 	else {
-		/*DeviceAirIMGeneration << <dim_grid, dim_block, (host_unit_list.size() * sizeof(Entity)) >> >
+		/*DeviceAirIMGeneration <<<dim_grid_low, dim_block_high>>>
 			(destination, device_map);*/
 	}
 
+	//Check(cudaDeviceSynchronize(), "IM generation sync", true);
+	//Check(cudaPeekAtLastError(), "IM generation peek", true);
 
 	float res[MAP_X_R][MAP_Y_R][1];
 

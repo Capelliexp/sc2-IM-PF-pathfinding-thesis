@@ -33,12 +33,6 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 }
 
 void MapStorage::Test() {
-    for (int x = 0; x < MAP_X_R; ++x)
-        for (int y = 0; y < MAP_Y_R; ++y) {
-            //static_terrain[x][y] = x - y;
-            //dynamic_terrain[x][y][0] = x - y;
-        }
-
     units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 20, 20 }, true });
     //units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 6, 6 }, false});
 }
@@ -49,31 +43,8 @@ void MapStorage::Test() {
 //!< \param msg The message to be printed to the console.
 void MapStorage::PrintStatus(std::string msg)
 {
-    //int64_t bot_identifier = int64_t(this) & 0xFFFLL;
-    //std::cout << std::to_string(bot_identifier) << ": " << msg << std::endl;
-
     std::cout << "map_storage: " << msg << std::endl;
 }
-
-//void MapStorage::PrintMap(sc2::ImageData map, std::string file)
-//{
-//    PrintStatus("Map height: " + std::to_string(map.height));
-//    PrintStatus("Map width: " + std::to_string(map.width));
-//    std::ofstream out(file + ".txt");
-//    int width = map.width;
-//    for (int i = 0; i < map.height; i++)
-//    {
-//        for (int j = 0; j < width; j++)
-//        {
-//            if (map.data[j + i * width] == 0)
-//                out << 0;
-//            else
-//                out << 1;
-//        }
-//        out << std::endl;
-//    }
-//    out.close();
-//}
 
 void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file)
 {

@@ -108,13 +108,13 @@ int main(int argc, char* argv[]) {
         CreateParticipant(sc2::Race::Terran, &bot),
         CreateComputer(sc2::Race::Terran)
     });
-    coordinator.SetRealtime(true);
+    coordinator.SetRealtime(false);
     // Start the game.
     coordinator.LaunchStarcraft();
 
     // Step forward the game simulation.
     bool do_break = false;
-    char* str = "Test/EditorTest.SC2Map";
+    char* str = "Test/height.SC2Map";
     while (!do_break) {
         //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
         coordinator.StartGame(str);
