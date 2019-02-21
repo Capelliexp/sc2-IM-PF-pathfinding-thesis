@@ -30,7 +30,7 @@ private:
     //!< param player ID of the player that the units belong to. If left blank the units are given to player one.
     void SpawnUnits(sc2::UNIT_TYPEID unit_id, int amount, sc2::Point2D pos, int player = 1);
     //! Function to set destination for the given units and the behavior.
-    void SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement);
+    void SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement, int start = -1, int end = -1);
     void SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior);
 
     void CommandsOnEmpty50();
