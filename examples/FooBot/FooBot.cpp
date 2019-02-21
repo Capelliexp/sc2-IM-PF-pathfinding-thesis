@@ -187,6 +187,17 @@ void FooBot::CommandsOnEmpty50() {
 		}
 		break;
 	case 5:
+		if (spawn_units)
+		{
+			Debug()->DebugEnemyControl();
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(5, 5));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(25, 25), 2);
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(5, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE);
+		}
 		break;
 	case 6:
 		break;
