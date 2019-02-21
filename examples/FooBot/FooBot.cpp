@@ -122,7 +122,7 @@ void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID 
 		for (int i = start; i < end; ++i) {
 			subUnits.push_back(units[i]);
 		}
-		Actions()->UnitCommand(units, type_of_movement, pos);
+		Actions()->UnitCommand(subUnits, type_of_movement, pos);
 	}
 }
 
@@ -241,7 +241,7 @@ void FooBot::CommandsOnEmpty50() {
 		else if (CheckIfUnitsSpawned(10, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
 		{
 			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE, 0, 5);
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE, 5, 10);
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(5, 5), sc2::ABILITY_ID::MOVE, 5, 10);
 			spawn_units = true;
 			command = 0;
 		}
