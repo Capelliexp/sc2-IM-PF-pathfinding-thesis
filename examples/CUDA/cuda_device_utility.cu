@@ -12,6 +12,28 @@ __device__ float GetMapValue(cudaPitchedPtr map, int x, int y) {
 	return *((float*)((char*)ptr + y * pitch) + x);
 }
 
+__device__ float GetMapValue(cudaPitchedPtr map, int global_id) {
+	int x = global_id % (gridDim.x * blockDim.x);
+	int y = global_id / (float)(gridDim.x * blockDim.x);
+
+	char* ptr = (char*)map.ptr;
+	size_t pitch = map.pitch;
+
+	return *((float*)((char*)ptr + y * pitch) + x);
+}
+
+/* check if the id is present in the given list. This could possibly be sped up by fetching
+many entries at once... */
+__device__ int IDInList(int id, list_double_entry* list, int list_length){
+	for (int i = 0; i < list_length; ++i) {
+		if (list[i].node == id) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
 __device__ void SetMapValue(cudaPitchedPtr map, int x, int y, float value) {
 	char* ptr = (char*)map.ptr;
 	size_t pitch = map.pitch;
@@ -20,10 +42,19 @@ __device__ void SetMapValue(cudaPitchedPtr map, int x, int y, float value) {
 	row[x] = value;
 }
 
+
+
 __device__ float FloatDistance(float posX1, float posY1, float posX2, float posY2) {
 	float a = powf(posX2 - posX1, 2);
 	float b = powf(posY2 - posY1, 2);
 	return sqrtf(a + b) / GRID_DIVISION;
+}
+
+//returnes the squared distance, not divided for grid sub-division
+__device__ float FloatDistanceFromIDRelative(int ID, IntPoint2D destination) {
+	float a = powf(destination.x - (ID % (gridDim.x * blockDim.x)), 2);
+	float b = powf(destination.y - (ID / (float)(gridDim.x * blockDim.x)), 2);
+	return (a + b);
 }
 
 __device__ int BlockDistance(int posX1, int posY1, int posX2, int posY2) {

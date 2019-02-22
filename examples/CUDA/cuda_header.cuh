@@ -45,7 +45,7 @@ typedef short list_entry;	//changed to int later? (X) Doubt
 
 typedef struct {
 	list_entry node;
-	list_entry back_node;
+	list_entry backtrack_iterator;
 } list_double_entry;
 
 typedef struct {
@@ -86,11 +86,13 @@ typedef struct {
 //DEVICE FUNCTIONS
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
-__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer, list_entry* global_memory_im_list_storage);
+__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer, list_double_entry* global_memory_im_list_storage);
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map);
 
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
 __global__ void TestDeviceLookupUsage(float* result);
+
+__device__ void Backtrack(cudaPitchedPtr device_map, list_double_entry* closed_list, int start_it);
 
 class CUDA {
 	//friend class MapStorage;
@@ -164,7 +166,7 @@ private:
 	cudaPitchedPtr repelling_pf_air_map_pointer;
 	std::vector<AttractingFieldPointer> unit_type_attracting_pf_pointers;
 	std::vector<InfluenceMapPointer> im_pointers;
-	list_entry* global_memory_im_list_storage;
+	list_double_entry* global_memory_im_list_storage;
 
 
 	//data

@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
 
     // Step forward the game simulation.
     bool do_break = false;
-    char* str = "Test/height.SC2Map";
+    char* str = "Test/empty50.SC2Map";
     while (!do_break) {
         //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
         coordinator.StartGame(str);
