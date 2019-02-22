@@ -13,6 +13,8 @@
 #include "sc2api/sc2_api.h"
 #include "sc2lib/sc2_lib.h"
 
+#include "../LoadPNG/lodepng.h"
+
 //#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
 
 #define MAP_X 100
@@ -71,6 +73,7 @@ public:
 
 	void PrintStatus(std::string msg);
 	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	void CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file);
 
 	//! The bot is abdle to print its IM to a file.
 	void PrintIM();

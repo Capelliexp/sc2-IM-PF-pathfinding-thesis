@@ -83,6 +83,15 @@ void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::str
     out.close();
 }
 
+void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file)
+{
+    //Encode the image
+    unsigned error = lodepng::encode(file, image, width, height);
+
+    //if there's an error, display it
+    if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+}
+
 //! The bot is abdle to print its IM to a file.
 void MapStorage::PrintIM()
 {
