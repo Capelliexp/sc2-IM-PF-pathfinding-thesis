@@ -349,9 +349,27 @@ void FooBot::CommandsOnEmpty200() {
 }
 
 void FooBot::CommandsOnHeight() {
+
 }
 
 void FooBot::CommandsOnLabyrinth() {
+	switch (command) {
+	case 1:
+		if (spawn_units) {
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(50));
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(100), sc2::ABILITY_ID::MOVE);
+			spawn_units = true;
+			command = 0;
+		}
+		break;
+	default:
+		command = 0;
+		spawn_units = true;
+		break;
+	}
 }
 
 void FooBot::CommandsOnWall() {
