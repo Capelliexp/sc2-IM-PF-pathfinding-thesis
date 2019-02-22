@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string map = "empty200";
+    std::string map = "labyrinth";
     // Add the custom bot, it will control the players.
     FooBot bot(map);
 
