@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string map = "empty50";
+    std::string map = "empty200";
     // Add the custom bot, it will control the players.
     FooBot bot(map);
 
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
         CreateParticipant(sc2::Race::Terran, &bot),
         CreateComputer(sc2::Race::Terran)
     });
-    coordinator.SetRealtime(true);
+    coordinator.SetRealtime(false);
     // Start the game.
     coordinator.LaunchStarcraft();
 
