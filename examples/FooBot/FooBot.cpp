@@ -365,6 +365,17 @@ void FooBot::CommandsOnLabyrinth() {
 			command = 0;
 		}
 		break;
+	case 2:
+		if (spawn_units) {
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(100));
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(50), sc2::ABILITY_ID::MOVE);
+			spawn_units = true;
+			command = 0;
+		}
+		break;
 	default:
 		command = 0;
 		spawn_units = true;
