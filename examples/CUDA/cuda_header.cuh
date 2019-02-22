@@ -10,6 +10,7 @@
 #include <math.h>
 #include <unordered_map>
 #include <windows.h>
+#include <cmath>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -34,7 +35,7 @@
 //Check(cudaDeviceSynchronize());
 
 #define BLOCK_AMOUNT 1 
-#define THREADS_PER_BLOCK 512
+#define THREADS_PER_BLOCK 1024
 #define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
 
 typedef struct {
@@ -62,10 +63,11 @@ typedef struct {
 } Entity;
 
 //DEVICE FUNCTIONS
-__global__ void TestDeviceAttractingPFGeneration(float* device_map);
-__global__ void TestDeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
+__global__ void DeviceAttractingPFGeneration(float* device_map);
+__global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
+__global__ void DeviceIMGeneration(float* device_map);
+
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
-__global__ void TestDeviceIMGeneration(float* device_map);
 __global__ void TestDeviceLookupUsage(float* result);
 
 class CUDA {
@@ -101,11 +103,12 @@ public:
 	__host__ void ReadUnitInfoFromFile(std::string filename);
 	__host__ std::vector<int> GetUnitsID();
 	__host__ void SetRadiusForUnits(std::vector<float> radius);
+	__host__ void SetIsFlyingForUnits(std::vector<bool> is_flying);
 	__host__ int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
 	__host__ int GetSizeOfUnitInfoList();
 
 	//Kernel launches
-	__host__ void TestRepellingPFGeneration();
+	__host__ void RepellingPFGeneration();
 	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
@@ -121,12 +124,20 @@ private:
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
+	dim3 dim_block;
+	dim3 dim_grid;
+	int threads_in_grid;
+
 	//device memory pointers
-	cudaPitchedPtr static_map_device_pointer;	//data in map_storage
-	cudaPitchedPtr dynamic_map_device_pointer;	//data in map_storage
+	cudaPitchedPtr static_map_device_pointer;
+	cudaPitchedPtr dynamic_map_device_pointer;
+
+	cudaPitchedPtr repelling_pf_ground_map_pointer;
+	cudaPitchedPtr repelling_pf_air_map_pointer;
+
 	UnitInfoDevice* unit_lookup_device_pointer;
 	Entity* device_unit_list_pointer;
-
+	
 	//data
 	std::vector<UnitInfo> host_unit_info;
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;
