@@ -278,8 +278,6 @@ __host__ void CUDA::RepellingPFGeneration(){
 
 	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R,MAP_Y_R, "air");
-
-	getchar();
 }
 
 __host__ void CUDA::TestLookupTable() {
