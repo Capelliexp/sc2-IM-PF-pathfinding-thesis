@@ -254,6 +254,124 @@ void FooBot::CommandsOnEmpty50() {
 }
 
 void FooBot::CommandsOnEmpty200() {
+	switch (command) {
+	case 1:
+		if (spawn_units)
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5));
+		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(195), sc2::ABILITY_ID::MOVE);
+			command = 0;
+			spawn_units = true;
+		}
+		break;
+	case 2:
+		if (spawn_units)
+		{
+			Debug()->DebugEnemyControl();
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(100), 2);
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(195), sc2::ABILITY_ID::MOVE);
+		}
+		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT }))
+		{
+			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
+			spawn_units = true;
+			command = 0;
+		}
+		break;
+	case 3:
+		if (spawn_units)
+		{
+			Debug()->DebugEnemyControl();
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(100), 2);
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(195), sc2::ABILITY_ID::ATTACK);
+		}
+		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT }))
+		{
+			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
+			spawn_units = true;
+			command = 0;
+		}
+		break;
+	case 4:
+		if (spawn_units)
+		{
+			Debug()->DebugEnemyControl();
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(100), 2);
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(195), sc2::ABILITY_ID::ATTACK);
+			spawn_units = true;
+			command = 0;
+		}
+		break;
+	case 5:
+		if (spawn_units)
+		{
+			Debug()->DebugEnemyControl();
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(5));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(100), 2);
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(5, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(100), sc2::ABILITY_ID::ATTACK);
+		}
+		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT }))
+		{
+			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
+			spawn_units = true;
+			command = 0;
+		}
+		break;
+	case 6:
+		if (spawn_units)
+		{
+			Debug()->DebugEnemyControl();
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(5));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(100), 2);
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(5, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(100), sc2::ABILITY_ID::ATTACK);
+			spawn_units = true;
+			command = 0;
+		}
+		break;
+	case 7:
+		if (spawn_units)
+		{
+			Debug()->DebugEnemyControl();
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(5));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(195));
+			spawn_units = false;
+		}
+		else if (CheckIfUnitsSpawned(10, { sc2::UNIT_TYPEID::TERRAN_MARINE }))
+		{
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(195), sc2::ABILITY_ID::MOVE, sc2::Point2D(3), sc2::Point2D(8));
+			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(5), sc2::ABILITY_ID::MOVE, sc2::Point2D(193), sc2::Point2D(198));
+			spawn_units = true;
+			command = 0;
+		}
+		break;
+	default:
+		command = 0;
+		break;
+	}
 }
 
 void FooBot::CommandsOnHeight() {
