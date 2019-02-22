@@ -104,6 +104,22 @@ bool Point2D::operator!=(const Point2D& rhs) {
     return !(*this == rhs);
 }
 
+bool Point2D::operator<(const Point2D& rhs) {
+    return this->x < rhs.x && this->y < rhs.y;
+}
+
+bool Point2D::operator<=(const Point2D& rhs) {
+    return this->x <= rhs.x && this->y <= rhs.y;
+}
+
+bool Point2D::operator>(const Point2D& rhs) {
+    return this->x > rhs.x && this->y > rhs.y;
+}
+
+bool Point2D::operator>=(const Point2D& rhs) {
+    return this->x >= rhs.x && this->y >= rhs.y;
+}
+
 Point2D operator+(const Point2D& lhs, const Point2D& rhs) {
     return Point2D(lhs.x + rhs.x, lhs.y + rhs.y);
 }

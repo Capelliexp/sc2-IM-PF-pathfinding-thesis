@@ -66,6 +66,12 @@ struct Point2D {
         y(in_y) {
     }
 
+    Point2D(float in_xy) :
+        x(in_xy),
+        y(in_xy) {
+
+    }
+
     Point2D& operator+=(const Point2D& rhs);
     Point2D& operator-=(const Point2D& rhs);
     Point2D& operator*=(float rhs);
@@ -73,6 +79,10 @@ struct Point2D {
 
     bool operator==(const Point2D& rhs);
     bool operator!=(const Point2D& rhs);
+    bool operator<(const Point2D& rhs);
+    bool operator<=(const Point2D& rhs);
+    bool operator>(const Point2D& rhs);
+    bool operator>=(const Point2D& rhs);
 };
 
 Point2D operator+(const Point2D& lhs, const Point2D& rhs);
