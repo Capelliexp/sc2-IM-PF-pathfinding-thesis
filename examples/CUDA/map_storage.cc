@@ -83,10 +83,18 @@ void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::str
     out.close();
 }
 
+//Encode from raw pixels to an in-memory PNG file first, then write it to disk
+//The image argument has width * height RGBA pixels or width * height * 4 bytes
+// std::vector<unsigned char>& image
 void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file)
 {
+    std::vector<unsigned char>& image = *new std::vector<unsigned char>();
+    image.push_back(map[0][0][0]);
+    image.push_back(map[1][0][0]);
+    image.push_back(map[0][1][0]);
+    image.push_back(map[1][1][0]);
     //Encode the image
-    unsigned error = lodepng::encode(file, image, width, height);
+    unsigned error = lodepng::encode(file, image, 2, 2);
 
     //if there's an error, display it
     if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
