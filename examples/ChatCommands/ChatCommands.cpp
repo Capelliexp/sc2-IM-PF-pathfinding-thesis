@@ -15,7 +15,7 @@ ChatCommands::ChatCommands(int map)
 		this->valid_commands = { "1", "2", "3", "4", "5", "6", "7" };
 		break;
 	case 3:	//height
-		this->valid_commands = {};
+		this->valid_commands = { "1", "2", "3" };
 		break;
 	case 4:	//labyrinth
 		this->valid_commands = {"1", "2"};
