@@ -88,13 +88,25 @@ void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::str
 // std::vector<unsigned char>& image
 void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file)
 {
-    std::vector<unsigned char>& image = *new std::vector<unsigned char>();
-    image.push_back(map[0][0][0]);
-    image.push_back(map[1][0][0]);
-    image.push_back(map[0][1][0]);
-    image.push_back(map[1][1][0]);
+    std::vector<unsigned char> image;
+    image.resize(width * height * 4);
+    for (unsigned y = 0; y < height; y++)
+        for (unsigned x = 0; x < width; x++) {
+            float mapP = map[x][y][0];
+            float p = 255 * (1-(width-mapP)/(float)width);
+            image[4 * width * y + 4 * x + 0] = p;
+            image[4 * width * y + 4 * x + 1] = p;
+            image[4 * width * y + 4 * x + 2] = p;
+            image[4 * width * y + 4 * x + 3] = 255;
+        }
+
+    /*std::vector<unsigned char>& image = *new std::vector<unsigned char>();
+    image.push_back(0.5f);
+    image.push_back(0.5f);
+    image.push_back(0.25f);
+    image.push_back(0.25f);*/
     //Encode the image
-    unsigned error = lodepng::encode(file, image, 2, 2);
+    unsigned error = lodepng::encode(file, image, width, height);
 
     //if there's an error, display it
     if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
