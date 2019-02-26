@@ -66,6 +66,9 @@ public:
 		sc2::ActionFeatureLayerInterface* actions_feature_layer);
 
 	void Test();
+	//! Function to check if the file exists
+	//!< \param filename String of the filename to check for. Include relevant ending of file (.txt, .png, ...)
+	//!< \return Return true if file found.
 	bool CheckIfFileExists(std::string filename);
 
 
@@ -73,6 +76,11 @@ public:
 	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 	void PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 	void PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	//! Function to create an image.
+	//!< \param map A 2D array of bools containing the areas on the map that is non-patheble.
+	//!< \param width Integer representing the width of the map.
+	//!< \param height Integer representing the height of the map.
+	//!< \param file The name of the image that is to be created.
 	void CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file);
 
 	//! The bot is abdle to print its IM to a file.

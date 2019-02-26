@@ -100,11 +100,6 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
             image[4 * width * y + 4 * x + 3] = 255;
         }
 
-    /*std::vector<unsigned char>& image = *new std::vector<unsigned char>();
-    image.push_back(0.5f);
-    image.push_back(0.5f);
-    image.push_back(0.25f);
-    image.push_back(0.25f);*/
     //Encode the image
     unsigned error = lodepng::encode(file, image, width, height);
 
