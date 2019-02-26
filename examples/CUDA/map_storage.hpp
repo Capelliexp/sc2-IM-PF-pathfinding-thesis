@@ -17,17 +17,14 @@
 
 //#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
 
-#define MAP_X 100
-#define MAP_Y 100
+#define MAP_X 104
+#define MAP_Y 104
 #define MAP_SIZE (MAP_X*MAP_Y)
 
-#define GRID_DIVISION 2 // 1 grid's sub grid size = GRID_DIVISION^2 
+#define GRID_DIVISION 1 // 1 grid's sub grid size = GRID_DIVISION^2  (OBS! minimum 1)
 #define MAP_X_R (MAP_X*GRID_DIVISION)
 #define MAP_Y_R (MAP_Y*GRID_DIVISION)
 #define MAP_SIZE_R (MAP_SIZE*GRID_DIVISION*GRID_DIVISION)
-
-
-//read bookmarks
 
 /*
 Textures:
@@ -47,15 +44,16 @@ struct Unit {
 	bool enemy = false;
 };
 
-struct Destination_IM {
-	sc2::Point2D destination;
+struct Attracting_PF {
+	int id;
 	float map[MAP_X_R][MAP_Y_R];
 };
 
-//struct Attraction {
-//	sc2::UNIT_TYPEID id = sc2::UNIT_TYPEID::INVALID;
-//	float map[map_x][map_y];
-//};
+struct Destination_IM {
+	bool air_path = false;
+	sc2::Point2D destination;
+	float map[MAP_X_R][MAP_Y_R];
+};
 
 class MapStorage {
 	friend class CUDA;	//might be wrong? used to access private maps & units
@@ -73,7 +71,9 @@ public:
 
 	void PrintStatus(std::string msg);
 	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
-	void CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file);
+	void PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	void PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	void CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file);
 
 	//! The bot is abdle to print its IM to a file.
 	void PrintIM();
@@ -123,8 +123,7 @@ private:
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
-	bool static_terrain[MAP_X_R][MAP_Y_R];	//update at start
-	bool dynamic_terrain[MAP_X_R][MAP_Y_R];	//update on-building-creation, on-building-destruction, on-building-vision
+	bool dynamic_terrain[MAP_X_R][MAP_Y_R][1];	//update on-building-creation, on-building-destruction, on-building-vision
 
 	std::vector<Unit> units;	//update per frame, includes movable units and hostile structures
 

@@ -26,16 +26,15 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     this->debug = debug;
     this->actions = actions;
     this->actions_feature_layer = actions_feature_layer;
+
+    CreateIM();
+    //PrintIM();
+    PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
+    CreateImage(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
 }
 
 void MapStorage::Test() {
-    for (int x = 0; x < MAP_X_R; ++x)
-        for (int y = 0; y < MAP_Y_R; ++y) {
-            static_terrain[x][y] = x - y;
-            dynamic_terrain[x][y] = x - y;
-        }
-
-    units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 50, 50 }, true });
+    units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 20, 20 }, true });
     //units.push_back({ sc2::UNIT_TYPEID::TERRAN_HELLION, { 6, 6 }, false});
 }
 
@@ -45,33 +44,34 @@ void MapStorage::Test() {
 //!< \param msg The message to be printed to the console.
 void MapStorage::PrintStatus(std::string msg)
 {
-    //int64_t bot_identifier = int64_t(this) & 0xFFFLL;
-    //std::cout << std::to_string(bot_identifier) << ": " << msg << std::endl;
-
     std::cout << "map_storage: " << msg << std::endl;
 }
 
-//void MapStorage::PrintMap(sc2::ImageData map, std::string file)
-//{
-//    PrintStatus("Map height: " + std::to_string(map.height));
-//    PrintStatus("Map width: " + std::to_string(map.width));
-//    std::ofstream out(file + ".txt");
-//    int width = map.width;
-//    for (int i = 0; i < map.height; i++)
-//    {
-//        for (int j = 0; j < width; j++)
-//        {
-//            if (map.data[j + i * width] == 0)
-//                out << 0;
-//            else
-//                out << 1;
-//        }
-//        out << std::endl;
-//    }
-//    out.close();
-//}
-
 void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file)
+{
+    std::ofstream out(file + ".txt");
+    int width = x;
+    for (int i = 0; i < y; i++)
+    {
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
+        out << std::endl;
+    }
+    out.close();
+}
+
+void MapStorage::PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file)
+{
+    std::ofstream out(file + ".txt");
+    int width = x;
+    for (int i = 0; i < y; i++)
+    {
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
+        out << std::endl;
+    }
+    out.close();
+}
+
+void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file)
 {
     std::ofstream out(file + ".txt");
     int width = x;
@@ -86,14 +86,14 @@ void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::str
 //Encode from raw pixels to an in-memory PNG file first, then write it to disk
 //The image argument has width * height RGBA pixels or width * height * 4 bytes
 // std::vector<unsigned char>& image
-void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file)
+void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file)
 {
     std::vector<unsigned char> image;
     image.resize(width * height * 4);
     for (unsigned y = 0; y < height; y++)
         for (unsigned x = 0; x < width; x++) {
             float mapP = map[x][y][0];
-            float p = 255 * (1-(width-mapP)/(float)width);
+            float p = 255 * (1-(1-mapP)/(float)1);
             image[4 * width * y + 4 * x + 0] = p;
             image[4 * width * y + 4 * x + 1] = p;
             image[4 * width * y + 4 * x + 2] = p;
@@ -137,25 +137,26 @@ void MapStorage::CreateIM()
 {
     std::string IM = observation->GetGameInfo().pathing_grid.data;    //here
     //The multiplication is done due to that the returned pathing grid is the wrong size. It is the same size as placement grid.
-    width = observation->GetGameInfo().pathing_grid.width * pathingGridSize;
-    height = observation->GetGameInfo().pathing_grid.height * pathingGridSize;
+    width = observation->GetGameInfo().pathing_grid.width * GRID_DIVISION;
+    height = observation->GetGameInfo().pathing_grid.height * GRID_DIVISION;
 
-    InfluenceMap = std::vector<float>(width*height);
+    //InfluenceMap = std::vector<float>(width*height);
 
     //Fill a 8x8 cube with the same value
-    for (int i = 0; i < height / pathingGridSize; ++i)
+    for (int i = 0; i < height / GRID_DIVISION; ++i)
     {
-        int iP = i * pathingGridSize;
-        for (int j = 0; j < width / pathingGridSize; ++j)
+        int iP = i * GRID_DIVISION;
+        for (int j = 0; j < width / GRID_DIVISION; ++j)
         {
-            int jP = j * pathingGridSize;
-            for (int y = 0; y < pathingGridSize; ++y)
+            int jP = j * GRID_DIVISION;
+            for (int y = 0; y < GRID_DIVISION; ++y)
             {
-                int yp = (y + iP) * width;
-                for (int x = 0; x < pathingGridSize; ++x)
+                int yp = (y + iP);
+                for (int x = 0; x < GRID_DIVISION; ++x)
                 {
                     int xp = x + jP;
-                    InfluenceMap[xp + yp] = (IM[j + i * width / pathingGridSize] == -1) ? 0 : 1;
+                    //InfluenceMap[xp + yp] = (IM[j + i * width / GRID_DIVISION] == -1) ? 0 : 1;
+                    dynamic_terrain[yp][xp][0] = (IM[j + i * width / GRID_DIVISION] == -1) ? 0 : 1;
                 }
             }
         }

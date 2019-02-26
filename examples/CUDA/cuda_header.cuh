@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <windows.h>
 #include <cmath>
+#include <utility>
+#include <tuple>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -34,9 +36,17 @@
 //Check(cudaPeekAtLastError());
 //Check(cudaDeviceSynchronize());
 
-#define BLOCK_AMOUNT 1 
-#define THREADS_PER_BLOCK 1024
-#define THREADS_IN_GRID (BLOCK_AMOUNT*THREADS_PER_BLOCK)
+typedef struct {
+	int x;
+	int y;
+} IntPoint2D;
+
+typedef short list_entry;	//changed to int later? (X) Doubt
+
+typedef struct {
+	list_entry node;
+	list_entry backtrack_iterator;
+} list_double_entry;
 
 typedef struct {
 	int id = 0;		//sc2::UNIT_TYPEID::INVALID
@@ -62,13 +72,27 @@ typedef struct {
 	bool enemy;
 } Entity;
 
+typedef struct {
+	int id;
+	cudaPitchedPtr map_ptr;
+	cudaMemcpy3DParms parameters;
+} AttractingFieldPointer;
+
+typedef struct {
+	IntPoint2D destination;
+	cudaPitchedPtr map_ptr;
+} InfluenceMapPointer;
+
 //DEVICE FUNCTIONS
-__global__ void DeviceAttractingPFGeneration(float* device_map);
+__global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
-__global__ void DeviceIMGeneration(float* device_map);
+__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer, list_double_entry* global_memory_im_list_storage);
+__global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map);
 
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
 __global__ void TestDeviceLookupUsage(float* result);
+
+__device__ void Backtrack(cudaPitchedPtr device_map, list_double_entry* closed_list, int start_it);
 
 class CUDA {
 	//friend class MapStorage;
@@ -109,6 +133,7 @@ public:
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration();
+	__host__ void IMGeneration(IntPoint2D destination, bool air_path);
 	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
@@ -118,30 +143,37 @@ public:
 	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
 
 private:
+	//class pointers
 	MapStorage* map_storage;
 	const sc2::ObservationInterface* observation;
 	sc2::DebugInterface* debug;
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
-	dim3 dim_block;
-	dim3 dim_grid;
-	int threads_in_grid;
+	//thread, block & grid sizes
+	dim3 dim_block_high;
+	dim3 dim_grid_high;
+	dim3 dim_block_low;
+	dim3 dim_grid_low;
+	int threads_in_grid_high;
+	int threads_in_grid_low;
 
 	//device memory pointers
-	cudaPitchedPtr static_map_device_pointer;
 	cudaPitchedPtr dynamic_map_device_pointer;
-
-	cudaPitchedPtr repelling_pf_ground_map_pointer;
-	cudaPitchedPtr repelling_pf_air_map_pointer;
-
 	UnitInfoDevice* unit_lookup_device_pointer;
 	Entity* device_unit_list_pointer;
-	
+	cudaPitchedPtr repelling_pf_ground_map_pointer;
+	cudaPitchedPtr repelling_pf_air_map_pointer;
+	std::vector<AttractingFieldPointer> unit_type_attracting_pf_pointers;
+	std::vector<InfluenceMapPointer> im_pointers;
+	list_double_entry* global_memory_im_list_storage;
+
+
 	//data
 	std::vector<UnitInfo> host_unit_info;
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;
 	std::unordered_map<sc2::UNIT_TYPEID, unsigned int> host_unit_transform;
 	std::vector<Entity> host_unit_list;
+	int unit_list_max_length;
 };
 #endif
