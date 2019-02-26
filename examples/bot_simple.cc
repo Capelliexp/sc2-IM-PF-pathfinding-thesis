@@ -16,7 +16,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string map = "height";
+    //! Om du ändrar denna variable. Glöm inte att ändra #define MAP_X och #define MAP_Y i map_storage.hpp.
+    std::string map = "height";                          
     // Add the custom bot, it will control the players.
     FooBot bot(map);
 
