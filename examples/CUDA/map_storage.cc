@@ -14,6 +14,7 @@
 MapStorage::MapStorage() {
     //unit_attraction_PF.reserve(bot_faction_unit_type_count);
     update_terrain = true;
+    max_value = 0;
 }
 
 MapStorage::~MapStorage() {
@@ -31,6 +32,8 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     //PrintIM();
     PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
     CreateImage(dynamic_terrain, MAP_X_R, MAP_Y_R);
+    AddToImage(ground_avoidance_PF, MAP_X_R, MAP_Y_R, colors::BLUE);
+    PrintImage("image.png", MAP_X_R, MAP_Y_R);
     //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
 }
 
@@ -92,10 +95,10 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
     for (unsigned y = 0; y < height; y++)
         for (unsigned x = 0; x < width; x++) {
             float mapP = map[x][y][0];
-            float p = 255 * (1-(1-mapP)/(float)1);
-            image[4 * width * y + 4 * x + 0] = p;
-            image[4 * width * y + 4 * x + 1] = p;
-            image[4 * width * y + 4 * x + 2] = p;
+            //float p = 255 * (1-(1-mapP)/(float)1);
+            image[4 * width * y + 4 * x + 0] = mapP;
+            image[4 * width * y + 4 * x + 1] = mapP;
+            image[4 * width * y + 4 * x + 2] = mapP;
             image[4 * width * y + 4 * x + 3] = 255;
         }
 }
@@ -106,11 +109,14 @@ void MapStorage::AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heigh
             //If the pixel is unpathebale don't write to it.
             if (image[4 * width * y + 4 * x + 0] == 0 && image[4 * width * y + 4 * x + 1] == 0 && image[4 * width * y + 4 * x + 2] == 0) continue;
             float mapP = map[x][y][0];
-            float p = 255 * (1 - (width - mapP) / (float)width);
+            if (mapP == 0) continue;
+            if (mapP < 200)
+                max_value = std::max(max_value, mapP);
+            //float p = 255 * (1 - (width - mapP) / (float)width);
             std::vector<float> selected_color = DetermineColor(color);
-            image[4 * width * y + 4 * x + 0] += selected_color[0] * p;
-            image[4 * width * y + 4 * x + 1] += selected_color[1] * p;
-            image[4 * width * y + 4 * x + 2] += selected_color[2] * p;
+            image[4 * width * y + 4 * x + 0] += selected_color[0] * mapP;
+            image[4 * width * y + 4 * x + 1] += selected_color[1] * mapP;
+            image[4 * width * y + 4 * x + 2] += selected_color[2] * mapP;
             image[4 * width * y + 4 * x + 3] = 255;
         }
 }
@@ -121,11 +127,11 @@ void MapStorage::AddToImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height
             //If the pixel is unpathebale don't write to it.
             if (image[4 * width * y + 4 * x + 0] == 0 && image[4 * width * y + 4 * x + 1] == 0 && image[4 * width * y + 4 * x + 2] == 0) continue;
             float mapP = map[x][y][0];
-            float p = 255 * (1 - (1 - mapP) / (float)1);
+            //float p = 255 * (1 - (1 - mapP) / (float)1);
             std::vector<float> selected_color = DetermineColor(color);
-            image[4 * width * y + 4 * x + 0] = selected_color[0] * p;
-            image[4 * width * y + 4 * x + 1] = selected_color[1] * p;
-            image[4 * width * y + 4 * x + 2] = selected_color[2] * p;
+            image[4 * width * y + 4 * x + 0] = selected_color[0] * mapP;
+            image[4 * width * y + 4 * x + 1] = selected_color[1] * mapP;
+            image[4 * width * y + 4 * x + 2] = selected_color[2] * mapP;
             image[4 * width * y + 4 * x + 3] = 255;
         }
 }
@@ -134,16 +140,13 @@ void MapStorage::PrintImage(std::string filename, int width, int height) {
     //Encode the image
     std::vector<unsigned char> printImage(width * height * 4);
     for (int i = 0; i < image.size(); ++i) {
-        float p = 0;
         //If mapP == 1, pathable space with no influence. White pixel
-        if (image[i] == 1)
-            p = 255;
+        if (image[i] == 0)
+            printImage[i] = 0;
+        else if (image[i] == 1 || image[i] == 255)
+            printImage[i] = 255;
         else
-            p = 255 * (1 - (max_value + 1 - image[i]) / (max_value + 1.f));
-        image[i + 0] = p;
-        image[i + 1] = p;
-        image[i + 2] = p;
-        image[i + 3] = 255;
+            printImage[i] = 255 * (1 - (max_value - image[i]) / (float)max_value);
     }
     unsigned error = lodepng::encode(filename, printImage, width, height);
 
@@ -151,8 +154,7 @@ void MapStorage::PrintImage(std::string filename, int width, int height) {
     if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
 }
 
-std::vector<float> MapStorage::DetermineColor(colors color)
-{
+std::vector<float> MapStorage::DetermineColor(colors color) {
     std::vector<float> selected_color{0.0, 0.0, 0.0};
     switch (color)
     {
@@ -172,6 +174,8 @@ std::vector<float> MapStorage::DetermineColor(colors color)
     case MapStorage::PURPLE:
         selected_color[0] = 1.0;
         selected_color[2] = 1.0;
+        break;
+    case BLACK:
         break;
     default:
         break;

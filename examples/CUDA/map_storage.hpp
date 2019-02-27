@@ -70,7 +70,8 @@ public:
 		GREEN,
 		BLUE,
 		YELLOW,
-		PURPLE
+		PURPLE,
+		BLACK
 	};
 public:
 	MapStorage();
