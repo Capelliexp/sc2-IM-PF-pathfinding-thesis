@@ -17,11 +17,11 @@
 
 //#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
 //! Maps: labyrinth, height, wall
-#define MAP_X 104
-#define MAP_Y 104
 //! Maps: empty50
 //#define MAP_X 56
 //#define MAP_Y 56
+#define MAP_X 104
+#define MAP_Y 104
 //! Maps: empty200
 //#define MAP_X 200
 //#define MAP_Y 200
@@ -63,7 +63,15 @@ struct Destination_IM {
 
 class MapStorage {
 	friend class CUDA;	//might be wrong? used to access private maps & units
-
+public:
+	enum colors
+	{
+		RED,
+		GREEN,
+		BLUE,
+		YELLOW,
+		PURPLE
+	};
 public:
 	MapStorage();
 	~MapStorage();
@@ -82,12 +90,6 @@ public:
 	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 	void PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 	void PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
-	//! Function to create an image.
-	//!< \param map A 2D array of bools containing the areas on the map that is non-patheble.
-	//!< \param width Integer representing the width of the map.
-	//!< \param height Integer representing the height of the map.
-	//!< \param file The name of the image that is to be created.
-	void CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height, std::string file);
 
 	//! The bot is abdle to print its IM to a file.
 	void PrintIM();
@@ -125,12 +127,42 @@ private:
 	//!< \return Returns true if the unit is a structure, false otherwise.
 	bool IsStructure(const sc2::Unit* unit);
 
+	//! Function to create an image.
+	//! Function will reset the image variable.
+	//!< \param map A 2D array of bools containing the areas on the map that is non-patheble.
+	//!< \param width Integer representing the width of the map.
+	//!< \param height Integer representing the height of the map.
+	//!< \param file The name of the image that is to be created.
+	void CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height);
+	//! Function to add elements to the image.
+	//!< \param map A 2D array of floats containing the elements to add to the map.
+	//!< \param width Integer representing the width of the map.
+	//!< \param height Integer representing the height of the map.
+	//!< \param colors The color of the elements to be added to the map
+	void AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color);
+	//! Function to add elements to the image.
+	//!< \param map A 2D array of bools containing the elements to add to the map.
+	//!< \param width Integer representing the width of the map.
+	//!< \param height Integer representing the height of the map.
+	//!< \param colors The color of the elements to be added to the map
+	void AddToImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color);
+	//! Function to print the image.
+	//!< \param filename The name that the image have when printed to disk.
+	//!< \param width Integer representing the width of the map.
+	//!< \param height Integer representing the height of the map.
+	void PrintImage(std::string filename, int width, int height);
+
+	std::vector<float> DetermineColor(colors color);
+
+	void CreateImage2(bool ***map, int width, int height, std::string file);
+
 	void SpawnEveryUnit();
 
 	void PrintUnits();
 
 	void AddObjectiveToIM(sc2::Point2D objective);
 
+private:
 	//CUDA* cuda;	//do NOT include 
 	const sc2::ObservationInterface* observation;
 	sc2::DebugInterface* debug;
@@ -141,6 +173,10 @@ private:
 
 	std::vector<Unit> units;	//update per frame, includes movable units and hostile structures
 
+	//! image is an vector that holds the values representing the map
+	std::vector<float> image;
+	//! max_value is an float holding the largest, non center value, in the map. Center value of units are usually > 1000, these values are outliers and can be clamped.
+	float max_value;
 	bool update_terrain;
 
 	//---------------
