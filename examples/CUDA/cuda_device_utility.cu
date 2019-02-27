@@ -5,14 +5,14 @@
 //DEVICE SYMBOL VARIABLES (const & global)
 __device__ __constant__ UnitInfoDevice* device_unit_lookup;
 
-__device__ float GetMapValue(cudaPitchedPtr map, int x, int y) {
+__device__ float GetFloatMapValue(cudaPitchedPtr map, int x, int y) {
 	char* ptr = (char*)map.ptr;
 	size_t pitch = map.pitch;
 
 	return *((float*)((char*)ptr + y * pitch) + x);
 }
 
-__device__ float GetMapValue(cudaPitchedPtr map, int global_id) {
+__device__ float GetFloatMapValue(cudaPitchedPtr map, int global_id) {
 	int x = global_id % (gridDim.x * blockDim.x);
 	int y = global_id / (float)(gridDim.x * blockDim.x);
 
@@ -20,6 +20,23 @@ __device__ float GetMapValue(cudaPitchedPtr map, int global_id) {
 	size_t pitch = map.pitch;
 
 	return *((float*)((char*)ptr + y * pitch) + x);
+}
+
+__device__ bool GetBoolMapValue(cudaPitchedPtr map, int x, int y) {
+	char* ptr = (char*)map.ptr;
+	size_t pitch = map.pitch;
+
+	return *((bool*)((char*)ptr + y * pitch) + x);
+}
+
+__device__ bool GetBoolMapValue(cudaPitchedPtr map, int global_id) {
+	int x = global_id % (gridDim.x * blockDim.x);
+	int y = global_id / (float)(gridDim.x * blockDim.x);
+
+	char* ptr = (char*)map.ptr;
+	size_t pitch = map.pitch;
+
+	return *((bool*)((char*)ptr + y * pitch) + x);
 }
 
 /* check if the id is present in the given list. This could possibly be sped up by fetching

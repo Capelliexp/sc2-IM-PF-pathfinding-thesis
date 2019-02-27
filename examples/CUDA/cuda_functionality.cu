@@ -83,32 +83,48 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	unit_type_attracting_pf_pointers.reserve(100);
 	im_pointers.reserve(100);
 
+	Check(cudaPeekAtLastError(), "init check 1", true);
+
 	//analysis
 	PrintGenInfo();
+
+	Check(cudaPeekAtLastError(), "init check 2", true);
 
 	//host_transfer
 	CreateUnitLookupOnHost();
 	TransferStaticMapToHost();
 	FillDeviceUnitArray();
 
+	Check(cudaPeekAtLastError(), "init check 3", true);
+
 	//device_malloc
 	AllocateDeviceMemory();
 
+	Check(cudaPeekAtLastError(), "init check 4", true);
+
 	//device_transfer
-	TransferStaticMapToDevice();
+	TransferDynamicMapToDevice();
 	TransferUnitLookupToDevice();
 	TransferUnitsToDevice();
 
+	Check(cudaPeekAtLastError(), "init check 5", true);
+
 	//tests
 	TestLookupTable();
+	Check(cudaPeekAtLastError(), "init check 6a", true);
+
 	Test3DArrayUsage();
+	Check(cudaPeekAtLastError(), "init check 6b", true);
+
 	RepellingPFGeneration();
+	Check(cudaPeekAtLastError(), "init check 6c", true);
 
 	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
 	IMGeneration(IntPoint2D{ 30, 30 }, false);
 
+	Check(cudaPeekAtLastError(), "init check 7", true);
 }
 
 __host__ const sc2::ObservationInterface* CUDA::GetObservation(){
@@ -253,13 +269,23 @@ __host__ void CUDA::TransferUnitsToDevice() {
 		"TransferUnitsToDevice");
 }
 
-__host__ void CUDA::TransferStaticMapToDevice() {
+__host__ void CUDA::TransferDynamicMapToDevice() {
+	cudaMemcpy3DParms par = { 0 };
+	//par.srcPtr.ptr = map_storage->dynamic_terrain;
+	//par.srcPtr.pitch = MAP_X_R * sizeof(bool);
+	//par.srcPtr.xsize = MAP_X_R;
+	//par.srcPtr.ysize = MAP_Y_R;
+	par.srcPtr = make_cudaPitchedPtr((void*)map_storage->dynamic_terrain, MAP_X_R * sizeof(bool), MAP_X_R, MAP_Y_R);
+	par.dstPtr.ptr = dynamic_map_device_pointer.ptr;
+	par.dstPtr.pitch = dynamic_map_device_pointer.pitch;
+	par.dstPtr.xsize = MAP_X_R;
+	par.dstPtr.ysize = MAP_Y_R;
+	par.extent.width = MAP_X_R * sizeof(bool);
+	par.extent.height = MAP_Y_R;
+	par.extent.depth = 1;
+	par.kind = cudaMemcpyHostToDevice;
 
-}
-
-__host__ bool CUDA::TransferDynamicMapToDevice() {
-
-	return true;
+	Check(cudaMemcpy3D(&par), "Dynamic map transfer");
 }
 
 /*KERNAL LAUNCHES START*/
@@ -298,11 +324,11 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	cudaPitchedPtr device_map;
 	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
 
-	InfluenceMapPointer im_ptr;
-	im_ptr.destination = destination;
-	im_ptr.map_ptr = device_map;
-
-	im_pointers.push_back(im_ptr);
+	//InfluenceMapPointer im_ptr;
+	//im_ptr.destination = destination;
+	//im_ptr.map_ptr = device_map;
+	
+	//im_pointers.push_back(im_ptr);
 
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};
 	if (!air_path) {
