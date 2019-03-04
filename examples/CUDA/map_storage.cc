@@ -95,7 +95,6 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
     for (unsigned y = 0; y < height; y++)
         for (unsigned x = 0; x < width; x++) {
             float mapP = map[x][y][0];
-            //float p = 255 * (1-(1-mapP)/(float)1);
             image[4 * width * y + 4 * x + 0] = mapP;
             image[4 * width * y + 4 * x + 1] = mapP;
             image[4 * width * y + 4 * x + 2] = mapP;
@@ -107,9 +106,10 @@ void MapStorage::AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heigh
     std::vector<float> selected_color = DetermineColor(color);
     for (unsigned y = 0; y < height; y++)
         for (unsigned x = 0; x < width; x++) {
-            //If the pixel is unpathebale don't write to it.
+            //If the tile is unpathebale don't write to it.
             if (image[4 * width * y + 4 * x + 0] == 0 && image[4 * width * y + 4 * x + 1] == 0 && image[4 * width * y + 4 * x + 2] == 0) continue;
             float mapP = map[x][y][0];
+            //! The thing that is to be added, doesn't affect the tile. Continue to next iteration
             if (mapP == 0) continue;
             if (mapP < 200)
                 max_value = std::max(max_value, mapP);
