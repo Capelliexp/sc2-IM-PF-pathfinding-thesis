@@ -140,14 +140,6 @@ void MapStorage::PrintImage(std::string filename, int width, int height) {
     //Encode the image
     std::vector<unsigned char> printImage(width * height * 4);
     for (int i = 0; i < image.size(); i+=4) {
-        //If mapP == 1, pathable space with no influence. White pixel
-        //if (image[i] == 0)
-        //    printImage[i] = 0;
-        //else if (image[i] == 1 || image[i] == 255)
-        //    printImage[i] = 255;
-        //else
-        //    printImage[i] = 255 * (1 - (max_value - image[i]) / (float)max_value);
-
         float i0 = std::min(image[i + 0], max_value);
         float i1 = std::min(image[i + 1], max_value);
         float i2 = std::min(image[i + 2], max_value);
