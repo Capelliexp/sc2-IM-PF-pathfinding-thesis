@@ -104,6 +104,7 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
 }
 
 void MapStorage::AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color) {
+    std::vector<float> selected_color = DetermineColor(color);
     for (unsigned y = 0; y < height; y++)
         for (unsigned x = 0; x < width; x++) {
             //If the pixel is unpathebale don't write to it.
@@ -113,7 +114,6 @@ void MapStorage::AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heigh
             if (mapP < 200)
                 max_value = std::max(max_value, mapP);
             //float p = 255 * (1 - (width - mapP) / (float)width);
-            std::vector<float> selected_color = DetermineColor(color);
             image[4 * width * y + 4 * x + 0] += selected_color[0] * mapP;
             image[4 * width * y + 4 * x + 1] += selected_color[1] * mapP;
             image[4 * width * y + 4 * x + 2] += selected_color[2] * mapP;
@@ -139,14 +139,33 @@ void MapStorage::AddToImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height
 void MapStorage::PrintImage(std::string filename, int width, int height) {
     //Encode the image
     std::vector<unsigned char> printImage(width * height * 4);
-    for (int i = 0; i < image.size(); ++i) {
+    for (int i = 0; i < image.size(); i+=4) {
         //If mapP == 1, pathable space with no influence. White pixel
-        if (image[i] == 0)
-            printImage[i] = 0;
-        else if (image[i] == 1 || image[i] == 255)
-            printImage[i] = 255;
-        else
-            printImage[i] = 255 * (1 - (max_value - image[i]) / (float)max_value);
+        //if (image[i] == 0)
+        //    printImage[i] = 0;
+        //else if (image[i] == 1 || image[i] == 255)
+        //    printImage[i] = 255;
+        //else
+        //    printImage[i] = 255 * (1 - (max_value - image[i]) / (float)max_value);
+
+        float i0 = std::min(image[i + 0], max_value);
+        float i1 = std::min(image[i + 1], max_value);
+        float i2 = std::min(image[i + 2], max_value);
+
+        if (i0 == 0 && i2 == 0 && i2 == 0)
+            i0 = i1 = i2 = 0;
+        else if (i0 == 1 && i2 == 1 && i2 == 1)
+            i0 = i1 = i2 = 255;
+        else {
+            i0 = i0 <= 1 ? 0 : 255 * (1 - (max_value - i0) / max_value);
+            i1 = i1 <= 1 ? 0 : 255 * (1 - (max_value - i1) / max_value);
+            i2 = i2 <= 1 ? 0 : 255 * (1 - (max_value - i2) / max_value);
+        }
+        printImage[i + 0] = i0;
+        printImage[i + 1] = i1;
+        printImage[i + 2] = i2;
+        printImage[i + 3] = image[i + 3];
+
     }
     unsigned error = lodepng::encode(filename, printImage, width, height);
 

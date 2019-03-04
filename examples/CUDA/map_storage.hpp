@@ -18,10 +18,10 @@
 //#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
 //! Maps: labyrinth, height, wall
 //! Maps: empty50
-//#define MAP_X 56
-//#define MAP_Y 56
-#define MAP_X 104
-#define MAP_Y 104
+#define MAP_X 56
+#define MAP_Y 56
+//#define MAP_X 104
+//#define MAP_Y 104
 //! Maps: empty200
 //#define MAP_X 200
 //#define MAP_Y 200
