@@ -122,7 +122,7 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
-	IMGeneration(IntPoint2D{ 30, 30 }, false);
+	IMGeneration(IntPoint2D{ 5, 5 }, false);
 
 	Check(cudaPeekAtLastError(), "init check 7", true);
 }

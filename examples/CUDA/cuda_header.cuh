@@ -49,6 +49,11 @@ typedef struct {
 } list_double_entry;
 
 typedef struct {
+	list_entry x;
+	list_entry y;
+} short_coord;
+
+typedef struct {
 	int id = 0;		//sc2::UNIT_TYPEID::INVALID
 	unsigned int device_id = 0;
 	float radius = 0;

@@ -72,20 +72,25 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//cull threads outside of tex
 	if (x > MAP_X_R || y > MAP_Y_R) return;
 	bool a = GetBoolMapValue(dynamic_map, x, y);
-	if (GetBoolMapValue(dynamic_map, x, y) == 0) return;
+	//if (GetBoolMapValue(dynamic_map, x, y) == 0) return;
 
 	list_double_entry* open_list = (list_double_entry*)malloc(1000 * sizeof(list_double_entry));
 	list_double_entry* closed_list = (list_double_entry*)malloc(1000 * sizeof(list_double_entry));
+	//int open_list[100];
+	//list_double_entry closed_list[100];
 	//array max size: 75 000
 	//list_double_entry* open_list = &global_memory_im_list_storage[start_id * (150000/2)];
 	//list_double_entry* closed_list = &global_memory_im_list_storage[start_id * (150000/2) + (256000000/2)];
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
 
-	open_list[0] = { start_id, -1 };
-	++open_list_it;
+	__syncthreads();
 
-	int loop_counter = 0;
-	while (1) {
+	open_list[0].node = start_id;
+	//++open_list_it;
+	open_list_it = 1;
+
+	int size_check_counter = 0;
+	for (int step_iterator = 0; step_iterator < MAP_SIZE_R; ++step_iterator) {
 		//find the next cell to expand
 		float closest_distance_found = 9999999;
 		float curr_node_dist = 0;
@@ -107,16 +112,32 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		if (closest_coord_found == -1) return;	//open list is empty and no path to the destination is found, RIP
 
+		//add the expanded coord to the closed list
+		closed_list[closed_list_it] = { closest_entry.node, closest_entry.backtrack_iterator };
+		++closed_list_it;
+
+		x = closest_entry.node % (gridDim.x * blockDim.x);
+		y = closest_entry.node / (float)(gridDim.x * blockDim.x);
+
+		if (x == destination.x && y == destination.y) {	//destination has been found! HYPE
+			Backtrack(device_map, closed_list, closed_list_it - 1);
+			free(open_list);
+			free(closed_list);
+			return;
+		}
+
 		//expand the size of the open and closed list if necessary
-		if (loop_counter%30 == 0) {
-			if (open_list_size - open_list_it < /*210*/200) {
+		/*
+		if (size_check_counter == 30) {
+			size_check_counter = 0;
+			if ((open_list_size - open_list_it) < 200) {
 				list_double_entry* open_list_new = (list_double_entry*)malloc(open_list_size * 2 * sizeof(list_double_entry));
 				memcpy(open_list_new, open_list, open_list_size);
 				open_list_size *= 2;
 				free(open_list);
 				open_list = open_list_new;
 			}
-			if (closed_list_size - closed_list_it < /*210*/200) {
+			if ((closed_list_size - closed_list_it) < 200) {
 				list_double_entry* closed_list_new = (list_double_entry*)malloc(closed_list_size * 2 * sizeof(list_double_entry));
 				memcpy(closed_list_new, closed_list, closed_list_size);
 				closed_list_size *= 2;
@@ -124,41 +145,65 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 				closed_list = closed_list_new;
 			}
 		}
-
-		//add the expanded coord to the closed list
-		closed_list[closed_list_it] = { closest_entry.node, closest_entry.backtrack_iterator };
-		++closed_list_it;
+		*/
 
 		//add the expanded nodes neighbours to the open list
-		x = closest_entry.node % (gridDim.x * blockDim.x);
-		y = closest_entry.node / (float)(gridDim.x * blockDim.x);
+		//x = closest_entry.node % (gridDim.x * blockDim.x);
+		//y = closest_entry.node / (float)(gridDim.x * blockDim.x);
+
+		short_coord neighbour_coords[4];
+		neighbour_coords[0] = { x, y - 1 };
+		neighbour_coords[1] = { x - 1, y };
+		neighbour_coords[2] = { x + 1, y };
+		neighbour_coords[3] = { x, y + 1 };
 
 		int new_open_list_entries = 0;
-		for (int x_it = -1; x_it < 2; ++x_it) {
-			int x_coord = x + x_it;
-			for (int y_it = -1; y_it < 2; ++y_it) {
-				int y_coord = y + y_it;
-				if (x_it == 0 && y_it == 0) continue;
-				int coord_global = closest_entry.node + x_it + (y_it * gridDim.x * blockDim.x);
+		for (int i = 0; i < 4; ++i) {
+			int coord_global = neighbour_coords[i].x + (neighbour_coords[i].y * gridDim.x * blockDim.x);
 
-				if (x_coord == destination.x && y_coord == destination.y) {	//destination has been found! HYPE
-					Backtrack(device_map, closed_list, closed_list_it - 1);
-					free(open_list);
-					free(closed_list);
-					return;
-				}
+			//if (neighbour_coords[i].x == destination.x && neighbour_coords[i].y == destination.y) {	//destination has been found! HYPE
+			//	Backtrack(device_map, closed_list, closed_list_it - 1);
+			//	free(open_list);
+			//	free(closed_list);
+			//	return;
+			//}
 
-				if (GetBoolMapValue(dynamic_map, x_coord, y_coord) != 0) {	//coord not in terrain
-					if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
-						open_list[open_list_it + new_open_list_entries] = { coord_global, (closed_list_it - 1) };
-						++new_open_list_entries;
-					}
-				}
+			//if (GetBoolMapValue(dynamic_map, x_coord, y_coord) != 0) {	//coord not in terrain
+			if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
+				open_list[open_list_it + new_open_list_entries] = { coord_global, (closed_list_it - 1) };
+				++new_open_list_entries;
 			}
+			//}
 		}
+		open_list_it += new_open_list_entries;
+
+
+		//int new_open_list_entries = 0;
+		//for (int x_it = -1; x_it < 2; ++x_it) {
+		//	int x_coord = x + x_it;
+		//	for (int y_it = -1; y_it < 2; ++y_it) {
+		//		int y_coord = y + y_it;
+		//		if (x_it == 0 && y_it == 0) continue;
+		//		int coord_global = closest_entry.node + x_it + (y_it * gridDim.x * blockDim.x);
+
+		//		if (x_coord == destination.x && y_coord == destination.y) {	//destination has been found! HYPE
+		//			Backtrack(device_map, closed_list, closed_list_it - 1);
+		//			free(open_list);
+		//			free(closed_list);
+		//			return;
+		//		}
+
+		//		//if (GetBoolMapValue(dynamic_map, x_coord, y_coord) != 0) {	//coord not in terrain
+		//			if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
+		//				open_list[open_list_it + new_open_list_entries] = { coord_global, (closed_list_it - 1) };
+		//				++new_open_list_entries;
+		//			}
+		//		//}
+		//	}
+		//}
 
 		open_list[closest_coord_found].node = -1;	//mark expanded node as invalid in the open list
-		++loop_counter;
+		++size_check_counter;
 	}
 }
 
