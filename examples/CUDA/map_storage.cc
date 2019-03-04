@@ -104,6 +104,7 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
 
 void MapStorage::AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color) {
     std::vector<float> selected_color = DetermineColor(color);
+    //! Can be optimized to only loop over the area that is affected. Need a radius parameter
     for (unsigned y = 0; y < height; y++)
         for (unsigned x = 0; x < width; x++) {
             //If the tile is unpathebale don't write to it.
