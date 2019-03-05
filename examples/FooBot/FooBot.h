@@ -7,7 +7,14 @@
 #include "../CUDA/cuda_header.cuh"
 #include "../CUDA/map_storage.hpp"
 
+
 class FooBot : public sc2::Agent {
+    struct Unit {
+        sc2::Unit unit;
+        //Mode mode;
+        Destination_IM* destination;
+    };
+
 public:
     FooBot(std::string map, bool spaw_alla_units = false);
 
