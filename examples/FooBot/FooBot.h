@@ -7,11 +7,17 @@
 #include "../CUDA/cuda_header.cuh"
 #include "../CUDA/map_storage.hpp"
 
+enum behaviors
+{
+    ATTACK,
+    DEFENCE,
+    PASSIVE
+};
 
 class FooBot : public sc2::Agent {
     struct Unit {
         sc2::Unit unit;
-        //Mode mode;
+        behaviors behavior;
         Destination_IM* destination;
     };
 
