@@ -22,7 +22,7 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
 
 	//cull threads outside of tex
-	if (x > MAP_X_R || y > MAP_Y_R) return;
+	if (x >= MAP_X_R || y >= MAP_Y_R) return;
 
 	__syncthreads();
 
@@ -62,20 +62,18 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 	int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
 	
-	//overwritten later
-	int x = start_id % (gridDim.x * blockDim.x);
-	int y = start_id / (float)(gridDim.x * blockDim.x);
+	int x = start_id % (MAP_X_R);
+	int y = start_id / (float)(MAP_X_R);
 
 	//if (x > MAP_X_R || y > MAP_Y_R) return;
-	//((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = id_global;
+	//((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = (float)start_id;
+	//return;
 
-	//cull threads outside of tex
-	if (x > MAP_X_R || y > MAP_Y_R) return;
-	bool a = GetBoolMapValue(dynamic_map, x, y);
-	//if (GetBoolMapValue(dynamic_map, x, y) == 0) return;
+	if (x >= MAP_X_R || y >= MAP_Y_R) return; //cull threads outside of tex
+	//if (GetBoolMapValue(dynamic_map, x, y) == 0) return;	//cull threads in terrain
 
-	list_double_entry* open_list = (list_double_entry*)malloc(1000 * sizeof(list_double_entry));
-	list_double_entry* closed_list = (list_double_entry*)malloc(1000 * sizeof(list_double_entry));
+	list_double_entry* open_list = (list_double_entry*)malloc(2000 * sizeof(list_double_entry));
+	list_double_entry* closed_list = (list_double_entry*)malloc(2000 * sizeof(list_double_entry));
 	//int open_list[100];
 	//list_double_entry closed_list[100];
 	//array max size: 75 000
@@ -85,7 +83,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 	__syncthreads();
 
-	open_list[0].node = start_id;
+	open_list[0] = { start_id , -1 };
 	//++open_list_it;
 	open_list_it = 1;
 
@@ -116,13 +114,13 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		closed_list[closed_list_it] = { closest_entry.node, closest_entry.backtrack_iterator };
 		++closed_list_it;
 
-		x = closest_entry.node % (gridDim.x * blockDim.x);
-		y = closest_entry.node / (float)(gridDim.x * blockDim.x);
+		int pos_x = closest_entry.node % MAP_X_R;
+		int pos_y = closest_entry.node / (float)(MAP_X_R);
 
-		if (x == destination.x && y == destination.y) {	//destination has been found! HYPE
+		if ((pos_x == destination.x) && (pos_y == destination.y)) {	//destination has been found! HYPE
 			Backtrack(device_map, closed_list, closed_list_it - 1);
-			free(open_list);
-			free(closed_list);
+			//free(open_list);
+			//free(closed_list);
 			return;
 		}
 
@@ -148,59 +146,24 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		*/
 
 		//add the expanded nodes neighbours to the open list
-		//x = closest_entry.node % (gridDim.x * blockDim.x);
-		//y = closest_entry.node / (float)(gridDim.x * blockDim.x);
-
 		short_coord neighbour_coords[4];
-		neighbour_coords[0] = { x, y - 1 };
-		neighbour_coords[1] = { x - 1, y };
-		neighbour_coords[2] = { x + 1, y };
-		neighbour_coords[3] = { x, y + 1 };
+		neighbour_coords[0] = { pos_x, pos_y - 1 };
+		neighbour_coords[1] = { pos_x - 1, pos_y };
+		neighbour_coords[2] = { pos_x + 1, pos_y };
+		neighbour_coords[3] = { pos_x, pos_y + 1 };
 
 		int new_open_list_entries = 0;
 		for (int i = 0; i < 4; ++i) {
-			int coord_global = neighbour_coords[i].x + (neighbour_coords[i].y * gridDim.x * blockDim.x);
+			int coord_global = neighbour_coords[i].x + (neighbour_coords[i].y * MAP_X_R);
 
-			//if (neighbour_coords[i].x == destination.x && neighbour_coords[i].y == destination.y) {	//destination has been found! HYPE
-			//	Backtrack(device_map, closed_list, closed_list_it - 1);
-			//	free(open_list);
-			//	free(closed_list);
-			//	return;
-			//}
-
-			//if (GetBoolMapValue(dynamic_map, x_coord, y_coord) != 0) {	//coord not in terrain
-			if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
-				open_list[open_list_it + new_open_list_entries] = { coord_global, (closed_list_it - 1) };
-				++new_open_list_entries;
-			}
+			//if (GetBoolMapValue(dynamic_map, coord_global) != 0) {	//coord not in terrain
+				//if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
+					open_list[open_list_it + new_open_list_entries] = { coord_global, (closed_list_it - 1) };
+					++new_open_list_entries;
+				//}
 			//}
 		}
 		open_list_it += new_open_list_entries;
-
-
-		//int new_open_list_entries = 0;
-		//for (int x_it = -1; x_it < 2; ++x_it) {
-		//	int x_coord = x + x_it;
-		//	for (int y_it = -1; y_it < 2; ++y_it) {
-		//		int y_coord = y + y_it;
-		//		if (x_it == 0 && y_it == 0) continue;
-		//		int coord_global = closest_entry.node + x_it + (y_it * gridDim.x * blockDim.x);
-
-		//		if (x_coord == destination.x && y_coord == destination.y) {	//destination has been found! HYPE
-		//			Backtrack(device_map, closed_list, closed_list_it - 1);
-		//			free(open_list);
-		//			free(closed_list);
-		//			return;
-		//		}
-
-		//		//if (GetBoolMapValue(dynamic_map, x_coord, y_coord) != 0) {	//coord not in terrain
-		//			if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
-		//				open_list[open_list_it + new_open_list_entries] = { coord_global, (closed_list_it - 1) };
-		//				++new_open_list_entries;
-		//			}
-		//		//}
-		//	}
-		//}
 
 		open_list[closest_coord_found].node = -1;	//mark expanded node as invalid in the open list
 		++size_check_counter;
@@ -211,11 +174,11 @@ __device__ void Backtrack(cudaPitchedPtr device_map, list_double_entry* closed_l
 	int loop_count = 1;
 	list_double_entry node = closed_list[start_it];
 
-	while (1) {
-		int x = node.node % (gridDim.x * blockDim.x);
-		int y = node.node / (float)(gridDim.x * blockDim.x);
+	while (loop_count < MAP_SIZE_R + 1) {
+		int x = node.node % MAP_X_R;
+		int y = node.node / (float)(MAP_X_R);
 
-		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = loop_count;
+		//((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = loop_count;
 
 		node = closed_list[node.backtrack_iterator];
 		if (node.backtrack_iterator == -1) return;

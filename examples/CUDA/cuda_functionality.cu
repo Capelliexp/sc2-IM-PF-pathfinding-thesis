@@ -8,6 +8,7 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
+#include <windows.h>
 
 #include "../examples/CUDA/cuda_device_functionality.cu"
 #include "../examples/CUDA/cuda_device_tests.cu"
@@ -68,14 +69,14 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	this->actions_feature_layer = actions_feature_layer;
 
 	dim_block_high = { 32, 32, 1 };
-	unsigned int x1 = (unsigned int)(ceil(MAP_X_R / (float)dim_block_high.x) + 0.5);
-	unsigned int y1 = (unsigned int)(ceil(MAP_Y_R / (float)dim_block_high.y) + 0.5);
+	unsigned int x1 = (unsigned int)(ceil((MAP_X_R - 1) / (float)dim_block_high.x) + 0.5);
+	unsigned int y1 = (unsigned int)(ceil((MAP_Y_R - 1) / (float)dim_block_high.y) + 0.5);
 	dim_grid_high = { x1, y1, 1 };
 	threads_in_grid_high = (dim_block_high.x * dim_block_high.y) * (dim_grid_high.x * dim_grid_high.y);
 
 	dim_block_low = { 8, 4, 1 };
-	unsigned int x2 = (unsigned int)(ceil(MAP_X_R / (float)dim_block_low.x) + 0.5);
-	unsigned int y2 = (unsigned int)(ceil(MAP_Y_R / (float)dim_block_low.y) + 0.5);
+	unsigned int x2 = (unsigned int)(ceil((MAP_X_R - 1) / (float)dim_block_low.x) + 0.5);
+	unsigned int y2 = (unsigned int)(ceil((MAP_Y_R - 1) / (float)dim_block_low.y) + 0.5);
 	dim_grid_low = { x2, y2, 1 };
 	threads_in_grid_low = (dim_block_low.x * dim_block_low.y) * (dim_grid_low.x * dim_grid_low.y);
 
@@ -113,7 +114,7 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	TestLookupTable();
 	Check(cudaPeekAtLastError(), "init check 6a", true);
 
-	Test3DArrayUsage();
+	//Test3DArrayUsage();
 	Check(cudaPeekAtLastError(), "init check 6b", true);
 
 	RepellingPFGeneration();
@@ -324,6 +325,10 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	cudaPitchedPtr device_map;
 	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
 
+	while (cudaPeekAtLastError() != cudaSuccess) {
+		Check(cudaGetLastError(), "error pop repeat", true);
+	}
+
 	//InfluenceMapPointer im_ptr;
 	//im_ptr.destination = destination;
 	//im_ptr.map_ptr = device_map;
@@ -340,8 +345,10 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 			(destination_R, device_map);*/
 	}
 
-	//Check(cudaDeviceSynchronize(), "IM generation sync", true);
-	//Check(cudaPeekAtLastError(), "IM generation peek", true);
+	Sleep(3000);
+	Check(cudaPeekAtLastError(), "IM generation peek 1", true);
+	Check(cudaDeviceSynchronize(), "IM generation sync", true);
+	Check(cudaPeekAtLastError(), "IM generation peek 2", true);
 
 	float res[MAP_X_R][MAP_Y_R][1];
 
@@ -359,9 +366,9 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
-	Check(cudaMemcpy3D(&par), "IM memcpy3D");
+	Check(cudaMemcpy3D(&par), "IM memcpy3D", true);
 
-	Check(cudaDeviceSynchronize());
+	Check(cudaDeviceSynchronize(), "IM print sync", true);
 	map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "IM");
 }
 
