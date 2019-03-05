@@ -15,8 +15,9 @@ enum behaviors
 };
 
 class FooBot : public sc2::Agent {
+    //! struct holding a unit and info about its destination and the behavior
     struct Unit {
-        sc2::Unit unit;
+        const sc2::Unit* unit;
         behaviors behavior;
         Destination_IM* destination;
     };
@@ -27,6 +28,9 @@ public:
     virtual void OnGameStart() final;
     virtual void OnStep() final;
     virtual void OnGameEnd() final;
+    virtual void OnUnitEnterVision(const sc2::Unit* unit) final;
+    virtual void OnUnitDestroyed(const sc2::Unit* unit) final;
+    virtual void OnUnitCreated(const sc2::Unit* unit) final;
 
 private:
     //! Function to spawn all units that influence the PF
@@ -46,6 +50,9 @@ private:
     void SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
     void SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior);
 
+    //! Function to update all units.
+    void UpdateUnitsPaths();
+
     void CommandsOnEmpty50();
     void CommandsOnEmpty200();
     void CommandsOnHeight();
@@ -59,6 +66,9 @@ private:
     CUDA* cuda;
     clock_t step_clock;
     ChatCommands* chat_commands;
+
+    //! A vector of units
+    std::vector<FooBot::Unit> units;
     //! Integer that represents the map.
     int map;
     //! Integer that represents the current command.

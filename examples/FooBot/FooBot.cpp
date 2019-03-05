@@ -67,6 +67,20 @@ void FooBot::OnGameEnd() {
 	delete chat_commands;
 }
 
+void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
+}
+
+void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
+}
+
+void FooBot::OnUnitCreated(const sc2::Unit * unit) {
+	FooBot::Unit foo_unit;
+	foo_unit.unit = unit;
+	foo_unit.behavior = behaviors::DEFENCE;
+	foo_unit.destination = nullptr;
+	this->units.push_back(foo_unit);
+}
+
 void FooBot::SpawnAllUnits() {
 	std::vector<int> unit_IDs = cuda->GetUnitsID();
 	for (int unit_ID : unit_IDs) {
@@ -131,6 +145,12 @@ void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID 
 void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior)
 {
 	Actions()->UnitCommand(units, behavior);
+}
+
+void FooBot::UpdateUnitsPaths()
+{
+	for (FooBot::Unit unit : units) {
+	}
 }
 
 void FooBot::CommandsOnEmpty50() {
