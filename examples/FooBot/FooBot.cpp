@@ -18,9 +18,12 @@ void FooBot::OnGameStart() {
 	map_storage = new MapStorage();
 	chat_commands = new ChatCommands(map);
 	cuda = new CUDA();
-	map_storage->Test();
-	cuda->InitializeCUDA(map_storage, Observation(), Debug(), Actions(), ActionsFeatureLayer());
+	
 	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
+	map_storage->Test();
+
+	cuda->InitializeCUDA(map_storage, Observation(), Debug(), Actions(), ActionsFeatureLayer());
+
 	step_clock = clock();
 
 	Debug()->DebugFastBuild();

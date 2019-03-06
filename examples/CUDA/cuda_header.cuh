@@ -49,6 +49,11 @@ typedef struct {
 } list_double_entry;
 
 typedef struct {
+	list_entry x;
+	list_entry y;
+} short_coord;
+
+typedef struct {
 	int id = 0;		//sc2::UNIT_TYPEID::INVALID
 	unsigned int device_id = 0;
 	float radius = 0;
@@ -107,14 +112,13 @@ public:
 	__host__ void CreateUnitLookupOnHost();
 	__host__ void TransferStaticMapToHost();
 	__host__ void AllocateDeviceMemory();
-	__host__ void TransferStaticMapToDevice();
 	__host__ void TransferUnitLookupToDevice();
 	
 	//Runtime functionality
 	__host__ void Update(clock_t dt_ticks);
 	__host__ void FillDeviceUnitArray();
 	__host__ void TransferUnitsToDevice();
-	__host__ bool TransferDynamicMapToDevice();
+	__host__ void TransferDynamicMapToDevice();
 
 	//Other functionality
 	__host__ const sc2::ObservationInterface* GetObservation();
