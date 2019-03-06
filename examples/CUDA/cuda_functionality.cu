@@ -131,7 +131,7 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
-	IMGeneration(IntPoint2D{ 53, 60 }, false);
+	IMGeneration(IntPoint2D{ 18, 29 }, false);
 
 	Check(cudaPeekAtLastError(), "init check 7", true);
 }
@@ -386,7 +386,8 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	Check(cudaDeviceSynchronize(), "IM print sync", true);
 	map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "IM");
 	//map_storage->CreateImage(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "image.png");
-
+	map_storage->CreateImage(res, MAP_X_R, MAP_Y_R);
+	map_storage->PrintImage("res.png", MAP_X_R, MAP_Y_R);
 }
 
 __host__ void CUDA::TestLookupTable() {

@@ -60,17 +60,17 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int original_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int original_id = threadIdx.x + id_block * block_size + threadIdx.y * blockDim.x;
 
-	//int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
-	//int x = start_id % (MAP_X_R);
-	//int y = start_id / (float)(MAP_X_R);
+	int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
+	int x = start_id % (MAP_X_R);
+	int y = start_id / (float)(MAP_X_R);
 
-	int start_id = original_id;
-	int x = original_x;
-	int y = original_y;
+	//int start_id = original_id;
+	//int x = original_x;
+	//int y = original_y;
 
 	if (x >= MAP_X_R || y >= MAP_Y_R) return; //cull threads outside of tex
 	if (GetBoolMapValue(dynamic_map, x, y) == 0) {	//cull threads in terrain
-		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = 32767;
+		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -2;
 		return;
 	}
 
@@ -115,7 +115,10 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			}
 		}
 
-		if (closest_coord_found == -1) return;	//open list is empty and no path to the destination is found, RIP
+		if (closest_coord_found == -1) {//open list is empty and no path to the destination is found, RIP
+			((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
+			return;
+		}
 
 		//add the expanded coord to the closed list
 		closed_list[closed_list_it] = { closest_entry.node, closest_entry.backtrack_iterator };
