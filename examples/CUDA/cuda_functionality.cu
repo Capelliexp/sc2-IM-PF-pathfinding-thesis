@@ -62,6 +62,14 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	sc2::ActionFeatureLayerInterface* actions_feature_layer){
 	std::cout << "Initializing CUDA object" << std::endl;
 	
+	size_t size;
+	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
+	std::cout << "CUDA base heap size: " << size << std::endl;
+
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, size*32);
+	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
+	std::cout << "CUDA new heap size: " << size << std::endl;
+
 	this->map_storage = maps;
 	this->observation = observations;
 	this->debug = debug;
@@ -123,7 +131,7 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
-	IMGeneration(IntPoint2D{ 5, 5 }, false);
+	IMGeneration(IntPoint2D{ 53, 60 }, false);
 
 	Check(cudaPeekAtLastError(), "init check 7", true);
 }
@@ -309,6 +317,10 @@ __host__ void CUDA::RepellingPFGeneration(){
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
+	Check(cudaPeekAtLastError(), "PF generation peek 1", true);
+	Check(cudaDeviceSynchronize(), "PF generation sync", true);
+	Check(cudaPeekAtLastError(), "PF generation peek 2", true);
+
 	Check(cudaMemcpy3D(&par), "ground PF memcpy3D");
 
 	par.srcPtr.ptr = repelling_pf_air_map_pointer.ptr;
@@ -326,7 +338,7 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
 
 	while (cudaPeekAtLastError() != cudaSuccess) {
-		Check(cudaGetLastError(), "error pop repeat", true);
+		Check(cudaGetLastError(), "error pop repeat 1", true);
 	}
 
 	//InfluenceMapPointer im_ptr;
@@ -348,7 +360,10 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	Sleep(3000);
 	Check(cudaPeekAtLastError(), "IM generation peek 1", true);
 	Check(cudaDeviceSynchronize(), "IM generation sync", true);
-	Check(cudaPeekAtLastError(), "IM generation peek 2", true);
+
+	while (cudaPeekAtLastError() != cudaSuccess) {
+		Check(cudaGetLastError(), "error pop repeat 2", true);
+	}
 
 	float res[MAP_X_R][MAP_Y_R][1];
 
