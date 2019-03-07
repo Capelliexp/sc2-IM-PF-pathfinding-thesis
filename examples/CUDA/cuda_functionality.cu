@@ -8,6 +8,7 @@
 #include <sstream>
 #include <fstream>
 #include <cmath>
+#include <windows.h>
 
 #include "../examples/CUDA/cuda_device_functionality.cu"
 #include "../examples/CUDA/cuda_device_tests.cu"
@@ -61,6 +62,14 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	sc2::ActionFeatureLayerInterface* actions_feature_layer){
 	std::cout << "Initializing CUDA object" << std::endl;
 	
+	size_t size;
+	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
+	std::cout << "CUDA base heap size: " << size << std::endl;
+
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, size*64);
+	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
+	std::cout << "CUDA new heap size: " << size << std::endl;
+
 	this->map_storage = maps;
 	this->observation = observations;
 	this->debug = debug;
@@ -68,14 +77,14 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	this->actions_feature_layer = actions_feature_layer;
 
 	dim_block_high = { 32, 32, 1 };
-	unsigned int x1 = (unsigned int)(ceil(MAP_X_R / (float)dim_block_high.x) + 0.5);
-	unsigned int y1 = (unsigned int)(ceil(MAP_Y_R / (float)dim_block_high.y) + 0.5);
+	unsigned int x1 = (unsigned int)(ceil((MAP_X_R - 1) / (float)dim_block_high.x) + 0.5);
+	unsigned int y1 = (unsigned int)(ceil((MAP_Y_R - 1) / (float)dim_block_high.y) + 0.5);
 	dim_grid_high = { x1, y1, 1 };
 	threads_in_grid_high = (dim_block_high.x * dim_block_high.y) * (dim_grid_high.x * dim_grid_high.y);
 
 	dim_block_low = { 8, 4, 1 };
-	unsigned int x2 = (unsigned int)(ceil(MAP_X_R / (float)dim_block_low.x) + 0.5);
-	unsigned int y2 = (unsigned int)(ceil(MAP_Y_R / (float)dim_block_low.y) + 0.5);
+	unsigned int x2 = (unsigned int)(ceil((MAP_X_R - 1) / (float)dim_block_low.x) + 0.5);
+	unsigned int y2 = (unsigned int)(ceil((MAP_Y_R - 1) / (float)dim_block_low.y) + 0.5);
 	dim_grid_low = { x2, y2, 1 };
 	threads_in_grid_low = (dim_block_low.x * dim_block_low.y) * (dim_grid_low.x * dim_grid_low.y);
 
@@ -83,32 +92,48 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	unit_type_attracting_pf_pointers.reserve(100);
 	im_pointers.reserve(100);
 
+	Check(cudaPeekAtLastError(), "init check 1", true);
+
 	//analysis
 	PrintGenInfo();
+
+	Check(cudaPeekAtLastError(), "init check 2", true);
 
 	//host_transfer
 	CreateUnitLookupOnHost();
 	TransferStaticMapToHost();
 	FillDeviceUnitArray();
 
+	Check(cudaPeekAtLastError(), "init check 3", true);
+
 	//device_malloc
 	AllocateDeviceMemory();
 
+	Check(cudaPeekAtLastError(), "init check 4", true);
+
 	//device_transfer
-	TransferStaticMapToDevice();
+	TransferDynamicMapToDevice();
 	TransferUnitLookupToDevice();
 	TransferUnitsToDevice();
 
+	Check(cudaPeekAtLastError(), "init check 5", true);
+
 	//tests
 	TestLookupTable();
-	Test3DArrayUsage();
+	Check(cudaPeekAtLastError(), "init check 6a", true);
+
+	//Test3DArrayUsage();
+	Check(cudaPeekAtLastError(), "init check 6b", true);
+
 	RepellingPFGeneration();
+	Check(cudaPeekAtLastError(), "init check 6c", true);
 
 	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
-	IMGeneration(IntPoint2D{ 30, 30 }, false);
+	//IMGeneration(IntPoint2D{ 18, 29 }, false);
 
+	Check(cudaPeekAtLastError(), "init check 7", true);
 }
 
 __host__ const sc2::ObservationInterface* CUDA::GetObservation(){
@@ -253,13 +278,23 @@ __host__ void CUDA::TransferUnitsToDevice() {
 		"TransferUnitsToDevice");
 }
 
-__host__ void CUDA::TransferStaticMapToDevice() {
+__host__ void CUDA::TransferDynamicMapToDevice() {
+	cudaMemcpy3DParms par = { 0 };
+	//par.srcPtr.ptr = map_storage->dynamic_terrain;
+	//par.srcPtr.pitch = MAP_X_R * sizeof(bool);
+	//par.srcPtr.xsize = MAP_X_R;
+	//par.srcPtr.ysize = MAP_Y_R;
+	par.srcPtr = make_cudaPitchedPtr((void*)map_storage->dynamic_terrain, MAP_X_R * sizeof(bool), MAP_X_R, MAP_Y_R);
+	par.dstPtr.ptr = dynamic_map_device_pointer.ptr;
+	par.dstPtr.pitch = dynamic_map_device_pointer.pitch;
+	par.dstPtr.xsize = MAP_X_R;
+	par.dstPtr.ysize = MAP_Y_R;
+	par.extent.width = MAP_X_R * sizeof(bool);
+	par.extent.height = MAP_Y_R;
+	par.extent.depth = 1;
+	par.kind = cudaMemcpyHostToDevice;
 
-}
-
-__host__ bool CUDA::TransferDynamicMapToDevice() {
-
-	return true;
+	Check(cudaMemcpy3D(&par), "Dynamic map transfer");
 }
 
 /*KERNAL LAUNCHES START*/
@@ -282,6 +317,10 @@ __host__ void CUDA::RepellingPFGeneration(){
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
+	Check(cudaPeekAtLastError(), "PF generation peek 1", true);
+	Check(cudaDeviceSynchronize(), "PF generation sync", true);
+	Check(cudaPeekAtLastError(), "PF generation peek 2", true);
+
 	Check(cudaMemcpy3D(&par), "ground PF memcpy3D");
 
 	par.srcPtr.ptr = repelling_pf_air_map_pointer.ptr;
@@ -293,16 +332,20 @@ __host__ void CUDA::RepellingPFGeneration(){
 	//Check(cudaDeviceSynchronize());
 }
 
-__host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
+__host__ void CUDA::IMGeneration(IntPoint2D destination, Destination_IM* map, bool air_path) {
 
 	cudaPitchedPtr device_map;
 	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
 
-	InfluenceMapPointer im_ptr;
-	im_ptr.destination = destination;
-	im_ptr.map_ptr = device_map;
+	while (cudaPeekAtLastError() != cudaSuccess) {
+		Check(cudaGetLastError(), "error pop repeat 1", true);
+	}
 
-	im_pointers.push_back(im_ptr);
+	//InfluenceMapPointer im_ptr;
+	//im_ptr.destination = destination;
+	//im_ptr.map_ptr = device_map;
+	
+	//im_pointers.push_back(im_ptr);
 
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};
 	if (!air_path) {
@@ -314,17 +357,22 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 			(destination_R, device_map);*/
 	}
 
-	//Check(cudaDeviceSynchronize(), "IM generation sync", true);
-	//Check(cudaPeekAtLastError(), "IM generation peek", true);
+	Sleep(3000);
+	Check(cudaPeekAtLastError(), "IM generation peek 1", true);
+	Check(cudaDeviceSynchronize(), "IM generation sync", true);
 
-	float res[MAP_X_R][MAP_Y_R][1];
+	while (cudaPeekAtLastError() != cudaSuccess) {
+		Check(cudaGetLastError(), "error pop repeat 2", true);
+	}
+
+	//float res[MAP_X_R][MAP_Y_R][1];
 
 	cudaMemcpy3DParms par = { 0 };
 	par.srcPtr.ptr = device_map.ptr;
 	par.srcPtr.pitch = device_map.pitch;
 	par.srcPtr.xsize = MAP_X_R;
 	par.srcPtr.ysize = MAP_Y_R;
-	par.dstPtr.ptr = res;
+	par.dstPtr.ptr = map;
 	par.dstPtr.pitch = MAP_X_R * sizeof(float);
 	par.dstPtr.xsize = MAP_X_R;
 	par.dstPtr.ysize = MAP_Y_R;
@@ -333,12 +381,13 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, bool air_path) {
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
-	Check(cudaMemcpy3D(&par), "IM memcpy3D");
+	Check(cudaMemcpy3D(&par), "IM memcpy3D", true);
 
-	Check(cudaDeviceSynchronize());
-	map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "IM");
+	Check(cudaDeviceSynchronize(), "IM print sync", true);
+	//map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "IM");
 	//map_storage->CreateImage(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "image.png");
-
+	//map_storage->CreateImage(res, MAP_X_R, MAP_Y_R);
+	//map_storage->PrintImage("res.png", MAP_X_R, MAP_Y_R);
 }
 
 __host__ void CUDA::TestLookupTable() {

@@ -102,6 +102,20 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
         }
 }
 
+void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height) {
+    image.resize(width * height * 4);
+    for (unsigned y = 0; y < height; y++)
+        for (unsigned x = 0; x < width; x++) {
+            float mapP = map[x][y][0];
+            if (mapP < 32767)
+                max_value = std::max(max_value, mapP);
+            image[4 * width * y + 4 * x + 0] = mapP;
+            image[4 * width * y + 4 * x + 1] = mapP;
+            image[4 * width * y + 4 * x + 2] = mapP;
+            image[4 * width * y + 4 * x + 3] = 255;
+        }
+}
+
 void MapStorage::AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color) {
     std::vector<float> selected_color = DetermineColor(color);
     //! Can be optimized to only loop over the area that is affected. Need a radius parameter

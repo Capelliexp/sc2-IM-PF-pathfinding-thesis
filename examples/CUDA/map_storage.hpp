@@ -16,15 +16,23 @@
 #include "../LoadPNG/lodepng.h"
 
 //#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
-//! Maps: labyrinth, height, wall
+
+//! Maps: empty20
+#define MAP_X 32
+#define MAP_Y 32
+
 //! Maps: empty50
-#define MAP_X 56
-#define MAP_Y 56
+//#define MAP_X 56
+//#define MAP_Y 56
+
+//! Maps: labyrinth, height, wall
 //#define MAP_X 104
 //#define MAP_Y 104
+
 //! Maps: empty200
 //#define MAP_X 200
 //#define MAP_Y 200
+
 #define MAP_SIZE (MAP_X*MAP_Y)
 
 #define GRID_DIVISION 1 // 1 grid's sub grid size = GRID_DIVISION^2  (OBS! minimum 1)
@@ -154,6 +162,7 @@ private:
 	//!< \param height Integer representing the height of the map.
 	//!< \param file The name of the image that is to be created.
 	void CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height);
+	void CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height);
 	//! Function to add elements to the image.
 	//!< \param map A 2D array of floats containing the elements to add to the map.
 	//!< \param width Integer representing the width of the map.
