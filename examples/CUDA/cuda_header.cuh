@@ -41,16 +41,23 @@ typedef struct {
 	int y;
 } IntPoint2D;
 
-typedef short list_entry;	//changed to int later? (X) Doubt
+typedef short integer;
 
 typedef struct {
-	list_entry node;
-	list_entry backtrack_iterator;
+	integer node;
+	integer backtrack_iterator;
 } list_double_entry;
 
 typedef struct {
-	list_entry x;
-	list_entry y;
+	integer pos;
+	integer backtrack_it;
+	float steps_from_start;
+	float est_dist_start_to_dest_via_pos;
+} node;
+
+typedef struct {
+	integer x;
+	integer y;
 } short_coord;
 
 typedef struct {
@@ -97,11 +104,11 @@ __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr dev
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
 __global__ void TestDeviceLookupUsage(float* result);
 
-__device__ void Backtrack(cudaPitchedPtr device_map, list_double_entry* closed_list, int start_it);
+__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it);
 
 class CUDA {
 	//friend class MapStorage;
-
+	
 public:
 	__host__ CUDA();
 	__host__ ~CUDA();
@@ -145,7 +152,7 @@ public:
 
 	//Error checking
 	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
-
+	
 private:
 	//class pointers
 	MapStorage* map_storage;
