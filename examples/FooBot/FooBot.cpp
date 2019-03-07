@@ -9,6 +9,7 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	else if (map == "height")		this->map = 3;
 	else if (map == "labyrinth")	this->map = 4;
 	else if (map == "wall")			this->map = 5;
+	else if (map == "empty20")		this->map = 6;
 	else							this->map = 0;	//Not a valid testmap
 }
 
@@ -17,12 +18,9 @@ void FooBot::OnGameStart() {
 
 	map_storage = new MapStorage();
 	chat_commands = new ChatCommands(map);
-	cuda = new CUDA();
 	
 	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
 	map_storage->Test();
-
-	cuda->InitializeCUDA(map_storage, Observation(), Debug(), Actions(), ActionsFeatureLayer());
 
 	step_clock = clock();
 
@@ -56,7 +54,7 @@ void FooBot::OnStep() {
 			get_radius = false;
 		}
 	}
-	cuda->Update(clock() - step_clock);
+	map_storage->Update(clock() - step_clock);
 
 	step_clock = clock();
 }
@@ -65,7 +63,6 @@ void FooBot::OnGameEnd() {
 	++restarts_;
 	std::cout << "Game ended after: " << Observation()->GetGameLoop() << " loops " << std::endl;
 
-	delete cuda;
 	delete map_storage;
 	delete chat_commands;
 }
@@ -85,7 +82,7 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 }
 
 void FooBot::SpawnAllUnits() {
-	std::vector<int> unit_IDs = cuda->GetUnitsID();
+	std::vector<int> unit_IDs = map_storage->GetUnitsID();
 	for (int unit_ID : unit_IDs) {
 		sc2::Point2D p = sc2::FindRandomLocation(Observation()->GetGameInfo());
 		Debug()->DebugCreateUnit(sc2::UNIT_TYPEID(unit_ID), p, 1, 1);
@@ -95,12 +92,12 @@ void FooBot::SpawnAllUnits() {
 
 void FooBot::GatherRadius() {
 	sc2::Units units = Observation()->GetUnits(sc2::Unit::Alliance::Self);
-	std::vector<float> unitRadius(cuda->GetSizeOfUnitInfoList());
+	std::vector<float> unitRadius(map_storage->GetSizeOfUnitInfoList());
 	for (auto& unit : units) {
-		int pos = cuda->GetPosOFUnitInHostUnitVec(unit->unit_type);
+		int pos = map_storage->GetPosOFUnitInHostUnitVec(unit->unit_type);
 		unitRadius[pos] = unit->radius;
 	}
-	cuda->SetRadiusForUnits(unitRadius);
+	map_storage->SetRadiusForUnits(unitRadius);
 }
 
 void FooBot::ExecuteCommand() {
@@ -172,8 +169,8 @@ void FooBot::UpdateUnitsPaths() {
 		float min_value = 5000;
 		int next_tile = 0;
 		for (int i = 0; i < udlr.size(); ++i) {
-			if (min_value > unit.destination->map[(int)udlr[i].x][(int)udlr[i].y]) {
-				min_value = min(unit.destination->map[(int)udlr[i].x][(int)udlr[i].y], min_value);
+			if (min_value > unit.destination->map[(int)udlr[i].x][(int)udlr[i].y][0]) {
+				min_value = min(unit.destination->map[(int)udlr[i].x][(int)udlr[i].y][0], min_value);
 				next_tile = i;
 			}
 		}

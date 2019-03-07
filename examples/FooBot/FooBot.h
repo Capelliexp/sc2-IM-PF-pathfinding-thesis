@@ -4,7 +4,6 @@
 #include "sc2lib/sc2_lib.h"
 
 #include "../ChatCommands/ChatCommands.h"
-#include "../CUDA/cuda_header.cuh"
 #include "../CUDA/map_storage.hpp"
 
 enum behaviors
@@ -65,7 +64,6 @@ private:
 
 private:
     MapStorage* map_storage;
-    CUDA* cuda;
     clock_t step_clock;
     ChatCommands* chat_commands;
 
