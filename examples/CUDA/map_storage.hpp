@@ -105,6 +105,15 @@ public:
 	//!< \return Returns a reference to the IM if it exists, otherwise nullptr.
 	Destination_IM* CheckAirDestination(sc2::Point2D pos);
 	
+	//! Functions to create IM destination for ground.
+	//!< \param pos sc2::Point2D the position to create an IM to.
+	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
+	Destination_IM* CreateGroundDestination(sc2::Point2D pos);
+	//! Functions to create IM destination for air.
+	//!< \param pos sc2::Point2D the position to create an IM to.
+	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
+	Destination_IM* CreateAirDestination(sc2::Point2D pos);
+
 	std::list<Destination_IM> destinations_ground_IM;
 	std::list<Destination_IM> destinations_air_IM;
 

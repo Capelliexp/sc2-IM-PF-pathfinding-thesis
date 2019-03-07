@@ -262,6 +262,18 @@ Destination_IM * MapStorage::CheckAirDestination(sc2::Point2D pos)
     return destination;
 }
 
+Destination_IM * MapStorage::CreateGroundDestination(sc2::Point2D pos)
+{
+    //Call cuda to create IM
+    return nullptr;
+}
+
+Destination_IM * MapStorage::CreateAirDestination(sc2::Point2D pos)
+{
+    //Call cuda to create IM
+    return nullptr;
+}
+
 //! Craetes the influence map based on the size of the map.
 void MapStorage::CreateIM()
 {
