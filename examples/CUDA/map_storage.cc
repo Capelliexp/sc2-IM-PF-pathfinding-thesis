@@ -236,6 +236,32 @@ void MapStorage::PrintIM()
     PrintStatus("File closed");
 }
 
+Destination_IM * MapStorage::CheckGroundDestination(sc2::Point2D pos)
+{
+    Destination_IM* destination = nullptr;
+    for (Destination_IM dest : destinations_ground_IM)
+        if (dest.destination == pos) {
+            destination = &dest;
+            break;
+        }
+    //if (destination == nullptr)
+        //Create IM
+    return destination;
+}
+
+Destination_IM * MapStorage::CheckAirDestination(sc2::Point2D pos)
+{
+    Destination_IM* destination = nullptr;
+    for (Destination_IM dest : destinations_air_IM)
+        if (dest.destination == pos) {
+            destination = &dest;
+            break;
+        }
+    //if (destination == nullptr)
+        //Create IM
+    return destination;
+}
+
 //! Craetes the influence map based on the size of the map.
 void MapStorage::CreateIM()
 {

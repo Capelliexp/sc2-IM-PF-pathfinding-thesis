@@ -95,6 +95,16 @@ public:
 	//! The bot is abdle to print its IM to a file.
 	void PrintIM();
 
+	//! Function to check if ground IM destination exists
+	//!< \param pos sc2::Point2D indicating destination of the IM. Used to check with already existing IMs.
+	//!< \return Returns a reference to the IM if it exists, otherwise nullptr.
+	Destination_IM* CheckGroundDestination(sc2::Point2D pos);
+
+	//! Function to check if air IM destination exists
+	//!< \param pos sc2::Point2D indicating destination of the IM. Used to check with already existing IMs.
+	//!< \return Returns a reference to the IM if it exists, otherwise nullptr.
+	Destination_IM* CheckAirDestination(sc2::Point2D pos);
+	
 	std::list<Destination_IM> destinations_ground_IM;
 	std::list<Destination_IM> destinations_air_IM;
 
