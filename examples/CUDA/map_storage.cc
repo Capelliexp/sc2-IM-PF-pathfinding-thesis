@@ -265,12 +265,16 @@ Destination_IM * MapStorage::CheckAirDestination(sc2::Point2D pos)
 Destination_IM * MapStorage::CreateGroundDestination(sc2::Point2D pos)
 {
     //Call cuda to create IM
+
+    //Add the map to list.
     return nullptr;
 }
 
 Destination_IM * MapStorage::CreateAirDestination(sc2::Point2D pos)
 {
     //Call cuda to create IM
+
+    //Add the map to list.
     return nullptr;
 }
 

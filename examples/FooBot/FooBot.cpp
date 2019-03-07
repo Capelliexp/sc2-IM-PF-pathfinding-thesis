@@ -142,14 +142,39 @@ void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID 
 	}
 }
 
+void FooBot::SetDestination(std::vector<FooBot::Unit> units, sc2::Point2D pos, behaviors type_of_movement) {
+	Destination_IM* destination = map_storage->CheckGroundDestination(pos);
+	if (destination == nullptr)
+		destination = map_storage->CreateGroundDestination(pos);
+	for (FooBot::Unit unit : units) {
+		unit.behavior = type_of_movement;
+		unit.destination = destination;
+		
+	}
+}
+
 void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior)
 {
 	Actions()->UnitCommand(units, behavior);
 }
 
-void FooBot::UpdateUnitsPaths()
-{
+void FooBot::UpdateUnitsPaths() {
 	for (FooBot::Unit unit : units) {
+		sc2::Point2D pos = unit.unit->pos;
+		std::vector<sc2::Point2D> udlr;
+		udlr.push_back(pos + sc2::Point2D(0, 1));
+		udlr.push_back(pos + sc2::Point2D(0, -1));
+		udlr.push_back(pos + sc2::Point2D(-1, 0));
+		udlr.push_back(pos + sc2::Point2D(1, 0));
+		float min_value = 5000;
+		int next_tile = 0;
+		for (int i = 0; i < udlr.size(); ++i) {
+			if (min_value > unit.destination->map[(int)udlr[i].x][(int)udlr[i].y]) {
+				min_value = min(unit.destination->map[(int)udlr[i].x][(int)udlr[i].y], min_value);
+				next_tile = i;
+			}
+		}
+		Actions()->UnitCommand(unit.unit, sc2::ABILITY_ID::MOVE, udlr[next_tile]);
 	}
 }
 
@@ -161,6 +186,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawn_units = false;
 		}
 		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
+
 			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE);
 			spawn_units = true;
 			command = 0;
