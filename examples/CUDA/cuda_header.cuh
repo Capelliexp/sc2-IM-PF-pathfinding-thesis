@@ -137,7 +137,7 @@ public:
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration();
-	__host__ void IMGeneration(IntPoint2D destination, bool air_path);
+	__host__ void IMGeneration(IntPoint2D destination, Destination_IM* map, bool air_path);
 	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
