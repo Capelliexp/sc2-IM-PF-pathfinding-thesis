@@ -68,12 +68,19 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//int x = original_x;
 	//int y = original_y;
 
-	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0 || destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if start tex or destination is out of bounds
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
+
+	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
+		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
+		if (x == 0 && y == 0) printf("CUDA PRINT: destination out of bounds\n");
 		return;
 	}
 
 	if (GetBoolMapValue(dynamic_map, destination.x, destination.y) == 0) {	//return if destination is unreachable
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
+		if (x == 0 && y == 0) printf("CUDA PRINT: destination unreachable\n");
 		return;
 	}
 
@@ -106,7 +113,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		for (int i = 0; i < open_list_it; ++i) {
 			entry = open_list[i];
 			if (entry.pos != -1) {
-				if (entry.est_dist_start_to_dest_via_pos < closest_distance_found) {
+				if (entry.est_dist_start_to_dest_via_pos <= closest_distance_found) {
 					closest_distance_found = entry.est_dist_start_to_dest_via_pos;
 					closest_coord_found = i;
 					closest_entry = entry;
