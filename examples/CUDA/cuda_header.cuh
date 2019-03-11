@@ -38,12 +38,12 @@
 
 
 //! Maps: empty20
-#define MAP_X 32
-#define MAP_Y 32
+//#define MAP_X 32
+//#define MAP_Y 32
 
 //! Maps: empty50
-//#define MAP_X 56
-//#define MAP_Y 56
+#define MAP_X 56
+#define MAP_Y 56
 
 //! Maps: labyrinth, height, wall
 //#define MAP_X 104
@@ -165,7 +165,7 @@ public:
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
-	__host__ void IMGeneration(IntPoint2D destination, float* map, bool air_path);
+	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path);
 	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);

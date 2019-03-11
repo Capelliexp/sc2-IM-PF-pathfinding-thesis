@@ -342,7 +342,7 @@ __host__ void CUDA::RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1
 	//Check(cudaDeviceSynchronize());
 }
 
-__host__ void CUDA::IMGeneration(IntPoint2D destination, float* map, bool air_path) {
+__host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path) {
 
 	cudaPitchedPtr device_map;
 	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
@@ -367,7 +367,6 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float* map, bool air_pa
 			(destination_R, device_map);*/
 	}
 
-	Sleep(3000);
 	Check(cudaPeekAtLastError(), "IM generation peek 1", true);
 	Check(cudaDeviceSynchronize(), "IM generation sync", true);
 
@@ -394,10 +393,6 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float* map, bool air_pa
 	Check(cudaMemcpy3D(&par), "IM memcpy3D", true);
 
 	Check(cudaDeviceSynchronize(), "IM print sync", true);
-	//map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "IM");
-	//map_storage->CreateImage(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "image.png");
-	//map_storage->CreateImage(res, MAP_X_R, MAP_Y_R);
-	//map_storage->PrintImage("res.png", MAP_X_R, MAP_Y_R);
 }
 
 __host__ void CUDA::TestLookupTable() {

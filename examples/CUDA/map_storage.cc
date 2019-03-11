@@ -286,14 +286,24 @@ Destination_IM * MapStorage::CheckAirDestination(sc2::Point2D pos) {
     return destination;
 }
 
-Destination_IM * MapStorage::CreateGroundDestination(sc2::Point2D pos) {
+Destination_IM * MapStorage::GetGroundDestination(sc2::Point2D pos) {
     //Call cuda to create IM
-
+    for (Destination_IM dest : destinations_ground_IM) {
+        if (dest.destination == pos)
+            return &dest;
+    }
+    Destination_IM map;
+    map.destination = pos;
+    map.air_path = false;
+    cuda->IMGeneration(IntPoint2D{ (int)pos.x, (int)pos.y }, map.map, false);
     //Add the map to list.
-    return nullptr;
+    PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
+    CreateImage(map.map, MAP_X_R, MAP_Y_R);
+    PrintImage("res.png", MAP_X_R, MAP_Y_R);
+    return &map;
 }
 
-Destination_IM * MapStorage::CreateAirDestination(sc2::Point2D pos) {
+Destination_IM * MapStorage::GetAirDestination(sc2::Point2D pos) {
     //Call cuda to create IM
 
     //Add the map to list.
