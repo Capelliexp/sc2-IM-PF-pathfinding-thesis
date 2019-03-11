@@ -66,7 +66,7 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
 	std::cout << "CUDA base heap size: " << size << std::endl;
 
-	cudaDeviceSetLimit(cudaLimitMallocHeapSize, size*64);
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, size*128);
 	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
 	std::cout << "CUDA new heap size: " << size << std::endl;
 
@@ -131,7 +131,7 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
-	//IMGeneration(IntPoint2D{ 18, 29 }, false);
+	IMGeneration(IntPoint2D{ 25, 25 }, false);
 
 	Check(cudaPeekAtLastError(), "init check 7", true);
 }
@@ -340,6 +340,8 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, Destination_IM* map, bo
 	while (cudaPeekAtLastError() != cudaSuccess) {
 		Check(cudaGetLastError(), "error pop repeat 1", true);
 	}
+
+	destination.y = MAP_Y_R - destination.y;
 
 	//InfluenceMapPointer im_ptr;
 	//im_ptr.destination = destination;

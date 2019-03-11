@@ -68,64 +68,70 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//int x = original_x;
 	//int y = original_y;
 
-	if (x >= MAP_X_R || y >= MAP_Y_R) return; //cull threads outside of tex
-	if (GetBoolMapValue(dynamic_map, x, y) == 0) {	//cull threads in terrain
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
+
+	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
+		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
+		if (x == 0 && y == 0) printf("CUDA PRINT: destination out of bounds\n");
+		return;
+	}
+
+	if (GetBoolMapValue(dynamic_map, destination.x, destination.y) == 0) {	//return if destination is unreachable
+		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
+		if (x == 0 && y == 0) printf("CUDA PRINT: destination unreachable\n");
+		return;
+	}
+
+	if (GetBoolMapValue(dynamic_map, x, y) == 0) {	//return if start tex is in terrain
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -2;
 		return;
 	}
 
-	list_double_entry* open_list = (list_double_entry*)malloc(3000 * sizeof(list_double_entry));
-	list_double_entry* closed_list = (list_double_entry*)malloc(3000 * sizeof(list_double_entry));
-	//int open_list[100];
-	//list_double_entry closed_list[100];
-	//array max size: 75 000
-	//list_double_entry* open_list = &global_memory_im_list_storage[start_id * (150000/2)];
-	//list_double_entry* closed_list = &global_memory_im_list_storage[start_id * (150000/2) + (256000000/2)];
+	node* open_list = (node*)malloc(3000 * sizeof(node));
+	node* closed_list = (node*)malloc(3000 * sizeof(node));
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 3000, closed_list_size = 3000;
-
-	//__syncthreads();
 
 	if (open_list == NULL || closed_list == NULL) {
 		printf("Device heap limit to low for lists\n");
 		return;
 	}
 
-	open_list[0] = { start_id , -1 };
+	open_list[0] = { start_id, -1, 0, FloatDistanceFromIDRelative(start_id, destination) };
 	//++open_list_it;
 	open_list_it = 1;
 
 	int size_check_counter = 0;
 	for (int step_iterator = 0; step_iterator < MAP_SIZE_R; ++step_iterator) {
 		//find the next cell to expand
-		float closest_distance_found = 9999999;
-		float curr_node_dist = 0;
-		list_double_entry closest_entry;
+		float closest_distance_found = 99999;
+		node closest_entry;
 		int closest_coord_found = -1;
-		list_double_entry entry;
+		node entry;
 
 		for (int i = 0; i < open_list_it; ++i) {
 			entry = open_list[i];
-			if (entry.node != -1) {
-				if ((curr_node_dist = FloatDistanceFromIDRelative(entry.node, destination)) < closest_distance_found) {
-					closest_distance_found = curr_node_dist;
+			if (entry.pos != -1) {
+				if (entry.est_dist_start_to_dest_via_pos <= closest_distance_found) {
+					closest_distance_found = entry.est_dist_start_to_dest_via_pos;
 					closest_coord_found = i;
-					closest_entry.node = entry.node;
-					closest_entry.backtrack_iterator = entry.backtrack_iterator;
+					closest_entry = entry;
 				}
 			}
 		}
 
-		if (closest_coord_found == -1) {//open list is empty and no path to the destination is found, RIP
+		if (closest_coord_found == -1) {	//open list is empty and no path to the destination is found, RIP
 			((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
 			return;
 		}
 
 		//add the expanded coord to the closed list
-		closed_list[closed_list_it] = { closest_entry.node, closest_entry.backtrack_iterator };
+		closed_list[closed_list_it] = closest_entry;
 		++closed_list_it;
 
-		int pos_x = closest_entry.node % MAP_X_R;
-		int pos_y = closest_entry.node / (float)(MAP_X_R);
+		int pos_x = closest_entry.pos % MAP_X_R;
+		int pos_y = closest_entry.pos / (float)(MAP_X_R);
 
 		if ((pos_x == destination.x) && (pos_y == destination.y)) {	//destination has been found! HYPE
 			Backtrack(device_map, closed_list, closed_list_it - 1);
@@ -138,14 +144,14 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		if (size_check_counter == 30) {
 			size_check_counter = 0;
 			if ((open_list_size - open_list_it) < 200) {
-				list_double_entry* open_list_new = (list_double_entry*)malloc(open_list_size * 2 * sizeof(list_double_entry));
+				node* open_list_new = (node*)malloc(open_list_size * 2 * sizeof(node));
 				memcpy(open_list_new, open_list, open_list_size);
 				open_list_size *= 2;
 				free(open_list);
 				open_list = open_list_new;
 			}
 			if ((closed_list_size - closed_list_it) < 200) {
-				list_double_entry* closed_list_new = (list_double_entry*)malloc(closed_list_size * 2 * sizeof(list_double_entry));
+				node* closed_list_new = (node*)malloc(closed_list_size * 2 * sizeof(node));
 				memcpy(closed_list_new, closed_list, closed_list_size);
 				closed_list_size *= 2;
 				free(closed_list);
@@ -164,31 +170,39 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		for (int i = 0; i < 4; ++i) {
 			int coord_global = neighbour_coords[i].x + (neighbour_coords[i].y * MAP_X_R);
 
-			if (GetBoolMapValue(dynamic_map, coord_global) != 0) {	//coord not in terrain
-				if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
-					open_list[open_list_it + new_open_list_entries] = { coord_global, (closed_list_it - 1) };
-					++new_open_list_entries;
+			if (neighbour_coords[i].x <= MAP_X_R && neighbour_coords[i].y <= MAP_Y_R && neighbour_coords[i].x > 0 && neighbour_coords[i].y > 0) {	//coord in map
+				if (GetBoolMapValue(dynamic_map, neighbour_coords[i].x, neighbour_coords[i].y) != 0) {	//coord not in terrain
+					if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
+						node new_list_entry = {
+							coord_global,
+							closed_list_it - 1,
+							closest_entry.steps_from_start + 0.8,
+							closest_entry.steps_from_start + 0.8 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
+						};
+						open_list[open_list_it + new_open_list_entries] = new_list_entry;
+						++new_open_list_entries;
+					}
 				}
 			}
 		}
 		open_list_it += new_open_list_entries;
 
-		open_list[closest_coord_found].node = -1;	//mark expanded node as invalid in the open list
+		open_list[closest_coord_found].pos = -1;	//mark expanded node as invalid in the open list
 		++size_check_counter;
 	}
 }
 
-__device__ void Backtrack(cudaPitchedPtr device_map, list_double_entry* closed_list, int start_it) {
-	list_double_entry node = closed_list[start_it];
+__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it) {
+	node curr = closed_list[start_it];
 
 	for (int loop_count = 1; loop_count < MAP_SIZE_R + 1; ++loop_count) {
-		int x = node.node % MAP_X_R;
-		int y = node.node / (float)(MAP_X_R);
+		int x = curr.pos % MAP_X_R;
+		int y = curr.pos / (float)(MAP_X_R);
 
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = loop_count;
 
-		if (node.backtrack_iterator == -1) return;
-		node = closed_list[node.backtrack_iterator];
+		if (curr.backtrack_it == -1) return;
+		curr = closed_list[curr.backtrack_it];
 	}
 }
 
