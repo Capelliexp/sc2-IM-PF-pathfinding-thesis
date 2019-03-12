@@ -43,23 +43,22 @@ __host__ void CUDA::PrintGenInfo() {
 	std::cout << std::endl;
 }
 
-__host__ void CUDA::Update(clock_t dt_ticks) {
+__host__ void CUDA::Update(clock_t dt_ticks, sc2::Units units, float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
 	//float dt = ((float)dt_ticks) / CLOCKS_PER_SEC;	//get dt in seconds
 
-	if (map_storage->update_terrain) {
-		TransferDynamicMapToDevice();
-		//DeleteAllIMs();	//this might be drastic. should search for which require update and delete those...
-	}
+	//if (map_storage->update_terrain) {
+	//	TransferDynamicMapToDevice();
+	//	//DeleteAllIMs();	//this might be drastic. should search for which require update and delete those...
+	//}
 
-	FillDeviceUnitArray();
+	FillDeviceUnitArray(units);
 	TransferUnitsToDevice();
-	RepellingPFGeneration();
+	RepellingPFGeneration(ground_avoidance_PF, air_avoidance_PF);
 
 	//run generation of PFs
 }
 
-__host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
-	sc2::ActionFeatureLayerInterface* actions_feature_layer){
+__host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions){
 	std::cout << "Initializing CUDA object" << std::endl;
 	
 	size_t size;
@@ -70,7 +69,6 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
 	std::cout << "CUDA new heap size: " << size << std::endl;
 
-	this->map_storage = maps;
 	this->observation = observations;
 	this->debug = debug;
 	this->actions = actions;
@@ -99,41 +97,43 @@ __host__ void CUDA::InitializeCUDA(MapStorage* maps, const sc2::ObservationInter
 
 	Check(cudaPeekAtLastError(), "init check 2", true);
 
-	//host_transfer
-	CreateUnitLookupOnHost();
-	TransferStaticMapToHost();
-	FillDeviceUnitArray();
-
-	Check(cudaPeekAtLastError(), "init check 3", true);
-
 	//device_malloc
 	AllocateDeviceMemory();
 
-	Check(cudaPeekAtLastError(), "init check 4", true);
+	Check(cudaPeekAtLastError(), "init check 3", true);
 
+	//IMGeneration(IntPoint2D{ 18, 29 }, false);
+
+	//Check(cudaPeekAtLastError(), "init check 7", true);
+}
+
+__host__ void CUDA::HostTransfer(sc2::Units units) {
+	//host_transfer
+	TransferStaticMapToHost();
+	FillDeviceUnitArray(units);
+
+	Check(cudaPeekAtLastError(), "init check 4", true);
+}
+
+__host__ void CUDA::DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]) {
 	//device_transfer
-	TransferDynamicMapToDevice();
+	TransferDynamicMapToDevice(dynamic_terrain);
 	TransferUnitLookupToDevice();
 	TransferUnitsToDevice();
 
 	Check(cudaPeekAtLastError(), "init check 5", true);
+}
 
+__host__ void CUDA::Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
 	//tests
-	TestLookupTable();
+	//TestLookupTable();
 	Check(cudaPeekAtLastError(), "init check 6a", true);
 
 	//Test3DArrayUsage();
 	Check(cudaPeekAtLastError(), "init check 6b", true);
 
-	RepellingPFGeneration();
+	RepellingPFGeneration(ground_avoidance_PF, air_avoidance_PF);
 	Check(cudaPeekAtLastError(), "init check 6c", true);
-
-	map_storage->PrintMap(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
-	map_storage->PrintMap(map_storage->air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
-
-	IMGeneration(IntPoint2D{ 25, 25 }, false);
-
-	Check(cudaPeekAtLastError(), "init check 7", true);
 }
 
 __host__ const sc2::ObservationInterface* CUDA::GetObservation(){
@@ -152,73 +152,69 @@ __host__ sc2::ActionFeatureLayerInterface* CUDA::GetActionFeature(){
 	return actions_feature_layer;
 }
 
-__host__ void CUDA::CreateUnitLookupOnHost(){
+__host__ void CUDA::CreateUnitLookupOnHost(std::string file){
 	sc2::UnitTypes types = observation->GetUnitTypeData();
 
-	std::string file = "unitInfo.txt";
-	if (map_storage->CheckIfFileExists(file))
-		ReadUnitInfoFromFile(file);
-	else {
-		int host_iterator = 0;
-		for (int i = 1; i < types.size(); ++i) {
-			sc2::UnitTypeData data = types.at(i);
-			//Check for units that are not considered valid.
-			std::string str = sc2::UnitTypeToName(data.unit_type_id.ToType());
-			if (str.find("PROTOSS") != std::string::npos || str.find("TERRAN") != std::string::npos || str.find("ZERG") != std::string::npos) {
-				std::vector<sc2::Attribute> att = data.attributes;
-				if (data.weapons.size() == 0 && std::find(att.begin(), att.end(), sc2::Attribute::Structure) != att.end()) continue;
-				host_unit_info.push_back(UnitInfo());
+	int host_iterator = 0;
+	for (int i = 1; i < types.size(); ++i) {
+		sc2::UnitTypeData data = types.at(i);
+		//Check for units that are not considered valid.
+		std::string str = sc2::UnitTypeToName(data.unit_type_id.ToType());
+		if (str.find("PROTOSS") != std::string::npos || str.find("TERRAN") != std::string::npos || str.find("ZERG") != std::string::npos) {
+			std::vector<sc2::Attribute> att = data.attributes;
+			if (data.weapons.size() == 0 && std::find(att.begin(), att.end(), sc2::Attribute::Structure) != att.end()) continue;
+			host_unit_info.push_back(UnitInfo());
 
-				std::vector<sc2::Weapon> weapons = data.weapons;
-				int longest_weapon_range;
-				longest_weapon_range = 0;
-				for (auto& const weapon : weapons) {
-					if (weapon.range > longest_weapon_range)
-						longest_weapon_range = weapon.range;
+			std::vector<sc2::Weapon> weapons = data.weapons;
+			int longest_weapon_range;
+			longest_weapon_range = 0;
+			for (auto& const weapon : weapons) {
+				if (weapon.range > longest_weapon_range)
+					longest_weapon_range = weapon.range;
 
-					if (weapon.type == sc2::Weapon::TargetType::Ground)
-						host_unit_info.at(host_iterator).can_attack_air = false;
-					else if (weapon.type == sc2::Weapon::TargetType::Air)
-						host_unit_info.at(host_iterator).can_attack_ground = false;
-				}
-				host_unit_info.at(host_iterator).range = longest_weapon_range;
-				host_unit_info.at(host_iterator).device_id = host_iterator;
-				host_unit_info.at(host_iterator).id = data.unit_type_id;
-
-
-				if (std::find(att.begin(), att.end(), sc2::Attribute::Hover) != att.end())
-					host_unit_info.at(host_iterator).is_flying = true;
-
-				host_unit_transform.insert({ { data.unit_type_id, host_iterator } });
-
-				/*
-				//failed attempt att doing it the easy way... :(
-
-				debug->DebugCreateUnit(data.unit_type_id, sc2::Point2D(0,0));
-				debug->SendDebug();
-				actions->SendActions();
-				actions_feature_layer->SendActions();
-				sc2::Units u = observation->GetUnits();
-				for (int i = 0; i < u.size() + 1; ++i) {
-					if (i == u.size()) {
-						std::cout << "FAILED to get radius of unit: ''" << data.unit_type_id << "''" << std::endl;
-						for (int j = 0; j < u.size(); ++j) debug->DebugKillUnit(u.at(j));
-						break;
-					}
-					if (u.at(i)->unit_type == data.unit_type_id) {
-						host_unit_info.at(host_iterator).radius = u.at(i)->radius;
-						debug->DebugKillUnit(u.at(i));
-						break;
-					}
-				}
-				*/
-
-				++host_iterator;
+				if (weapon.type == sc2::Weapon::TargetType::Ground)
+					host_unit_info.at(host_iterator).can_attack_air = false;
+				else if (weapon.type == sc2::Weapon::TargetType::Air)
+					host_unit_info.at(host_iterator).can_attack_ground = false;
 			}
+			host_unit_info.at(host_iterator).range = longest_weapon_range;
+			host_unit_info.at(host_iterator).device_id = host_iterator;
+			host_unit_info.at(host_iterator).id = data.unit_type_id;
+
+
+			if (std::find(att.begin(), att.end(), sc2::Attribute::Hover) != att.end())
+				host_unit_info.at(host_iterator).is_flying = true;
+
+			host_unit_transform.insert({ { data.unit_type_id, host_iterator } });
+
+			/*
+			//failed attempt att doing it the easy way... :(
+
+			debug->DebugCreateUnit(data.unit_type_id, sc2::Point2D(0,0));
+			debug->SendDebug();
+			actions->SendActions();
+			actions_feature_layer->SendActions();
+			sc2::Units u = observation->GetUnits();
+			for (int i = 0; i < u.size() + 1; ++i) {
+				if (i == u.size()) {
+					std::cout << "FAILED to get radius of unit: ''" << data.unit_type_id << "''" << std::endl;
+					for (int j = 0; j < u.size(); ++j) debug->DebugKillUnit(u.at(j));
+					break;
+				}
+				if (u.at(i)->unit_type == data.unit_type_id) {
+					host_unit_info.at(host_iterator).radius = u.at(i)->radius;
+					debug->DebugKillUnit(u.at(i));
+					break;
+				}
+			}
+			*/
+
+			++host_iterator;
 		}
-		PrintUnitInfoToFile(file);
-		std::cout << "Created unit data table on host. Nr of elements: " << host_iterator << ". " << std::endl;
 	}
+	PrintUnitInfoToFile(file);
+	std::cout << "Created unit data table on host. Nr of elements: " << host_iterator << ". " << std::endl;
+
 	for (int i = 0; i < host_unit_info.size(); ++i) {
 		device_unit_lookup_on_host.push_back({ host_unit_info.at(i).range, host_unit_info.at(i).radius,
 			host_unit_info.at(i).is_flying, host_unit_info.at(i).can_attack_air,
@@ -248,14 +244,14 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	Check(cudaPeekAtLastError(), "cuda allocation peek", true);
 }
 
-__host__ void CUDA::FillDeviceUnitArray() {
+__host__ void CUDA::FillDeviceUnitArray(sc2::Units units) {
 	host_unit_list.clear();
-	host_unit_list.resize(map_storage->units.size());
+	host_unit_list.resize(units.size());
 
 	//int device_list_length = map_storage->units.size();
 	int device_list_length = 0;
-	for (int i = 0; i < map_storage->units.size(); ++i) {
-		std::unordered_map<sc2::UNIT_TYPEID, unsigned int>::const_iterator it = host_unit_transform.find(map_storage->units.at(i).id);
+	for (const sc2::Unit* unit : units) {
+		std::unordered_map<sc2::UNIT_TYPEID, unsigned int>::const_iterator it = host_unit_transform.find(unit->unit_type);
 		if (it == host_unit_transform.end()) {
 			host_unit_list.resize(host_unit_list.size() - 1);
 			std::cout << "WARNING: invalid entity in map_storage unit vector" << std::endl;
@@ -263,8 +259,21 @@ __host__ void CUDA::FillDeviceUnitArray() {
 		}
 
 		host_unit_list.at(device_list_length).id = it->second;
-		host_unit_list.at(device_list_length).pos = { map_storage->units.at(i).position.x * GRID_DIVISION, map_storage->units.at(i).position.y * GRID_DIVISION };
-		host_unit_list.at(device_list_length).enemy = map_storage->units.at(i).enemy;
+		host_unit_list.at(device_list_length).pos = { unit->pos.x * GRID_DIVISION, unit->pos.y * GRID_DIVISION };
+		switch (unit->alliance)
+		{
+		case 1:
+		case 2:
+		case 3:
+			host_unit_list.at(device_list_length).enemy = false;
+				break;
+		case 4:
+			host_unit_list.at(device_list_length).enemy = true;
+			break;
+		default:
+			host_unit_list.at(device_list_length).enemy = false;
+			break;
+		}
 
 		device_list_length++;
 	}	
@@ -278,13 +287,9 @@ __host__ void CUDA::TransferUnitsToDevice() {
 		"TransferUnitsToDevice");
 }
 
-__host__ void CUDA::TransferDynamicMapToDevice() {
+__host__ void CUDA::TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]) {
 	cudaMemcpy3DParms par = { 0 };
-	//par.srcPtr.ptr = map_storage->dynamic_terrain;
-	//par.srcPtr.pitch = MAP_X_R * sizeof(bool);
-	//par.srcPtr.xsize = MAP_X_R;
-	//par.srcPtr.ysize = MAP_Y_R;
-	par.srcPtr = make_cudaPitchedPtr((void*)map_storage->dynamic_terrain, MAP_X_R * sizeof(bool), MAP_X_R, MAP_Y_R);
+	par.srcPtr = make_cudaPitchedPtr((void*)dynamic_terrain, MAP_X_R * sizeof(bool), MAP_X_R, MAP_Y_R);
 	par.dstPtr.ptr = dynamic_map_device_pointer.ptr;
 	par.dstPtr.pitch = dynamic_map_device_pointer.pitch;
 	par.dstPtr.xsize = MAP_X_R;
@@ -299,7 +304,7 @@ __host__ void CUDA::TransferDynamicMapToDevice() {
 
 /*KERNAL LAUNCHES START*/
 
-__host__ void CUDA::RepellingPFGeneration(){
+__host__ void CUDA::RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
 	DeviceRepellingPFGeneration<<<dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity))>>>
 		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
 
@@ -308,7 +313,7 @@ __host__ void CUDA::RepellingPFGeneration(){
 	par.srcPtr.pitch = repelling_pf_ground_map_pointer.pitch;
 	par.srcPtr.xsize = MAP_X_R;
 	par.srcPtr.ysize = MAP_Y_R;
-	par.dstPtr.ptr = map_storage->ground_avoidance_PF;
+	par.dstPtr.ptr = ground_avoidance_PF;
 	par.dstPtr.pitch = MAP_X_R * sizeof(float);
 	par.dstPtr.xsize = MAP_X_R;
 	par.dstPtr.ysize = MAP_Y_R;
@@ -325,14 +330,14 @@ __host__ void CUDA::RepellingPFGeneration(){
 
 	par.srcPtr.ptr = repelling_pf_air_map_pointer.ptr;
 	par.srcPtr.pitch = repelling_pf_air_map_pointer.pitch;
-	par.dstPtr.ptr = map_storage->air_avoidance_PF;
+	par.dstPtr.ptr = air_avoidance_PF;
 
 	Check(cudaMemcpy3D(&par), "air PF memcpy3D");
 
 	//Check(cudaDeviceSynchronize());
 }
 
-__host__ void CUDA::IMGeneration(IntPoint2D destination, Destination_IM* map, bool air_path) {
+__host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path) {
 
 	cudaPitchedPtr device_map;
 	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
@@ -342,12 +347,6 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, Destination_IM* map, bo
 	}
 
 	destination.y = MAP_Y_R - destination.y;
-
-	//InfluenceMapPointer im_ptr;
-	//im_ptr.destination = destination;
-	//im_ptr.map_ptr = device_map;
-	
-	//im_pointers.push_back(im_ptr);
 
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};
 	if (!air_path) {
@@ -359,15 +358,12 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, Destination_IM* map, bo
 			(destination_R, device_map);*/
 	}
 
-	Sleep(3000);
 	Check(cudaPeekAtLastError(), "IM generation peek 1", true);
 	Check(cudaDeviceSynchronize(), "IM generation sync", true);
 
 	while (cudaPeekAtLastError() != cudaSuccess) {
 		Check(cudaGetLastError(), "error pop repeat 2", true);
 	}
-
-	//float res[MAP_X_R][MAP_Y_R][1];
 
 	cudaMemcpy3DParms par = { 0 };
 	par.srcPtr.ptr = device_map.ptr;
@@ -386,10 +382,6 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, Destination_IM* map, bo
 	Check(cudaMemcpy3D(&par), "IM memcpy3D", true);
 
 	Check(cudaDeviceSynchronize(), "IM print sync", true);
-	//map_storage->PrintMap(res, MAP_X_R, MAP_Y_R, "IM");
-	//map_storage->CreateImage(map_storage->ground_avoidance_PF, MAP_X_R, MAP_Y_R, "image.png");
-	//map_storage->CreateImage(res, MAP_X_R, MAP_Y_R);
-	//map_storage->PrintImage("res.png", MAP_X_R, MAP_Y_R);
 }
 
 __host__ void CUDA::TestLookupTable() {
@@ -419,14 +411,14 @@ __host__ void CUDA::TestLookupTable() {
 
 __host__ void CUDA::Test3DArrayUsage() {
 	cudaPitchedPtr device_map;
-	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * GRID_DIVISION * sizeof(float), MAP_Y_R * GRID_DIVISION, 1 }), "PFGeneration malloc3D");
+	Check(cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 }), "PFGeneration malloc3D");
 
 	TransferUnitsToDevice();	//unnecessary for the test
 
 	TestDevice3DArrayUsage << <1, MAP_SIZE_R, (host_unit_list.size() * sizeof(Entity)) >> >
 		(device_unit_list_pointer, host_unit_list.size(), device_map);
 
-	float return_data[MAP_X_R][MAP_Y_R][1];
+	float *return_data = new float(MAP_X_R * MAP_Y_R);
 	cudaMemcpy3DParms par = { 0 };
 	par.srcPtr.ptr = device_map.ptr;
 	par.srcPtr.pitch = device_map.pitch;
@@ -449,7 +441,7 @@ __host__ void CUDA::Test3DArrayUsage() {
 	int it = 0;
 	for (int i = 0; i < MAP_X_R; ++i) {
 		for (int j = 0; j < MAP_Y_R; ++j) {
-			if (return_data[i][j][0] != i * MAP_X_R + j) {
+			if (return_data[i + j * MAP_X_R] != i * MAP_X_R + j) {
 				std::cout << "3D Array Usage test FAILED" << std::endl;
 				return;
 			}
