@@ -28,6 +28,9 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     this->actions = actions;
     this->actions_feature_layer = actions_feature_layer;
 
+    CreateIM();
+    //PrintIM();
+
     cuda = new CUDA();
     cuda->InitializeCUDA(observations, debug, actions);
     CreateUnitLookUpTable();
@@ -38,8 +41,6 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     PrintMap(ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
     PrintMap(air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
-    CreateIM();
-    //PrintIM();
     PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
     CreateImage(dynamic_terrain, MAP_X_R, MAP_Y_R);
     AddToImage(ground_avoidance_PF, MAP_X_R, MAP_Y_R, colors::BLUE);

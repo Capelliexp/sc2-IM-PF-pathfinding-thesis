@@ -41,9 +41,9 @@ __device__ bool GetBoolMapValue(cudaPitchedPtr map, int global_id) {
 
 /* check if the id is present in the given list. This could possibly be sped up by fetching
 many entries at once... */
-__device__ int IDInList(int id, list_double_entry* list, int list_length){
+__device__ int IDInList(int id, node* list, int list_length){
 	for (int i = 0; i < list_length; ++i) {
-		if (list[i].node == id) {
+		if (list[i].pos == id) {
 			return i;
 		}
 	}
@@ -60,22 +60,28 @@ __device__ void SetMapValue(cudaPitchedPtr map, int x, int y, float value) {
 }
 
 
-
+//returnes the distance, not divided for grid sub-division
 __device__ float FloatDistance(float posX1, float posY1, float posX2, float posY2) {
 	float a = powf(posX2 - posX1, 2);
 	float b = powf(posY2 - posY1, 2);
-	return sqrtf(a + b) / GRID_DIVISION;
+	return sqrtf(a + b)/* / GRID_DIVISION*/;
 }
 
-//returnes the squared distance, not divided for grid sub-division
+//returnes the distance, not divided for grid sub-division
 __device__ float FloatDistanceFromIDRelative(int ID, IntPoint2D destination) {
 	float a = powf(destination.x - (ID % MAP_X_R), 2);
 	float b = powf(destination.y - (ID / (float)(MAP_X_R)), 2);
-	return (a + b);
+	return sqrt(a + b);
 }
 
 __device__ int BlockDistance(int posX1, int posY1, int posX2, int posY2) {
 	int a = fabsf(posX1 - posX2);
 	int b = fabsf(posY1 - posY2);
+	return a + b;
+}
+
+__device__ int BlockDistance(int ID, IntPoint2D destination) {
+	int a = fabsf(destination.x - (ID % MAP_X_R));
+	int b = fabsf(destination.y - (ID / (float)(MAP_X_R)));
 	return a + b;
 }

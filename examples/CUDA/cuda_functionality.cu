@@ -65,7 +65,7 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
 	std::cout << "CUDA base heap size: " << size << std::endl;
 
-	cudaDeviceSetLimit(cudaLimitMallocHeapSize, size*64);
+	cudaDeviceSetLimit(cudaLimitMallocHeapSize, size*128);
 	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
 	std::cout << "CUDA new heap size: " << size << std::endl;
 
@@ -73,7 +73,6 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	this->debug = debug;
 	this->actions = actions;
 	this->actions_feature_layer = actions_feature_layer;
-
 
 	dim_block_high = { 32, 32, 1 };
 	unsigned int x1 = (unsigned int)(ceil((MAP_X_R - 1) / (float)dim_block_high.x) + 0.5);
@@ -290,10 +289,6 @@ __host__ void CUDA::TransferUnitsToDevice() {
 
 __host__ void CUDA::TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]) {
 	cudaMemcpy3DParms par = { 0 };
-	//par.srcPtr.ptr = map_storage->dynamic_terrain;
-	//par.srcPtr.pitch = MAP_X_R * sizeof(bool);
-	//par.srcPtr.xsize = MAP_X_R;
-	//par.srcPtr.ysize = MAP_Y_R;
 	par.srcPtr = make_cudaPitchedPtr((void*)dynamic_terrain, MAP_X_R * sizeof(bool), MAP_X_R, MAP_Y_R);
 	par.dstPtr.ptr = dynamic_map_device_pointer.ptr;
 	par.dstPtr.pitch = dynamic_map_device_pointer.pitch;
@@ -351,11 +346,7 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 		Check(cudaGetLastError(), "error pop repeat 1", true);
 	}
 
-	//InfluenceMapPointer im_ptr;
-	//im_ptr.destination = destination;
-	//im_ptr.map_ptr = device_map;
-	
-	//im_pointers.push_back(im_ptr);
+	destination.y = MAP_Y_R - destination.y;
 
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};
 	if (!air_path) {
@@ -373,8 +364,6 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 	while (cudaPeekAtLastError() != cudaSuccess) {
 		Check(cudaGetLastError(), "error pop repeat 2", true);
 	}
-
-	//float res[MAP_X_R][MAP_Y_R][1];
 
 	cudaMemcpy3DParms par = { 0 };
 	par.srcPtr.ptr = device_map.ptr;
