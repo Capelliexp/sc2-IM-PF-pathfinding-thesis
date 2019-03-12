@@ -3,13 +3,6 @@
 #include "../examples/CUDA/cuda_header.cuh"
 #include "../examples/CUDA/cuda_device_utility.cu"
 
-/*
-PF Todo:
-* Quad-tree for units
-* Compare simultaneous global write vs non-simultaneous
-* Compare different block sizes & dimensions
-*/
-
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
 	extern __shared__ Entity unit_list_s[];
 
@@ -206,7 +199,16 @@ __device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int star
 	}
 }
 
-
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map) {
 
+}
+
+__global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_right, int new_value, cudaPitchedPtr dynamic_map_device_pointer) {
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+	if (!(x > top_left.x && x < bottom_right.x)) return;
+	if (!(y > top_left.y && y < bottom_right.y)) return;
+
+	((float*)(((char*)dynamic_map_device_pointer.ptr) + y * dynamic_map_device_pointer.pitch))[x] = new_value;
 }

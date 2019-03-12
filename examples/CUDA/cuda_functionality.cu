@@ -392,6 +392,13 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, Destination_IM* map, bo
 	//map_storage->PrintImage("res.png", MAP_X_R, MAP_Y_R);
 }
 
+__host__ void CUDA::UpdateDynamicMap(IntPoint2D center, float radius, int value) {
+	IntPoint2D top_left = { center.x - radius, center.y - radius };
+	IntPoint2D bottom_right = { center.x + radius, center.y + radius };
+
+	DeviceUpdateDynamicMap<<<dim_grid_high, dim_block_high>>>(top_left, bottom_right, value, dynamic_map_device_pointer);
+}
+
 __host__ void CUDA::TestLookupTable() {
 	int table_length = device_unit_lookup_on_host.size();
 
