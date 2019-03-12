@@ -46,6 +46,15 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     AddToImage(ground_avoidance_PF, MAP_X_R, MAP_Y_R, colors::BLUE);
     PrintImage("image.png", MAP_X_R, MAP_Y_R);
     //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
+
+    Destination_IM map;
+    map.destination = {25,25};
+    map.air_path = false;
+    cuda->IMGeneration(IntPoint2D{ (int)25, (int)25 }, map.map, false);
+    //Add the map to list.
+    PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
+    CreateImage(map.map, MAP_X_R, MAP_Y_R);
+    PrintImage("res.png", MAP_X_R, MAP_Y_R);
 }
 
 void MapStorage::Test() {
