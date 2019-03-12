@@ -19,7 +19,7 @@
 
 #include "sc2api/sc2_api.h"
 #include "sc2lib/sc2_lib.h"
-#include "../examples/CUDA/map_storage.hpp"
+//#include "../examples/CUDA/map_storage.hpp"
 
 //https://devtalk.nvidia.com/default/topic/476201/passing-structures-into-cuda-kernels/
 //https://devblogs.nvidia.com/how-optimize-data-transfers-cuda-cc/
@@ -35,6 +35,31 @@
 //http://www.orangeowlsolutions.com/archives/817
 //Check(cudaPeekAtLastError());
 //Check(cudaDeviceSynchronize());
+
+
+//! Maps: empty20, wall20 (18,29) or (8,8), (10,16)
+//#define MAP_X 32
+//#define MAP_Y 32
+
+//! Maps: empty50, spiral50
+#define MAP_X 56
+#define MAP_Y 56
+
+//! Maps: labyrinth, height (53,60), wall
+//#define MAP_X 104
+//#define MAP_Y 104
+
+//! Maps: empty200
+//#define MAP_X 200
+//#define MAP_Y 200
+
+#define MAP_SIZE (MAP_X*MAP_Y)
+
+#define GRID_DIVISION 1 // 1 grid's sub grid size = GRID_DIVISION^2  (OBS! minimum 1)
+#define MAP_X_R (MAP_X*GRID_DIVISION)
+#define MAP_Y_R (MAP_Y*GRID_DIVISION)
+#define MAP_SIZE_R (MAP_SIZE*GRID_DIVISION*GRID_DIVISION)
+
 
 typedef struct {
 	int x;
@@ -95,7 +120,7 @@ typedef struct {
 	cudaPitchedPtr map_ptr;
 } InfluenceMapPointer;
 
-//DEVICE FUNCTIONS
+//DEVICE FUNCTION
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer, list_double_entry* global_memory_im_list_storage);
@@ -115,18 +140,21 @@ public:
 	__host__ ~CUDA();
 
 	//Initialization (requires cleanup)
-	__host__ void InitializeCUDA(MapStorage* maps, const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, sc2::ActionFeatureLayerInterface* actions_feature_layer);
+	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions);
 	__host__ void PrintGenInfo();
-	__host__ void CreateUnitLookupOnHost();
+	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
 	__host__ void AllocateDeviceMemory();
 	__host__ void TransferUnitLookupToDevice();
-	
+	__host__ void HostTransfer(sc2::Units units);
+	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);
+	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
+
 	//Runtime functionality
-	__host__ void Update(clock_t dt_ticks);
-	__host__ void FillDeviceUnitArray();
+	__host__ void Update(clock_t dt_ticks, sc2::Units units, float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
+	__host__ void FillDeviceUnitArray(sc2::Units units);
 	__host__ void TransferUnitsToDevice();
-	__host__ void TransferDynamicMapToDevice();
+	__host__ void TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]);
 
 	//Other functionality
 	__host__ const sc2::ObservationInterface* GetObservation();
@@ -144,10 +172,8 @@ public:
 	__host__ int GetSizeOfUnitInfoList();
 
 	//Kernel launches
-	__host__ void RepellingPFGeneration();
-	__host__ void IMGeneration(IntPoint2D destination, Destination_IM* map, bool air_path);
-	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);
-
+	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
+	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path);
 	__host__ void Test3DArrayUsage(); 
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
@@ -158,7 +184,7 @@ public:
 	
 private:
 	//class pointers
-	MapStorage* map_storage;
+	//MapStorage* map_storage;
 	const sc2::ObservationInterface* observation;
 	sc2::DebugInterface* debug;
 	sc2::ActionInterface* actions;
