@@ -215,23 +215,22 @@ __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr dev
 }
 
 __global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_right, IntPoint2D center, float radius, int new_value, cudaPitchedPtr dynamic_map_device_pointer) {
-	int x = threadIdx.x + blockIdx.x * blockDim.x;
-	int y = threadIdx.y + blockIdx.y * blockDim.y;
+	int local_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int local_y = threadIdx.y + blockIdx.y * blockDim.y;
 
-	x = MAP_X_R - x;
-	y = MAP_Y_R - y;
+	if (local_x > bottom_right.x || local_y > bottom_right.y) {
+		return;
+	}
 
-	//if (!(x > top_left.x && x < bottom_right.x)) return;
-	//if (!(y > top_left.y && y < bottom_right.y)) return;
-
-	if (x > bottom_right.x || y > bottom_right.y) return;
+	int global_x = local_x + top_left.x;
+	int global_y = local_y + top_left.y;
 
 	FloatPoint2D center_r, corners[4];
 	center_r = { ((float)center.x + (0.5 / GRID_DIVISION)) , ((float)center.y + (0.5 / GRID_DIVISION)) };
-	corners[0] = { x, y };
-	corners[1] = { x + 1, y };
-	corners[2] = { x, y + 1 };
-	corners[3] = { x + 1, y + 1 };
+	corners[0] = { global_x, global_y };
+	corners[1] = { global_x + 1, global_y };
+	corners[2] = { global_x, global_y + 1 };
+	corners[3] = { global_x + 1, global_y + 1 };
 	
 	float a, b, dist;
 	for (int i = 0; i < 4; ++i) {
@@ -240,7 +239,7 @@ __global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_ri
 		dist = sqrtf(a + b) / GRID_DIVISION;
 
 		if (dist < radius) {
-			((float*)(((char*)dynamic_map_device_pointer.ptr) + y * dynamic_map_device_pointer.pitch))[x] = new_value;
+			((bool*)(((char*)dynamic_map_device_pointer.ptr) + global_y * dynamic_map_device_pointer.pitch))[global_x] = new_value;
 			return;
 		}
 	}

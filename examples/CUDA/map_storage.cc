@@ -38,6 +38,8 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     cuda->DeviceTransfer(dynamic_terrain);
     cuda->Tests(ground_avoidance_PF, air_avoidance_PF);
 
+    cuda->UpdateDynamicMap({ 10, 10 }, 4, false);
+
     PrintMap(ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
     PrintMap(air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
