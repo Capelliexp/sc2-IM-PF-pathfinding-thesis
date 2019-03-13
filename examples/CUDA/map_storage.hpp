@@ -173,7 +173,8 @@ private:
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
 	bool dynamic_terrain[MAP_X_R][MAP_Y_R][1];	//update on-building-creation, on-building-destruction, on-building-vision
-
+	//float dynamic_terrain[MAP_X_R][MAP_Y_R][1];
+	
 	sc2::Units units;	//update per frame, includes movable units and hostile structures
 
 	//! image is an vector that holds the values representing the map

@@ -56,6 +56,15 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     //PrintImage("res.png", MAP_X_R, MAP_Y_R);
 
     //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
+
+    Destination_IM map;
+    map.destination = {28,28};
+    map.air_path = false;
+    cuda->IMGeneration(IntPoint2D{ (integer)map.destination.x, (integer)map.destination.y }, map.map, false);
+    //Add the map to list.
+    PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
+    CreateImage(map.map, MAP_X_R, MAP_Y_R);
+    PrintImage("res.png", MAP_X_R, MAP_Y_R);
 }
 
 void MapStorage::Test() {
@@ -148,16 +157,16 @@ void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heig
             if (mapP < 32767)
                 max_value = max(max_value, mapP);
             if (mapP == -2) {
-                image[4 * width * y + 4 * x + 0] = mapP;
-                image[4 * width * y + 4 * x + 1] = mapP;
-                image[4 * width * y + 4 * x + 2] = mapP;
-                image[4 * width * y + 4 * x + 3] = 255;
+                image[4 * width * x + 4 * y + 0] = mapP;
+                image[4 * width * x + 4 * y + 1] = mapP;
+                image[4 * width * x + 4 * y + 2] = mapP;
+                image[4 * width * x + 4 * y + 3] = 255;
             }
             else {
-                image[4 * width * y + 4 * x + 0] = selected_color[0] * mapP;
-                image[4 * width * y + 4 * x + 1] = selected_color[1] * mapP;
-                image[4 * width * y + 4 * x + 2] = selected_color[2] * mapP;
-                image[4 * width * y + 4 * x + 3] = 255;
+                image[4 * width * x + 4 * y + 0] = selected_color[0] * mapP;
+                image[4 * width * x + 4 * y + 1] = selected_color[1] * mapP;
+                image[4 * width * x + 4 * y + 2] = selected_color[2] * mapP;
+                image[4 * width * x + 4 * y + 3] = 255;
             }
         }
 }
@@ -347,7 +356,7 @@ Destination_IM & MapStorage::GetGroundDestination(sc2::Point2D pos) {
     destinations_ground_IM.push_back(map);
     destinations_ground_IM.back().destination = pos;
     destinations_ground_IM.back().air_path = false;
-    cuda->IMGeneration(IntPoint2D{ (int)pos.x, (int)pos.y }, destinations_ground_IM.back().map, false);
+    cuda->IMGeneration(IntPoint2D{ (integer)pos.x, (integer)pos.y }, destinations_ground_IM.back().map, false);
     
     PrintMap(destinations_ground_IM.back().map, MAP_X_R, MAP_Y_R, "IM");
     CreateImage(destinations_ground_IM.back().map, MAP_X_R, MAP_Y_R, colors::GREEN);
@@ -386,6 +395,8 @@ void MapStorage::CreateIM() {
                     int xp = x + jP;
                     //InfluenceMap[xp + yp] = (IM[j + i * width / GRID_DIVISION] == -1) ? 0 : 1;
                     dynamic_terrain[yp][xp][0] = (IM[j + i * MAP_X] == -1) ? 0 : 1;
+                    //dynamic_terrain[xp][MAP_Y_R - yp][0] = (IM[j + i * MAP_X] == -1) ? 0 : 1;
+                    //dynamic_terrain[yp][xp][0] = xp + yp*10;
                     //Should maybe xp + yp * map_x
                 }
             }

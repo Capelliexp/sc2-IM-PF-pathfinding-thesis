@@ -12,15 +12,15 @@ __device__ float GetFloatMapValue(cudaPitchedPtr map, int x, int y) {
 	return *((float*)((char*)ptr + y * pitch) + x);
 }
 
-__device__ float GetFloatMapValue(cudaPitchedPtr map, int global_id) {
-	int x = global_id % (MAP_X_R);
-	int y = global_id / (float)(MAP_X_R);
-
-	char* ptr = (char*)map.ptr;
-	size_t pitch = map.pitch;
-
-	return *((float*)((char*)ptr + y * pitch) + x);
-}
+//__device__ float GetFloatMapValue(cudaPitchedPtr map, int global_id) {
+//	int x = (global_id % (MAP_X_R)) + 1;
+//	int y = (global_id / (float)(MAP_X_R)) + 1;
+//
+//	char* ptr = (char*)map.ptr;
+//	size_t pitch = map.pitch;
+//
+//	return *((float*)((char*)ptr + y * pitch) + x);
+//}
 
 __device__ bool GetBoolMapValue(cudaPitchedPtr map, int x, int y) {
 	char* ptr = (char*)map.ptr;
@@ -29,15 +29,15 @@ __device__ bool GetBoolMapValue(cudaPitchedPtr map, int x, int y) {
 	return *((bool*)((char*)ptr + y * pitch) + x);
 }
 
-__device__ bool GetBoolMapValue(cudaPitchedPtr map, int global_id) {
-	int x = global_id % (MAP_X_R);
-	int y = global_id / (float)(MAP_X_R);
-
-	char* ptr = (char*)map.ptr;
-	size_t pitch = map.pitch;
-
-	return *((bool*)((char*)ptr + y * pitch) + x);
-}
+//__device__ bool GetBoolMapValue(cudaPitchedPtr map, int global_id) {
+//	int x = (global_id % (MAP_X_R)) + 1;
+//	int y = (global_id / (float)(MAP_X_R)) + 1;
+//
+//	char* ptr = (char*)map.ptr;
+//	size_t pitch = map.pitch;
+//
+//	return *((bool*)((char*)ptr + y * pitch) + x);
+//}
 
 /* check if the id is present in the given list. This could possibly be sped up by fetching
 many entries at once... */
@@ -68,11 +68,11 @@ __device__ float FloatDistance(float posX1, float posY1, float posX2, float posY
 }
 
 //returnes the distance, not divided for grid sub-division
-__device__ float FloatDistanceFromIDRelative(int ID, IntPoint2D destination) {
-	float a = powf(destination.x - (ID % MAP_X_R), 2);
-	float b = powf(destination.y - (ID / (float)(MAP_X_R)), 2);
-	return sqrt(a + b);
-}
+//__device__ float FloatDistanceFromIDRelative(int ID, IntPoint2D destination) {
+//	float a = powf(destination.x - ((ID % MAP_X_R) + 1), 2);
+//	float b = powf(destination.y - ((ID / (float)(MAP_X_R)) + 1), 2);
+//	return sqrt(a + b);
+//}
 
 __device__ int BlockDistance(int posX1, int posY1, int posX2, int posY2) {
 	int a = fabsf(posX1 - posX2);
@@ -80,8 +80,19 @@ __device__ int BlockDistance(int posX1, int posY1, int posX2, int posY2) {
 	return a + b;
 }
 
-__device__ int BlockDistance(int ID, IntPoint2D destination) {
-	int a = fabsf(destination.x - (ID % MAP_X_R));
-	int b = fabsf(destination.y - (ID / (float)(MAP_X_R)));
-	return a + b;
+//__device__ int BlockDistance(int ID, IntPoint2D destination) {
+//	int a = fabsf(destination.x - ((ID % MAP_X_R) + 1));
+//	int b = fabsf(destination.y - ((ID / (float)(MAP_X_R)) + 1));
+//	return a + b;
+//}
+
+__device__ int PosToID(IntPoint2D pos) {
+	return (pos.x) + ((pos.y) * MAP_X_R);
+}
+
+__device__ IntPoint2D IDToPos(int ID) {
+	IntPoint2D res;
+	res.x = (ID % MAP_X_R);
+	res.y = (ID / (float)MAP_X_R);
+	return res;
 }

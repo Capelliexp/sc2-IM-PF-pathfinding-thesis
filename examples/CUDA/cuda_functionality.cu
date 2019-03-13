@@ -346,7 +346,7 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 		Check(cudaGetLastError(), "error pop repeat 1", true);
 	}
 
-	destination.y = MAP_Y_R - destination.y;
+	//destination.y = MAP_Y_R - destination.y;
 
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};
 	if (!air_path) {
@@ -382,6 +382,14 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 	Check(cudaMemcpy3D(&par), "IM memcpy3D", true);
 
 	Check(cudaDeviceSynchronize(), "IM print sync", true);
+}
+
+__host__ void CUDA::UpdateDynamicMap(IntPoint2D center, float radius, int value) {
+	IntPoint2D top_left = { center.x - radius - 1, center.y - radius - 1};
+	IntPoint2D bottom_right = { center.x + radius + 1, center.y + radius + 1};
+
+	DeviceUpdateDynamicMap <<< {((bottom_right.x - top_left.x) / dim_block_high.x) + 1, ((bottom_right.y - top_left.y) / dim_block_high.y) + 1, 1},
+		dim_block_high >> > (top_left, bottom_right, center, radius, value, dynamic_map_device_pointer);
 }
 
 __host__ void CUDA::TestLookupTable() {
