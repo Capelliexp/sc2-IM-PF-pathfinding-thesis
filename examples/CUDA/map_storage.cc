@@ -52,7 +52,7 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     cuda->IMGeneration(IntPoint2D{ (int)25, (int)25 }, map.map, false);
     //Add the map to list.
     PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
-    CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::GREEN);
+    CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::PURPLE);
     PrintImage("res.png", MAP_X_R, MAP_Y_R);
 
     //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
@@ -208,9 +208,35 @@ void MapStorage::PrintImage(std::string filename, int width, int height) {
         else if (i0 == -1 && i1 == -1 && i2 == -1) //Can walk here
             i0 = i1 = i2 = 255;
         else {  //Objective or unit
-            i0 = i0 <= 1 ? 0 : 255 * (1 - (max_value - i0) / max_value);
-            i1 = i1 <= 1 ? 0 : 255 * (1 - (max_value - i1) / max_value);
-            i2 = i2 <= 1 ? 0 : 255 * (1 - (max_value - i2) / max_value);
+            if (i0 != 0 && i1 == 0 && i2 == 0) {    //Red pixels
+                i1 = i2 = 255 * (1 - (max_value - i0) / max_value);
+                i0 = 255;
+            }
+            else if (i0 == 0 && i1 != 0 && i2 == 0) {   //Green pixels
+                i0 = i2 = 255 * (1 - (max_value - i1) / max_value);
+                i1 = 255;
+            }
+            else if (i0 == 0 && i1 == 0 && i2 != 0) {   //Blue pixels
+                i0 = i1 = 255 * (1 - (max_value - i2) / max_value);
+                i2 = 255;
+            }
+            else if (i0 != 0 && i1 != 0 && i2 != 0) {   //White pixels
+                i0 = 255 * (1 - (max_value - i0) / max_value);
+                i1 = 255 * (1 - (max_value - i1) / max_value);
+                i2 = 255 * (1 - (max_value - i2) / max_value);
+            }
+            else if (i0 != 0 && i1 != 0 && i2 == 0) {   //Red and Green pixels  Yellow
+                i2 = 255 * (1 - (max_value - i0) / max_value);
+                i0 = i1 = 255;
+            }
+            else if (i0 != 0 && i1 == 0 && i2 != 0) {   //Red and Blue pixels   Purple
+                i1 = 255 * (1 - (max_value - i0) / max_value);
+                i0 = i2 = 255;
+            }
+            else if (i0 == 0 && i1 != 0 && i2 != 0) {   //Green and Blue pixels Cyan
+                i0 = 255 * (1 - (max_value - i1) / max_value);
+                i1 = i2 = 255;
+            }
         }
         printImage[i + 0] = i0;
         printImage[i + 1] = i1;
