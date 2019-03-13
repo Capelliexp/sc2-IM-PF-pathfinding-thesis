@@ -48,9 +48,9 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
 
     Destination_IM map;
-    map.destination = {25,25};
+    map.destination = {28,28};
     map.air_path = false;
-    cuda->IMGeneration(IntPoint2D{ (int)25, (int)25 }, map.map, false);
+    cuda->IMGeneration(IntPoint2D{ (integer)map.destination.x, (integer)map.destination.y }, map.map, false);
     //Add the map to list.
     PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
     CreateImage(map.map, MAP_X_R, MAP_Y_R);
@@ -145,10 +145,10 @@ void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heig
             float mapP = map[x][y][0];
             if (mapP < 32767)
                 max_value = max(max_value, mapP);
-            image[4 * width * y + 4 * x + 0] = mapP;
-            image[4 * width * y + 4 * x + 1] = mapP;
-            image[4 * width * y + 4 * x + 2] = mapP;
-            image[4 * width * y + 4 * x + 3] = 255;
+            image[4 * width * x + 4 * y + 0] = mapP;
+            image[4 * width * x + 4 * y + 1] = mapP;
+            image[4 * width * x + 4 * y + 2] = mapP;
+            image[4 * width * x + 4 * y + 3] = 255;
         }
 }
 
@@ -305,7 +305,7 @@ Destination_IM * MapStorage::GetGroundDestination(sc2::Point2D pos) {
     Destination_IM map;
     map.destination = pos;
     map.air_path = false;
-    cuda->IMGeneration(IntPoint2D{ (int)pos.x, (int)pos.y }, map.map, false);
+    cuda->IMGeneration(IntPoint2D{ (integer)pos.x, (integer)pos.y }, map.map, false);
     //Add the map to list.
     PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
     CreateImage(map.map, MAP_X_R, MAP_Y_R);
@@ -344,6 +344,8 @@ void MapStorage::CreateIM() {
                     int xp = x + jP;
                     //InfluenceMap[xp + yp] = (IM[j + i * width / GRID_DIVISION] == -1) ? 0 : 1;
                     dynamic_terrain[yp][xp][0] = (IM[j + i * MAP_X] == -1) ? 0 : 1;
+                    //dynamic_terrain[xp][MAP_Y_R - yp][0] = (IM[j + i * MAP_X] == -1) ? 0 : 1;
+                    //dynamic_terrain[yp][xp][0] = xp + yp*10;
                     //Should maybe xp + yp * map_x
                 }
             }
