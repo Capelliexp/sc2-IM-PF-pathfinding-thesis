@@ -49,22 +49,13 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     //Destination_IM map;
     //map.destination = {25,25};
     //map.air_path = false;
-    //cuda->IMGeneration(IntPoint2D{ (int)25, (int)25 }, map.map, false);
+    //cuda->IMGeneration(IntPoint2D{ (integer)25, (integer)25 }, map.map, false);
     ////Add the map to list.
     //PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
     //CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::GREEN);
     //PrintImage("res.png", MAP_X_R, MAP_Y_R);
 
     //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
-
-    Destination_IM map;
-    map.destination = {28,28};
-    map.air_path = false;
-    cuda->IMGeneration(IntPoint2D{ (integer)map.destination.x, (integer)map.destination.y }, map.map, false);
-    //Add the map to list.
-    PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
-    CreateImage(map.map, MAP_X_R, MAP_Y_R);
-    PrintImage("res.png", MAP_X_R, MAP_Y_R);
 }
 
 void MapStorage::Test() {

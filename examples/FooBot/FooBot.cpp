@@ -155,28 +155,48 @@ void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior)
 	Actions()->UnitCommand(units, behavior);
 }
 
+//NOTE!!!! x- and y-coordinates are fliped.
 void FooBot::UpdateUnitsPaths() {
 	for (int i = 0; i < units.size(); ++i) {
-		sc2::Point2D pos = units[i].unit->pos;
-		std::vector<sc2::Point2D> udlr;
-		udlr.push_back(pos + sc2::Point2D( 0,  1));	//Up
-		udlr.push_back(pos + sc2::Point2D( 1,  1));	//Up, right
-		udlr.push_back(pos + sc2::Point2D( 1,  0));	//Right
-		udlr.push_back(pos + sc2::Point2D( 1, -1));	//Down, right
-		udlr.push_back(pos + sc2::Point2D( 0, -1));	//Down
-		udlr.push_back(pos + sc2::Point2D(-1, -1));	//Down, left
-		udlr.push_back(pos + sc2::Point2D(-1,  0));	//Left
-		udlr.push_back(pos + sc2::Point2D(-1,  1));	//Up, left
+		if (!units[i].destination) continue;	//No destination to go to
+
+		sc2::Point2D current_pos = units[i].unit->pos;
+		sc2::Point2D translated_pos = current_pos;
+		translated_pos.x = (int)translated_pos.x;
+		translated_pos.y = (int)(MAP_Y_R - 1 - translated_pos.y);
+
+		if (units[i].destination->destination == translated_pos) {	//Found destination.
+			units[i].destination = nullptr;
+			continue;
+		}
+		int current_value = units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
+		
+		std::vector<sc2::Point2D> udlr;				//y,  x
+		udlr.push_back(translated_pos + sc2::Point2D( 0,  1));	//Down
+		udlr.push_back(translated_pos + sc2::Point2D( 1,  1));	//Down, right
+		udlr.push_back(translated_pos + sc2::Point2D( 1,  0));	//Right
+		udlr.push_back(translated_pos + sc2::Point2D( 1, -1));	//Up, right
+		udlr.push_back(translated_pos + sc2::Point2D( 0, -1));	//Up
+		udlr.push_back(translated_pos + sc2::Point2D(-1, -1));	//Up, left
+		udlr.push_back(translated_pos + sc2::Point2D(-1,  0));	//Left
+		udlr.push_back(translated_pos + sc2::Point2D(-1,  1));	//Down, left
+
 		float min_value = 5000;
 		int next_tile = 0;
 		for (int j = 0; j < udlr.size(); ++j) {
-			int new_value = units[i].destination->map[(int)udlr[j].x][(int)udlr[j].y][0];
-			if (new_value > 0 && min_value > new_value) {
+			int new_value = units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
+			if (new_value < 0) continue;	//Unpathable terrain
+			if ((current_value - new_value) > 2) continue;	//Invalid move
+			if (min_value > new_value) {
 				min_value = min(new_value, min_value);
 				next_tile = j;
 			}
 		}
-		Actions()->UnitCommand(units[i].unit, sc2::ABILITY_ID::MOVE, udlr[next_tile]);
+
+		sc2::Point2D new_pos = udlr[next_tile];
+		new_pos.y = MAP_Y_R - 1 - new_pos.y;
+		//Check units behavior
+		Actions()->UnitCommand(units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 	}
 }
 
@@ -626,7 +646,7 @@ void FooBot::CommandsOnSpiral50() {
 	switch (command) {
 	case 1: {
 		if (spawned_units == 0) {
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(45, 45));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(45));
 			spawned_units = 1;
 		}
 		else if (units.size() == spawned_units) {
