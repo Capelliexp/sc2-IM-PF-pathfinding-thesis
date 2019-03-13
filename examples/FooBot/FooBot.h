@@ -48,7 +48,7 @@ private:
     //! Function to set destination for the given units and the behavior.
     void SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
     //! Function to set destination for the given units and the behavior.
-    void SetDestination(std::vector<FooBot::Unit> units_vec, sc2::Point2D pos, behaviors type_of_movement);
+    void SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement);
     void SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior);
 
     //! Function to update all units.
@@ -59,6 +59,8 @@ private:
     void CommandsOnHeight();
     void CommandsOnLabyrinth();
     void CommandsOnWall();
+    void CommandsOnEmpty20();
+    void CommandsOnSpiral50();
 
     bool CheckIfUnitsSpawned(int amount, std::vector<sc2::UnitTypeID> types);
 

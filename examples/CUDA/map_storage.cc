@@ -46,14 +46,14 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     AddToImage(ground_avoidance_PF, MAP_X_R, MAP_Y_R, colors::BLUE);
     PrintImage("image.png", MAP_X_R, MAP_Y_R);
 
-    Destination_IM map;
-    map.destination = {25,25};
-    map.air_path = false;
-    cuda->IMGeneration(IntPoint2D{ (int)25, (int)25 }, map.map, false);
-    //Add the map to list.
-    PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
-    CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::PURPLE);
-    PrintImage("res.png", MAP_X_R, MAP_Y_R);
+    //Destination_IM map;
+    //map.destination = {25,25};
+    //map.air_path = false;
+    //cuda->IMGeneration(IntPoint2D{ (int)25, (int)25 }, map.map, false);
+    ////Add the map to list.
+    //PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
+    //CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::GREEN);
+    //PrintImage("res.png", MAP_X_R, MAP_Y_R);
 
     //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
 }
@@ -337,21 +337,22 @@ Destination_IM * MapStorage::CheckAirDestination(sc2::Point2D pos) {
     return destination;
 }
 
-Destination_IM * MapStorage::GetGroundDestination(sc2::Point2D pos) {
+Destination_IM & MapStorage::GetGroundDestination(sc2::Point2D pos) {
     //Call cuda to create IM
     for (Destination_IM dest : destinations_ground_IM) {
         if (dest.destination == pos)
-            return &dest;
+            return dest;
     }
     Destination_IM map;
-    map.destination = pos;
-    map.air_path = false;
-    cuda->IMGeneration(IntPoint2D{ (int)pos.x, (int)pos.y }, map.map, false);
-    //Add the map to list.
-    PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
-    CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::GREEN);
+    destinations_ground_IM.push_back(map);
+    destinations_ground_IM.back().destination = pos;
+    destinations_ground_IM.back().air_path = false;
+    cuda->IMGeneration(IntPoint2D{ (int)pos.x, (int)pos.y }, destinations_ground_IM.back().map, false);
+    
+    PrintMap(destinations_ground_IM.back().map, MAP_X_R, MAP_Y_R, "IM");
+    CreateImage(destinations_ground_IM.back().map, MAP_X_R, MAP_Y_R, colors::GREEN);
     PrintImage("res.png", MAP_X_R, MAP_Y_R);
-    return &map;
+    return destinations_ground_IM.back();
 }
 
 Destination_IM * MapStorage::GetAirDestination(sc2::Point2D pos) {

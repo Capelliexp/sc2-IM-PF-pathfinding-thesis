@@ -88,7 +88,7 @@ public:
 	//! Will create IM if needed.
 	//!< \param pos sc2::Point2D the position to create an IM to.
 	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
-	Destination_IM* GetGroundDestination(sc2::Point2D pos);
+	Destination_IM& GetGroundDestination(sc2::Point2D pos);
 	//! Functions to get IM destination for air.
 	//! Will create IM if needed.
 	//!< \param pos sc2::Point2D the position to create an IM to.

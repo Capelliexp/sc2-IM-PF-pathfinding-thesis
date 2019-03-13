@@ -11,6 +11,7 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	else if (map == "labyrinth")	this->map = 4;
 	else if (map == "wall")			this->map = 5;
 	else if (map == "empty20")		this->map = 6;
+	else if (map == "spiral50")		this->map = 7;
 	else							this->map = 0;	//Not a valid testmap
 }
 
@@ -40,15 +41,7 @@ void FooBot::OnStep() {
 	if (in_messages.size() > 0 && command == 0)
 		command = chat_commands->ParseCommands(in_messages[0].message);
 	ExecuteCommand();
-
-	/*if (game_loop % 100 == 0) {
-		sc2::Units units = Observation()->GetUnits(sc2::Unit::Alliance::Self);
-		for (auto& it_unit : units) {
-			sc2::Point2D target = sc2::FindRandomLocation(Observation()->GetGameInfo());
-			Actions()->UnitCommand(it_unit, sc2::ABILITY_ID::SMART, target);
-		}
-	}*/
-
+	UpdateUnitsPaths();
 	if (spawn_all_units) {
 		if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
 			GatherRadius();
@@ -79,7 +72,6 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 	FooBot::Unit foo_unit;
 	foo_unit.unit = unit;
 	foo_unit.behavior = behaviors::DEFENCE;
-	foo_unit.destination = nullptr;
 	this->units.push_back(foo_unit);
 }
 
@@ -119,6 +111,12 @@ void FooBot::ExecuteCommand() {
 	case 5:
 		CommandsOnWall();
 		break;
+	case 6:
+		CommandsOnEmpty20();
+		break;
+	case 7:
+		CommandsOnSpiral50();
+		break;
 	default:
 		command = 0;
 		break;
@@ -144,11 +142,11 @@ void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID 
 	}
 }
 
-void FooBot::SetDestination(std::vector<FooBot::Unit> units_vec, sc2::Point2D pos, behaviors type_of_movement) {
-	Destination_IM* destination = map_storage->GetGroundDestination(pos);
-	for (FooBot::Unit unit : units_vec) {
-		unit.behavior = type_of_movement;
-		unit.destination = destination;
+void FooBot::SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement) {
+	Destination_IM& destination = map_storage->GetGroundDestination(pos);
+	for (int i = 0; i < units_vec.size(); ++i) {
+		units_vec[i].behavior = type_of_movement;
+		units_vec[i].destination = &destination;
 	}
 }
 
@@ -158,22 +156,27 @@ void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior)
 }
 
 void FooBot::UpdateUnitsPaths() {
-	for (FooBot::Unit unit : units) {
-		sc2::Point2D pos = unit.unit->pos;
+	for (int i = 0; i < units.size(); ++i) {
+		sc2::Point2D pos = units[i].unit->pos;
 		std::vector<sc2::Point2D> udlr;
-		udlr.push_back(pos + sc2::Point2D(0, 1));
-		udlr.push_back(pos + sc2::Point2D(0, -1));
-		udlr.push_back(pos + sc2::Point2D(-1, 0));
-		udlr.push_back(pos + sc2::Point2D(1, 0));
+		udlr.push_back(pos + sc2::Point2D( 0,  1));	//Up
+		udlr.push_back(pos + sc2::Point2D( 1,  1));	//Up, right
+		udlr.push_back(pos + sc2::Point2D( 1,  0));	//Right
+		udlr.push_back(pos + sc2::Point2D( 1, -1));	//Down, right
+		udlr.push_back(pos + sc2::Point2D( 0, -1));	//Down
+		udlr.push_back(pos + sc2::Point2D(-1, -1));	//Down, left
+		udlr.push_back(pos + sc2::Point2D(-1,  0));	//Left
+		udlr.push_back(pos + sc2::Point2D(-1,  1));	//Up, left
 		float min_value = 5000;
 		int next_tile = 0;
-		for (int i = 0; i < udlr.size(); ++i) {
-			if (min_value > unit.destination->map[(int)udlr[i].x][(int)udlr[i].y][0]) {
-				min_value = min(unit.destination->map[(int)udlr[i].x][(int)udlr[i].y][0], min_value);
-				next_tile = i;
+		for (int j = 0; j < udlr.size(); ++j) {
+			int new_value = units[i].destination->map[(int)udlr[j].x][(int)udlr[j].y][0];
+			if (new_value > 0 && min_value > new_value) {
+				min_value = min(new_value, min_value);
+				next_tile = j;
 			}
 		}
-		Actions()->UnitCommand(unit.unit, sc2::ABILITY_ID::MOVE, udlr[next_tile]);
+		Actions()->UnitCommand(units[i].unit, sc2::ABILITY_ID::MOVE, udlr[next_tile]);
 	}
 }
 
@@ -185,7 +188,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_units = 1;
 		}
 		else if (units.size() == spawned_units) {
-			SetDestination(units, sc2::Point2D(45), behaviors::DEFENCE);
+			SetDestination(units, sc2::Point2D(25), behaviors::DEFENCE);
 			spawned_units = 0;
 			command = 0;
 		}
@@ -285,7 +288,7 @@ void FooBot::CommandsOnEmpty50() {
 		break;
 	}
 	default: {
-		spawn_units = true;
+		spawned_units = 0;
 		command = 0;
 		break;
 	}
@@ -616,6 +619,29 @@ void FooBot::CommandsOnLabyrinth() {
 }
 
 void FooBot::CommandsOnWall() {
+}
+void FooBot::CommandsOnEmpty20() {
+}
+void FooBot::CommandsOnSpiral50() {
+	switch (command) {
+	case 1: {
+		if (spawned_units == 0) {
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(45, 45));
+			spawned_units = 1;
+		}
+		else if (units.size() == spawned_units) {
+			SetDestination(units, sc2::Point2D(25), behaviors::DEFENCE);
+			spawned_units = 0;
+			command = 0;
+		}
+		break;
+	}
+	default: {
+		spawned_units = 0;
+		command = 0;
+		break;
+	}
+	}
 }
 
 bool FooBot::CheckIfUnitsSpawned(int amount, std::vector<sc2::UnitTypeID> types) {
