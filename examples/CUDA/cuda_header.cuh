@@ -60,13 +60,17 @@
 #define MAP_Y_R (MAP_Y*GRID_DIVISION)
 #define MAP_SIZE_R (MAP_SIZE*GRID_DIVISION*GRID_DIVISION)
 
+typedef short integer;
 
 typedef struct {
-	int x;
-	int y;
+	integer x;
+	integer y;
 } IntPoint2D;
 
-typedef short integer;
+typedef struct {
+	float x;
+	float y;
+} FloatPoint2D;
 
 typedef struct {
 	integer node;
@@ -125,6 +129,7 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer, list_double_entry* global_memory_im_list_storage);
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map);
+__global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_right, IntPoint2D center, float radius, int new_value, cudaPitchedPtr dynamic_map_device_pointer);
 
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
 __global__ void TestDeviceLookupUsage(float* result);
@@ -173,11 +178,13 @@ public:
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
 	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path);
-	__host__ void Test3DArrayUsage(); 
+	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);
+
+	__host__ void Test3DArrayUsage();
 	__host__ void TestAttractingPFGeneration();
 	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
 	__host__ void TestLookupTable();
-
+	
 	//Error checking
 	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
 	
