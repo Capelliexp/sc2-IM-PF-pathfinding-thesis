@@ -262,12 +262,16 @@ __host__ void CUDA::FillDeviceUnitArray(sc2::Units units) {
 		host_unit_list.at(device_list_length).pos = { unit->pos.x * GRID_DIVISION, unit->pos.y * GRID_DIVISION };
 		switch (unit->alliance)
 		{
-		case 1:
-		case 2:
-		case 3:
+		case sc2::Unit::Alliance::Self:
+			host_unit_list.at(device_list_length).enemy = false;
+			break;
+		case sc2::Unit::Alliance::Ally:
+			host_unit_list.at(device_list_length).enemy = false;
+			break;
+		case sc2::Unit::Alliance::Neutral:
 			host_unit_list.at(device_list_length).enemy = false;
 				break;
-		case 4:
+		case sc2::Unit::Alliance::Enemy:
 			host_unit_list.at(device_list_length).enemy = true;
 			break;
 		default:
