@@ -45,6 +45,16 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     CreateImage(dynamic_terrain, MAP_X_R, MAP_Y_R);
     AddToImage(ground_avoidance_PF, MAP_X_R, MAP_Y_R, colors::BLUE);
     PrintImage("image.png", MAP_X_R, MAP_Y_R);
+
+    Destination_IM map;
+    map.destination = {25,25};
+    map.air_path = false;
+    cuda->IMGeneration(IntPoint2D{ (int)25, (int)25 }, map.map, false);
+    //Add the map to list.
+    PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
+    CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::GREEN);
+    PrintImage("res.png", MAP_X_R, MAP_Y_R);
+
     //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
 }
 
@@ -129,17 +139,26 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
         }
 }
 
-void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height) {
+void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color) {
+    std::vector<float> selected_color = DetermineColor(color);
     image.resize(width * height * 4);
     for (unsigned y = 0; y < height; y++)
         for (unsigned x = 0; x < width; x++) {
             float mapP = map[x][y][0];
             if (mapP < 32767)
                 max_value = max(max_value, mapP);
-            image[4 * width * y + 4 * x + 0] = mapP;
-            image[4 * width * y + 4 * x + 1] = mapP;
-            image[4 * width * y + 4 * x + 2] = mapP;
-            image[4 * width * y + 4 * x + 3] = 255;
+            if (mapP == -2) {
+                image[4 * width * y + 4 * x + 0] = mapP;
+                image[4 * width * y + 4 * x + 1] = mapP;
+                image[4 * width * y + 4 * x + 2] = mapP;
+                image[4 * width * y + 4 * x + 3] = 255;
+            }
+            else {
+                image[4 * width * y + 4 * x + 0] = selected_color[0] * mapP;
+                image[4 * width * y + 4 * x + 1] = selected_color[1] * mapP;
+                image[4 * width * y + 4 * x + 2] = selected_color[2] * mapP;
+                image[4 * width * y + 4 * x + 3] = 255;
+            }
         }
 }
 
@@ -184,11 +203,11 @@ void MapStorage::PrintImage(std::string filename, int width, int height) {
         float i1 = min(image[i + 1], max_value);
         float i2 = min(image[i + 2], max_value);
 
-        if (i0 == 0 && i2 == 0 && i2 == 0)
+        if (i0 == -2 && i1 == -2 && i2 == -2)   //Can't walk here
             i0 = i1 = i2 = 0;
-        else if (i0 == 1 && i2 == 1 && i2 == 1)
+        else if (i0 == -1 && i1 == -1 && i2 == -1) //Can walk here
             i0 = i1 = i2 = 255;
-        else {
+        else {  //Objective or unit
             i0 = i0 <= 1 ? 0 : 255 * (1 - (max_value - i0) / max_value);
             i1 = i1 <= 1 ? 0 : 255 * (1 - (max_value - i1) / max_value);
             i2 = i2 <= 1 ? 0 : 255 * (1 - (max_value - i2) / max_value);
@@ -224,6 +243,11 @@ std::vector<float> MapStorage::DetermineColor(colors color) {
         break;
     case MapStorage::PURPLE:
         selected_color[0] = 1.0;
+        selected_color[2] = 1.0;
+        break;
+    case WHITE:
+        selected_color[0] = 1.0;
+        selected_color[1] = 1.0;
         selected_color[2] = 1.0;
         break;
     case BLACK:
@@ -299,7 +323,7 @@ Destination_IM * MapStorage::GetGroundDestination(sc2::Point2D pos) {
     cuda->IMGeneration(IntPoint2D{ (int)pos.x, (int)pos.y }, map.map, false);
     //Add the map to list.
     PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
-    CreateImage(map.map, MAP_X_R, MAP_Y_R);
+    CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::GREEN);
     PrintImage("res.png", MAP_X_R, MAP_Y_R);
     return &map;
 }

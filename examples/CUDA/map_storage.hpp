@@ -47,6 +47,7 @@ public:
 		BLUE,
 		YELLOW,
 		PURPLE,
+		WHITE,
 		BLACK
 	};
 public:
@@ -135,7 +136,7 @@ private:
 	//!< \param height Integer representing the height of the map.
 	//!< \param file The name of the image that is to be created.
 	void CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height);
-	void CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height);
+	void CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color);
 	//! Function to add elements to the image.
 	//!< \param map A 2D array of floats containing the elements to add to the map.
 	//!< \param width Integer representing the width of the map.
