@@ -42,7 +42,6 @@ void FooBot::OnStep() {
 		command = chat_commands->ParseCommands(in_messages[0].message);
 	ExecuteCommand();
 	UpdateUnitsPaths();
-
 	map_storage->Update(clock() - step_clock);
 
 	Actions()->SendActions();
@@ -152,16 +151,19 @@ void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID 
 	}
 }
 
-void FooBot::SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement) {
-	Destination_IM& destination = map_storage->GetGroundDestination(pos);
+void FooBot::SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit) {
+	Destination_IM& destination = Destination_IM();
+	if (air_unit)
+		destination = map_storage->GetAirDestination(pos);
+	else
+		destination = map_storage->GetGroundDestination(pos);
 	for (int i = 0; i < units_vec.size(); ++i) {
 		units_vec[i].behavior = type_of_movement;
 		units_vec[i].destination = &destination;
 	}
 }
 
-void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior)
-{
+void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior) {
 	Actions()->UnitCommand(units, behavior);
 }
 
@@ -226,7 +228,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_units = 1;
 		}
 		else if (units.size() == spawned_units) {
-			SetDestination(units, sc2::Point2D(25), behaviors::DEFENCE);
+			SetDestination(units, sc2::Point2D(25), behaviors::DEFENCE, false);
 			spawned_units = 0;
 			command = 0;
 		}
@@ -240,7 +242,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_units = 1;
 		}
 		else if (units.size() == spawned_units) {
-			SetDestination(units, sc2::Point2D(45), behaviors::PASSIVE);
+			SetDestination(units, sc2::Point2D(45), behaviors::PASSIVE, false);
 		}
 		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT })) {
 			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
@@ -257,7 +259,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_units = 1;
 		}
 		else if (units.size() == spawned_units) {
-			SetDestination(units, sc2::Point2D(45), behaviors::ATTACK);
+			SetDestination(units, sc2::Point2D(45), behaviors::ATTACK, false);
 		}
 		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT })) {
 			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
@@ -274,7 +276,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_units = 1;
 		}
 		else if (units.size() == spawned_units) {
-			SetDestination(units, sc2::Point2D(45), behaviors::ATTACK);
+			SetDestination(units, sc2::Point2D(45), behaviors::ATTACK, false);
 			spawned_units = 0;
 			command = 0;
 		}
@@ -288,7 +290,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_units = 5;
 		}
 		else if (units.size() == 5) {
-			SetDestination(units, sc2::Point2D(25), behaviors::ATTACK);
+			SetDestination(units, sc2::Point2D(25), behaviors::ATTACK, false);
 		}
 		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT })) {
 			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
@@ -304,7 +306,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_units = 5;
 		}
 		else if (units.size() == spawned_units) {
-			SetDestination(units, sc2::Point2D(45), behaviors::ATTACK);
+			SetDestination(units, sc2::Point2D(45), behaviors::ATTACK, false);
 			spawned_units = 0;
 			command = 0;
 		}
@@ -668,7 +670,19 @@ void FooBot::CommandsOnSpiral50() {
 			spawned_units = 1;
 		}
 		else if (units.size() == spawned_units) {
-			SetDestination(units, sc2::Point2D(25), behaviors::DEFENCE);
+			SetDestination(units, sc2::Point2D(25), behaviors::DEFENCE, false);
+			spawned_units = 0;
+			command = 0;
+		}
+		break;
+	}
+	case 2: {
+		if (spawned_units == 0) {
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_VIKINGFIGHTER, 1, sc2::Point2D(45));
+			spawned_units = 1;
+		}
+		else if (units.size() == spawned_units) {
+			SetDestination(units, sc2::Point2D(5), behaviors::DEFENCE, true);
 			spawned_units = 0;
 			command = 0;
 		}
