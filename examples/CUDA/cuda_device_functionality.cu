@@ -56,10 +56,12 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int original_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int original_id = threadIdx.x + id_block * block_size + threadIdx.y * blockDim.x;
 
+	//thread spreading
 	int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
 	int x = (start_id % MAP_X_R);
 	int y = (start_id / (float)MAP_X_R);
 
+	//original
 	//int start_id = original_id;
 	//int x = original_x;
 	//int y = original_y;
@@ -85,14 +87,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		return;
 	}
 
-	//((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = PosToID({ x, y });
-	//((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = start_id;
-	//return;
-
-	//debug
-	//((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = 0;
-	//return;
-
 	node* open_list = (node*)malloc(3000 * sizeof(node));
 	node* closed_list = (node*)malloc(3000 * sizeof(node));
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 3000, closed_list_size = 3000;
@@ -103,7 +97,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	}
 
 	open_list[0] = { start_id, -1, 0, FloatDistance(x, y, destination.x, destination.y) };
-	//++open_list_it;
 	open_list_it = 1;
 
 	int size_check_counter = 0;
@@ -134,10 +127,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		closed_list[closed_list_it] = closest_entry;
 		++closed_list_it;
 
-		int pos_x = (closest_entry.pos % MAP_X_R);
-		int pos_y = (closest_entry.pos / (float)MAP_X_R);
+		IntPoint2D pos = IDToPos(closest_entry.pos);
 
-		if ((pos_x == destination.x) && (pos_y == destination.y)) {	//destination has been found! HYPE
+		if ((pos.x == destination.x) && (pos.y == destination.y)) {	//destination has been found! HYPE
 			Backtrack(device_map, closed_list, closed_list_it - 1);
 			free(open_list);
 			free(closed_list);
@@ -165,10 +157,10 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//add the expanded nodes neighbours to the open list
 		short_coord neighbour_coords[4];
-		neighbour_coords[0] = { pos_x, pos_y - 1 };
-		neighbour_coords[1] = { pos_x - 1, pos_y };
-		neighbour_coords[2] = { pos_x + 1, pos_y };
-		neighbour_coords[3] = { pos_x, pos_y + 1 };
+		neighbour_coords[0] = { pos.x, pos.y - 1 };
+		neighbour_coords[1] = { pos.x - 1, pos.y };
+		neighbour_coords[2] = { pos.x + 1, pos.y };
+		neighbour_coords[3] = { pos.x, pos.y + 1 };
 
 		int new_open_list_entries = 0;
 		for (int i = 0; i < 4; ++i) {
