@@ -338,7 +338,7 @@ Destination_IM & MapStorage::GetAirDestination(sc2::Point2D pos) {
     Destination_IM map;
     destinations_air_IM.push_back(map);
     destinations_air_IM.back().destination = pos;
-    destinations_air_IM.back().air_path = false;
+    destinations_air_IM.back().air_path = true;
     cuda->IMGeneration(IntPoint2D{ (integer)pos.x, (integer)pos.y }, destinations_air_IM.back().map, true);
 
     PrintMap(destinations_air_IM.back().map, MAP_X_R, MAP_Y_R, "IM_air");
