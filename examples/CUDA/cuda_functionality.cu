@@ -262,12 +262,16 @@ __host__ void CUDA::FillDeviceUnitArray(sc2::Units units) {
 		host_unit_list.at(device_list_length).pos = { unit->pos.x * GRID_DIVISION, unit->pos.y * GRID_DIVISION };
 		switch (unit->alliance)
 		{
-		case 1:
-		case 2:
-		case 3:
+		case sc2::Unit::Alliance::Self:
+			host_unit_list.at(device_list_length).enemy = false;
+			break;
+		case sc2::Unit::Alliance::Ally:
+			host_unit_list.at(device_list_length).enemy = false;
+			break;
+		case sc2::Unit::Alliance::Neutral:
 			host_unit_list.at(device_list_length).enemy = false;
 				break;
-		case 4:
+		case sc2::Unit::Alliance::Enemy:
 			host_unit_list.at(device_list_length).enemy = true;
 			break;
 		default:
@@ -346,16 +350,14 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 		Check(cudaGetLastError(), "error pop repeat 1", true);
 	}
 
-	//destination.y = MAP_Y_R - destination.y;
-
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};
+
 	if (!air_path) {
 		DeviceGroundIMGeneration <<<dim_grid_low, dim_block_low>>>
 			(destination_R, device_map, dynamic_map_device_pointer, global_memory_im_list_storage);
 	}
 	else {
-		/*DeviceAirIMGeneration <<<dim_grid_low, dim_block_high>>>
-			(destination_R, device_map);*/
+		DeviceAirIMGeneration <<<dim_grid_low, dim_block_high>>> (destination_R, device_map);
 	}
 
 	Check(cudaPeekAtLastError(), "IM generation peek 1", true);
