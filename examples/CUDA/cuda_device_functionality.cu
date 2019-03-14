@@ -203,7 +203,30 @@ __device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int star
 }
 
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map) {
+	int block_size = blockDim.x*blockDim.y;
+	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
 
+	int id_block = blockIdx.x + blockIdx.y * gridDim.x;
+	int original_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int original_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int original_id = threadIdx.x + id_block * block_size + threadIdx.y * blockDim.x;
+
+	//original
+	int start_id = original_id;
+	int x = original_x;
+	int y = original_y;
+
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
+
+	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
+		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
+		if (x == 0 && y == 0) printf("CUDA PRINT: destination out of bounds\n");
+		return;
+	}
+
+	((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = BlockDistance(x, y, destination.x, destination.y);
 }
 
 __global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_right, IntPoint2D center, float radius, int new_value, cudaPitchedPtr dynamic_map_device_pointer) {
