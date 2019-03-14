@@ -56,15 +56,9 @@ public:
 	void Initialize(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
 		sc2::ActionFeatureLayerInterface* actions_feature_layer);
 
+	void Update(clock_t dt);
 	void Test();
 
-
-	void PrintStatus(std::string msg);
-	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
-	void PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
-	void PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
-
-	void Update(clock_t dt);
 	std::vector<int> GetUnitsID();
 	int GetSizeOfUnitInfoList();
 	int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
@@ -83,21 +77,11 @@ public:
 	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
 	Destination_IM& GetAirDestination(sc2::Point2D pos);
 
-	//! List of IMs for both ground and air.
-	std::list<Destination_IM> destinations_ground_IM;
-	std::list<Destination_IM> destinations_air_IM;
-
-	//! PF that indicates what to avoid on ground or in air
-	float ground_avoidance_PF[MAP_X_R][MAP_Y_R][1];
-	float air_avoidance_PF[MAP_X_R][MAP_Y_R][1];
-
-	//std::vector<Attraction> unit_attraction_PF;
-	//std::unordered_map<sc2::UNIT_TYPEID, float[MAP_X_R][MAP_Y_R]> unit_attraction_PF;
-	std::unordered_map<sc2::UNIT_TYPEID, float*> unit_attraction_PF;
-
 private:
 	//! Craetes the influence map based on the size of the map.
 	void CreateIM();
+
+
 
 	//! Function that is used to add a list of units to the IM.
 	//!< \param units The list of units to be added.
@@ -144,12 +128,10 @@ private:
 	//!< \param width Integer representing the width of the map.
 	//!< \param height Integer representing the height of the map.
 	void PrintImage(std::string filename, int width, int height);
-
 	//! Function to check if the file exists
 	//!< \param filename String of the filename to check for. Include relevant ending of file (.txt, .png, ...)
 	//!< \return Return true if file found.
 	bool CheckIfFileExists(std::string filename);
-
 	//! Function to determine color
 	//! The function returns a vector holding three floats in a vector. That can be between 0 and 1. It indicates how much of the color that is wanted.
 	//!< \param color Enum indicating color.
@@ -157,6 +139,11 @@ private:
 	std::vector<float> DetermineColor(colors color);
 
 	void CreateUnitLookUpTable();
+
+	void PrintStatus(std::string msg);
+	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	void PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	void PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 
 	//void SpawnEveryUnit();
 
@@ -171,29 +158,28 @@ private:
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
+	//std::vector<Attraction> unit_attraction_PF;
+	//std::unordered_map<sc2::UNIT_TYPEID, float[MAP_X_R][MAP_Y_R]> unit_attraction_PF;
+	std::unordered_map<sc2::UNIT_TYPEID, float*> unit_attraction_PF;
+
 	bool dynamic_terrain[MAP_X_R][MAP_Y_R][1];	//update on-building-creation, on-building-destruction, on-building-vision
 	//float dynamic_terrain[MAP_X_R][MAP_Y_R][1];
 	
 	sc2::Units units;	//update per frame, includes movable units and hostile structures
+
+	//! List of IMs for both ground and air.
+	std::list<Destination_IM> destinations_ground_IM;
+	std::list<Destination_IM> destinations_air_IM;
+
+	//! PF that indicates what to avoid on ground or in air
+	float ground_avoidance_PF[MAP_X_R][MAP_Y_R][1];
+	float air_avoidance_PF[MAP_X_R][MAP_Y_R][1];
 
 	//! image is an vector that holds the values representing the map
 	std::vector<float> image;
 	//! max_value is an float holding the largest, non center value, in the map. Center value of units are usually > 1000, these values are outliers and can be clamped.
 	float max_value;
 	bool update_terrain;
-
-	//---------------
-
-	////! Width of map
-	//int map_x;
-	////! Height of map
-	//int map_y;
-	////! Pathing grid is 8 time larger than what is returned from API. Specifies how much we subdivide the grid.
-	//int grid_division;
-	////! Map width that is multiplied with pathingGridSize to get actual width of the pathfinding grid
-	//int map_x_r;
-	////! Map height that is multiplied with pathingGridSize to get actual height of the pathfinding grid
-	//int map_y_r;
 	
 	int kFeatureLayerSize;
 	int kPixelDrawSize;
