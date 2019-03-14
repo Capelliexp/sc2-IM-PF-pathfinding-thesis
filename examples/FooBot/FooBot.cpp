@@ -66,6 +66,15 @@ void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
 }
 
 void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
+	//Delete unit if it died
+	for (int i = 0; i < units.size(); ++i) {
+		if (units[i].unit == unit) {
+			units.erase(units.begin() + i);
+			return;
+		}
+	}
+	//Remove structure if destroyed
+	//Remove structure from IMs
 }
 
 void FooBot::OnUnitCreated(const sc2::Unit * unit) {
