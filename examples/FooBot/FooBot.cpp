@@ -152,15 +152,22 @@ void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID 
 }
 
 void FooBot::SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit) {
-	Destination_IM& destination = Destination_IM();
-	if (air_unit)
-		destination = map_storage->GetAirDestination(pos);
-	else
-		destination = map_storage->GetGroundDestination(pos);
-	for (int i = 0; i < units_vec.size(); ++i) {
-		units_vec[i].behavior = type_of_movement;
-		units_vec[i].destination = &destination;
+	pos.y = MAP_Y_R - 1 - pos.y;
+	if (air_unit) {
+		Destination_IM& destination = map_storage->GetAirDestination(pos);
+		for (int i = 0; i < units_vec.size(); ++i) {
+			units_vec[i].behavior = type_of_movement;
+			units_vec[i].destination = &destination;
+		}
 	}
+	else {
+		Destination_IM& destination = map_storage->GetGroundDestination(pos);
+		for (int i = 0; i < units_vec.size(); ++i) {
+			units_vec[i].behavior = type_of_movement;
+			units_vec[i].destination = &destination;
+		}
+	}
+	
 }
 
 void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior) {
@@ -185,7 +192,7 @@ void FooBot::UpdateUnitsPaths() {
 		}
 		//Get the value from the IM and PF to determine the total value of the tile.
 		int current_value = units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
-		current_value += PF[(int)translated_pos.y][(int)translated_pos.x][0];
+		//current_value += PF[(int)translated_pos.y][(int)translated_pos.x][0];
 
 		std::vector<sc2::Point2D> udlr;				//y,  x
 		udlr.push_back(translated_pos + sc2::Point2D( 0,  1));	//Down
@@ -202,7 +209,7 @@ void FooBot::UpdateUnitsPaths() {
 		for (int j = 0; j < udlr.size(); ++j) {
 			//Get the value from the IM and PF to determine the total value of the new tile.
 			int new_value = units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
-			new_value += PF[(int)udlr[j].y][(int)udlr[j].x][0];
+			//new_value += PF[(int)udlr[j].y][(int)udlr[j].x][0];
 
 			if (new_value < 0) continue;	//Unpathable terrain
 			//This needs to be modified.
@@ -670,7 +677,7 @@ void FooBot::CommandsOnSpiral50() {
 			spawned_units = 1;
 		}
 		else if (units.size() == spawned_units) {
-			SetDestination(units, sc2::Point2D(25), behaviors::DEFENCE, false);
+			SetDestination(units, sc2::Point2D(7), behaviors::DEFENCE, false);
 			spawned_units = 0;
 			command = 0;
 		}
