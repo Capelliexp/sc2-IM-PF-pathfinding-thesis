@@ -11,14 +11,15 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
 	int id_global = x + y * blockDim.x;
 
-	x = MAP_X_R - x;
-	y = MAP_Y_R - y;
+	//x = MAP_X_R - x;
+	//y = MAP_Y_R - y;
 
 	//move unit list to shared memory
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
 
-	//cull threads outside of tex
-	if (x >= MAP_X_R || y >= MAP_Y_R) return;
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
 
 	__syncthreads();
 
@@ -29,10 +30,19 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	for (int i = 0; i < nr_of_units; ++i) {
 		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
 		float range_sub = unit.range;
+		dist = (FloatDistance(unit_list_s[i].pos.x, unit_list_s[i].pos.y, x, y) + 0.0001);
 
-		if ((dist = (FloatDistance(unit_list_s[i].pos.x, unit_list_s[i].pos.y, x, y) + 0.0001)) < range_sub) {
-			ground_charge += ((range_sub / dist) * unit.can_attack_ground * unit_list_s[i].enemy);
-			air_charge += ((range_sub / dist) * unit.can_attack_air * unit_list_s[i].enemy);
+		if (unit_list_s[i].enemy) {	//avoid enemies
+			if (dist < range_sub) {
+				ground_charge += ((range_sub / dist) * unit.can_attack_ground);
+				air_charge += ((range_sub / dist) * unit.can_attack_air);
+			}
+		}
+		else {	//avoid friendlies
+			if (dist < (unit.radius * 1.2)) {
+				ground_charge += (1 / dist) * !(unit.is_flying);
+				air_charge += (1 / dist) * unit.is_flying;
+			}
 		}
 	}
 
@@ -44,7 +54,64 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 }
 
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map){
+	extern __shared__ Entity unit_list_s[];
 
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	int y = threadIdx.y + blockIdx.y * blockDim.y;
+	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
+	int id_global = x + y * blockDim.x;
+
+	//x = MAP_X_R - x;
+	//y = MAP_Y_R - y;
+
+	//move unit list to shared memory
+	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
+
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
+
+	__syncthreads();
+
+	UnitInfoDevice self_info = device_unit_lookup[owner_type_id];
+
+	float tot_charge = 0;
+	Entity unit;
+	for (int i = 0; i < nr_of_units; ++i) {
+		UnitInfoDevice other_info = device_unit_lookup[unit_list_s[i].id];
+		Entity other_entity = unit_list_s[i];
+
+		float dist = (FloatDistance(other_entity.pos.x, other_entity.pos.y, x, y) + 0.0001);
+		bool self_can_attack_other = (other_info.is_flying && self_info.can_attack_air) || (!other_info.is_flying && self_info.can_attack_ground);
+
+		if (other_entity.enemy) {	//attack enemy
+			if (self_can_attack_other) {	//can attack unit
+				if (self_info.range < 1.1) {	//self is melee
+					if (dist < 10) {	//attack enemy
+						tot_charge += 10 / dist;
+					}
+				}
+				else {	//self is ranged
+					if(dist < (self_info.range - 3)){	//avoid enemy
+						tot_charge -= 10 / dist;
+					}
+					else if (dist > (self_info.range - 3) && (dist < self_info.range * 1.2 || dist < 10)) {	//attack enemy
+						tot_charge += 10 / dist;
+					}
+				}
+			}
+		}
+		else {	//avoid friend
+			if (self_info.is_flying == other_info.is_flying) {
+				if (dist < (other_info.radius * 1.2)) {
+					tot_charge += 10 / dist;
+				}
+			}
+		}
+	}
+	//__syncthreads();
+
+	((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = tot_charge;
 }
 
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, list_double_entry* global_memory_im_list_storage) {
