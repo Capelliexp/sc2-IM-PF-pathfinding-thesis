@@ -338,7 +338,6 @@ Destination_IM * MapStorage::CheckAirDestination(sc2::Point2D pos) {
 }
 
 Destination_IM & MapStorage::GetGroundDestination(sc2::Point2D pos) {
-    //Call cuda to create IM
     for (Destination_IM dest : destinations_ground_IM) {
         if (dest.destination == pos)
             return dest;
@@ -355,12 +354,23 @@ Destination_IM & MapStorage::GetGroundDestination(sc2::Point2D pos) {
     return destinations_ground_IM.back();
 }
 
-Destination_IM * MapStorage::GetAirDestination(sc2::Point2D pos) {
-    //Call cuda to create IM
+Destination_IM & MapStorage::GetAirDestination(sc2::Point2D pos) {
+    for (Destination_IM dest : destinations_air_IM) {
+        if (dest.destination == pos)
+            return dest;
+    }
+    Destination_IM map;
+    destinations_air_IM.push_back(map);
+    destinations_air_IM.back().destination = pos;
+    destinations_air_IM.back().air_path = false;
+    cuda->IMGeneration(IntPoint2D{ (integer)pos.x, (integer)pos.y }, destinations_air_IM.back().map, true);
 
-    //Add the map to list.
-    return nullptr;
+    PrintMap(destinations_air_IM.back().map, MAP_X_R, MAP_Y_R, "IM_air");
+    CreateImage(destinations_air_IM.back().map, MAP_X_R, MAP_Y_R, colors::GREEN);
+    PrintImage("res_air.png", MAP_X_R, MAP_Y_R);
+    return destinations_air_IM.back();
 }
+
 
 //! Craetes the influence map based on the size of the map.
 void MapStorage::CreateIM() {
