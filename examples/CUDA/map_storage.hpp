@@ -13,7 +13,7 @@
 #include "sc2api/sc2_api.h"
 #include "sc2lib/sc2_lib.h"
 #include "../LoadPNG/lodepng.h"
-#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
+#include "../examples/CUDA/cuda_header.cuh"
 /*
 Textures:
 * destinations (global, ground or air)
@@ -38,7 +38,6 @@ struct Destination_IM {
 };
 
 class MapStorage {
-	//friend class CUDA;	//might be wrong? used to access private maps & units
 public:
 	enum colors
 	{
@@ -58,10 +57,7 @@ public:
 		sc2::ActionFeatureLayerInterface* actions_feature_layer);
 
 	void Test();
-	//! Function to check if the file exists
-	//!< \param filename String of the filename to check for. Include relevant ending of file (.txt, .png, ...)
-	//!< \return Return true if file found.
-	bool CheckIfFileExists(std::string filename);
+
 
 	void PrintStatus(std::string msg);
 	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
@@ -87,9 +83,11 @@ public:
 	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
 	Destination_IM& GetAirDestination(sc2::Point2D pos);
 
+	//! List of IMs for both ground and air.
 	std::list<Destination_IM> destinations_ground_IM;
 	std::list<Destination_IM> destinations_air_IM;
 
+	//! PF that indicates what to avoid on ground or in air
 	float ground_avoidance_PF[MAP_X_R][MAP_Y_R][1];
 	float air_avoidance_PF[MAP_X_R][MAP_Y_R][1];
 
@@ -147,6 +145,15 @@ private:
 	//!< \param height Integer representing the height of the map.
 	void PrintImage(std::string filename, int width, int height);
 
+	//! Function to check if the file exists
+	//!< \param filename String of the filename to check for. Include relevant ending of file (.txt, .png, ...)
+	//!< \return Return true if file found.
+	bool CheckIfFileExists(std::string filename);
+
+	//! Function to determine color
+	//! The function returns a vector holding three floats in a vector. That can be between 0 and 1. It indicates how much of the color that is wanted.
+	//!< \param color Enum indicating color.
+	//!< \return Returns a vector that indicates if any or all RGB values are wanted.
 	std::vector<float> DetermineColor(colors color);
 
 	void CreateUnitLookUpTable();
@@ -158,7 +165,7 @@ private:
 	//void AddObjectiveToIM(sc2::Point2D objective);
 
 private:
-	CUDA* cuda;	//do NOT include 
+	CUDA* cuda;
 	const sc2::ObservationInterface* observation;
 	sc2::DebugInterface* debug;
 	sc2::ActionInterface* actions;
