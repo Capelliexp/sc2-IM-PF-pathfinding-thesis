@@ -177,14 +177,14 @@ void FooBot::UpdateUnitsPaths() {
 	float PF[MAP_X_R][MAP_Y_R][1];
 	map_storage->GetGroundAvoidancePF(PF);
 	for (int i = 0; i < units.size(); ++i) {
-		if (!units[i].destination) continue;	//No destination to go to
+		if (units[i].destination == nullptr) continue;	//No destination to go to
 
 		sc2::Point2D current_pos = units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;
-		translated_pos.x = (int)translated_pos.x;
-		translated_pos.y = (int)(MAP_Y_R - 1 - translated_pos.y);
+		translated_pos.x = translated_pos.x;
+		translated_pos.y = MAP_Y_R - 1 - translated_pos.y;
 
-		if (units[i].destination->destination == translated_pos) {	//Found destination.
+		if (units[i].destination->destination == sc2::Point2D((int)translated_pos.x, (int)translated_pos.y)) {	//Found destination.
 			units[i].destination = nullptr;
 			continue;
 		}
@@ -220,7 +220,6 @@ void FooBot::UpdateUnitsPaths() {
 
 		sc2::Point2D new_pos = udlr[next_tile];
 		new_pos.y = MAP_Y_R - 1 - new_pos.y;
-		//Check units behavior
 		Actions()->UnitCommand(units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 	}
 }

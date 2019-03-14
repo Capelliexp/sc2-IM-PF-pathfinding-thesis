@@ -5,10 +5,6 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
-
-#include <iostream>
-#include <sstream>
-#include <fstream>
 #include <filesystem>
 
 MapStorage::MapStorage() {
@@ -78,7 +74,7 @@ void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::str
     int width = x;
     for (int i = 0; i < y; i++)
     {
-        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ",";
         out << std::endl;
     }
     out.close();
@@ -89,7 +85,7 @@ void MapStorage::PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::stri
     int width = x;
     for (int i = 0; i < y; i++)
     {
-        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ",";
         out << std::endl;
     }
     out.close();
@@ -100,7 +96,7 @@ void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::strin
     int width = x;
     for (int i = 0; i < y; i++)
     {
-        for (int j = 0; j < width; j++) out << map[i][j][0] << ", ";
+        for (int j = 0; j < width; j++) out << map[i][j][0] << ",";
         out << std::endl;
     }
     out.close();
