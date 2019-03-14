@@ -42,16 +42,17 @@ void FooBot::OnStep() {
 		command = chat_commands->ParseCommands(in_messages[0].message);
 	ExecuteCommand();
 	UpdateUnitsPaths();
-	if (spawn_all_units) {
-		if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
-			GatherRadius();
-			get_radius = false;
-		}
-	}
+
 	map_storage->Update(clock() - step_clock);
 
 	Actions()->SendActions();
 	step_clock = clock();
+
+	if (spawn_all_units)
+		if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
+			GatherRadius();
+			get_radius = false;
+		}
 }
 
 void FooBot::OnGameEnd() {
@@ -166,6 +167,8 @@ void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior)
 
 //NOTE!!!! x- and y-coordinates are fliped.
 void FooBot::UpdateUnitsPaths() {
+	float PF[MAP_X_R][MAP_Y_R][1];
+	map_storage->GetGroundAvoidancePF(PF);
 	for (int i = 0; i < units.size(); ++i) {
 		if (!units[i].destination) continue;	//No destination to go to
 
@@ -178,8 +181,10 @@ void FooBot::UpdateUnitsPaths() {
 			units[i].destination = nullptr;
 			continue;
 		}
+		//Get the value from the IM and PF to determine the total value of the tile.
 		int current_value = units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
-		
+		current_value += PF[(int)translated_pos.y][(int)translated_pos.x][0];
+
 		std::vector<sc2::Point2D> udlr;				//y,  x
 		udlr.push_back(translated_pos + sc2::Point2D( 0,  1));	//Down
 		udlr.push_back(translated_pos + sc2::Point2D( 1,  1));	//Down, right
@@ -193,9 +198,13 @@ void FooBot::UpdateUnitsPaths() {
 		float min_value = 5000;
 		int next_tile = 0;
 		for (int j = 0; j < udlr.size(); ++j) {
+			//Get the value from the IM and PF to determine the total value of the new tile.
 			int new_value = units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
+			new_value += PF[(int)udlr[j].y][(int)udlr[j].x][0];
+
 			if (new_value < 0) continue;	//Unpathable terrain
-			if ((current_value - new_value) > 2) continue;	//Invalid move
+			//This needs to be modified.
+			//if ((current_value - new_value) > 2) continue;	//Invalid move
 			if (min_value > new_value) {
 				min_value = min(new_value, min_value);
 				next_tile = j;

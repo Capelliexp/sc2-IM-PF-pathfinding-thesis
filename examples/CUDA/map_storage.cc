@@ -347,6 +347,10 @@ Destination_IM & MapStorage::GetAirDestination(sc2::Point2D pos) {
     return destinations_air_IM.back();
 }
 
+void MapStorage::GetGroundAvoidancePF(float PF[][MAP_Y_R][1]) {
+    PF = ground_avoidance_PF;
+}
+
 
 //! Craetes the influence map based on the size of the map.
 void MapStorage::CreateIM() {

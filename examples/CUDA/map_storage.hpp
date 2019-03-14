@@ -77,6 +77,8 @@ public:
 	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
 	Destination_IM& GetAirDestination(sc2::Point2D pos);
 
+	void GetGroundAvoidancePF(float PF[][MAP_Y_R][1]);
+
 private:
 	//! Craetes the influence map based on the size of the map.
 	void CreateIM();
