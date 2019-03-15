@@ -357,6 +357,12 @@ void MapStorage::GetGroundAvoidancePF(float PF[][MAP_Y_R][1]) {
     PF = ground_avoidance_PF;
 }
 
+void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
+    float PF[MAP_X_R][MAP_Y_R][1];
+    attracting_PFs.push_back(PF);
+    cuda->AttractingPFGeneration(cuda->GetUnitIDInHostUnitVec(unit_id), attracting_PFs.back());
+}
+
 
 //! Craetes the influence map based on the size of the map.
 void MapStorage::CreateIM() {

@@ -55,7 +55,7 @@ private:
     void UpdateUnitsPaths();
 
     void CreatePFs();
-
+    void UpdateHostUnitList();
 
     void CommandsOnEmpty50();
     void CommandsOnEmpty200();

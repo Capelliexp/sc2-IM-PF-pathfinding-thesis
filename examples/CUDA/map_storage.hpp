@@ -82,6 +82,8 @@ public:
 
 	void GetGroundAvoidancePF(float PF[][MAP_Y_R][1]);
 
+	void CreateAttractingPF(sc2::UnitTypeID unit_id);
+
 private:
 	//! Craetes the influence map based on the size of the map.
 	void CreateIM();
@@ -174,6 +176,9 @@ private:
 	//! PF that indicates what to avoid on ground or in air
 	float ground_avoidance_PF[MAP_X_R][MAP_Y_R][1];
 	float air_avoidance_PF[MAP_X_R][MAP_Y_R][1];
+
+	//! List of attracting PFs
+	std::list<float[MAP_X_R][MAP_Y_R][1]> attracting_PFs;
 
 	//! image is an vector that holds the values representing the map
 	std::vector<float> image;

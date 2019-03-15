@@ -42,6 +42,7 @@ void FooBot::OnStep() {
 		command = chat_commands->ParseCommands(in_messages[0].message);
 	ExecuteCommand();
 	UpdateUnitsPaths();
+	UpdateHostUnitList();
 	map_storage->Update(clock() - step_clock);
 
 	Actions()->SendActions();
@@ -239,13 +240,21 @@ void FooBot::CreatePFs() {
 	for (int i = 0; i < player_units.size(); ++i) {
 		std::map<int, int>::iterator iter = player_unit_types.find(player_units[i].unit->unit_type);
 		if (iter == player_unit_types.end())
-			player_unit_types[player_units[i].unit->unit_type] = 1;
+			player_unit_types[map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type)] = 1;
 		else
 			iter->second += 1;
+	}
+	//säg till map_storage att ett specifikt antal PFs ska göras. Använd player_unit_types för detta.
+	for (auto& unit : player_unit_types)
+		map_storage->CreateAttractingPF(unit.first);
 
+}
+
+void FooBot::UpdateHostUnitList() {
+	for (int i = 0; i < player_units.size(); ++i) {
 		Entity ent;
 		ent.id = map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type);
-		ent.pos = { player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y};
+		ent.pos = { player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y };
 		ent.enemy = false;
 		host_unit_list.push_back(ent);
 	}
@@ -257,8 +266,6 @@ void FooBot::CreatePFs() {
 		host_unit_list.push_back(ent);
 	}
 	map_storage->SetEntityVector(host_unit_list);
-	//säg till map_storage att ett specifikt antal PFs ska göras. Använd player_unit_types för detta.
-
 }
 
 void FooBot::CommandsOnEmpty50() {
