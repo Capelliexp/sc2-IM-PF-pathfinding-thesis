@@ -179,6 +179,7 @@ public:
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
+	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1]);
 	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path);
 	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);
 
@@ -189,6 +190,7 @@ public:
 	
 	//Error checking
 	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
+	__host__ void PopErrorsCheck(std::string location = "unknown");
 	
 private:
 	//class pointers
