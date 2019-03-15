@@ -52,6 +52,7 @@ void FooBot::OnStep() {
 			GatherRadius();
 			get_radius = false;
 		}
+	CreatePFs();
 }
 
 void FooBot::OnGameEnd() {
@@ -221,6 +222,17 @@ void FooBot::UpdateUnitsPaths() {
 		sc2::Point2D new_pos = udlr[next_tile];
 		new_pos.y = MAP_Y_R - 1 - new_pos.y;
 		Actions()->UnitCommand(units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
+	}
+}
+
+void FooBot::CreatePFs() {
+	std::map<int, int> unit_types;
+	for (int i = 0; i < units.size(); ++i) {
+		std::map<int, int>::iterator iter = unit_types.find(units[i].unit->unit_type);
+		if (iter == unit_types.end())
+			unit_types[units[i].unit->unit_type] = 1;
+		else
+			iter->second += 1;
 	}
 }
 

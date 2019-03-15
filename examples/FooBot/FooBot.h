@@ -54,6 +54,9 @@ private:
     //! Function to update all units.
     void UpdateUnitsPaths();
 
+    void CreatePFs();
+
+
     void CommandsOnEmpty50();
     void CommandsOnEmpty200();
     void CommandsOnHeight();
