@@ -344,14 +344,41 @@ __host__ void CUDA::RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1
 	//Check(cudaDeviceSynchronize());
 }
 
-__host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path) {
+__host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1]){
 
 	cudaPitchedPtr device_map;
 	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
 
-	while (cudaPeekAtLastError() != cudaSuccess) {
-		Check(cudaGetLastError(), "error pop repeat 1", true);
-	}
+	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
+		(device_unit_list_pointer, host_unit_list.size(), owner_type_id, device_map);
+
+	cudaMemcpy3DParms par = { 0 };
+	par.srcPtr.ptr = device_map.ptr;
+	par.srcPtr.pitch = device_map.pitch;
+	par.srcPtr.xsize = MAP_X_R;
+	par.srcPtr.ysize = MAP_Y_R;
+	par.dstPtr.ptr = map;
+	par.dstPtr.pitch = MAP_X_R * sizeof(float);
+	par.dstPtr.xsize = MAP_X_R;
+	par.dstPtr.ysize = MAP_Y_R;
+	par.extent.width = MAP_X_R * sizeof(float);
+	par.extent.height = MAP_Y_R;
+	par.extent.depth = 1;
+	par.kind = cudaMemcpyDeviceToHost;
+
+	Check(cudaPeekAtLastError(), "PF generation peek 1", true);
+	Check(cudaDeviceSynchronize(), "PF generation sync", true);
+	Check(cudaPeekAtLastError(), "PF generation peek 2", true);
+
+	Check(cudaMemcpy3D(&par), "ground PF memcpy3D");
+
+	//Check(cudaDeviceSynchronize());
+}
+
+__host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path) {
+
+	cudaPitchedPtr device_map;
+	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
 
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};
 
