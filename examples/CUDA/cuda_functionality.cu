@@ -288,8 +288,12 @@ __host__ void CUDA::FillDeviceUnitArray(sc2::Units units) {
 
 __host__ void CUDA::TransferUnitsToDevice() {
 
+	if (host_unit_list.size() > unit_list_max_length) {
+		std::cout << "WARNING: too many units! Increase allocation size, overflow discarded" << std::endl;
+	}
+
 	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), 
-		host_unit_list.size() * sizeof(Entity),
+		min(host_unit_list.size(), unit_list_max_length) * sizeof(Entity),
 		cudaMemcpyHostToDevice),
 		"TransferUnitsToDevice");
 }
