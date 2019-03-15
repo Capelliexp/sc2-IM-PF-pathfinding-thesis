@@ -45,15 +45,20 @@ __host__ void CUDA::PrintGenInfo() {
 
 __host__ void CUDA::Update(clock_t dt_ticks, sc2::Units units, float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
 	//float dt = ((float)dt_ticks) / CLOCKS_PER_SEC;	//get dt in seconds
+	
+	PopErrorsCheck("CUDA Update pre");	//run first
 
 	//if (map_storage->update_terrain) {
 	//	TransferDynamicMapToDevice();
 	//	//DeleteAllIMs();	//this might be drastic. should search for which require update and delete those...
 	//}
 
+
 	FillDeviceUnitArray(units);
 	TransferUnitsToDevice();
 	RepellingPFGeneration(ground_avoidance_PF, air_avoidance_PF);
+
+	PopErrorsCheck("CUDA Update post");	//run last
 
 	//run generation of PFs
 }
@@ -90,17 +95,15 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	unit_type_attracting_pf_pointers.reserve(100);
 	im_pointers.reserve(100);
 
-	Check(cudaPeekAtLastError(), "init check 1", true);
+	PopErrorsCheck("CUDA Initialization base");
 
 	//analysis
 	PrintGenInfo();
 
-	Check(cudaPeekAtLastError(), "init check 2", true);
-
 	//device_malloc
 	AllocateDeviceMemory();
 
-	Check(cudaPeekAtLastError(), "init check 3", true);
+	PopErrorsCheck("CUDA Initialization malloc");
 
 	//IMGeneration(IntPoint2D{ 18, 29 }, false);
 
@@ -341,14 +344,41 @@ __host__ void CUDA::RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1
 	//Check(cudaDeviceSynchronize());
 }
 
-__host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path) {
+__host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1]){
 
 	cudaPitchedPtr device_map;
 	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
 
-	while (cudaPeekAtLastError() != cudaSuccess) {
-		Check(cudaGetLastError(), "error pop repeat 1", true);
-	}
+	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
+		(device_unit_list_pointer, host_unit_list.size(), owner_type_id, device_map);
+
+	cudaMemcpy3DParms par = { 0 };
+	par.srcPtr.ptr = device_map.ptr;
+	par.srcPtr.pitch = device_map.pitch;
+	par.srcPtr.xsize = MAP_X_R;
+	par.srcPtr.ysize = MAP_Y_R;
+	par.dstPtr.ptr = map;
+	par.dstPtr.pitch = MAP_X_R * sizeof(float);
+	par.dstPtr.xsize = MAP_X_R;
+	par.dstPtr.ysize = MAP_Y_R;
+	par.extent.width = MAP_X_R * sizeof(float);
+	par.extent.height = MAP_Y_R;
+	par.extent.depth = 1;
+	par.kind = cudaMemcpyDeviceToHost;
+
+	Check(cudaPeekAtLastError(), "PF generation peek 1", true);
+	Check(cudaDeviceSynchronize(), "PF generation sync", true);
+	Check(cudaPeekAtLastError(), "PF generation peek 2", true);
+
+	Check(cudaMemcpy3D(&par), "ground PF memcpy3D");
+
+	//Check(cudaDeviceSynchronize());
+}
+
+__host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path) {
+
+	cudaPitchedPtr device_map;
+	cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
 
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};
 
@@ -363,9 +393,7 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 	Check(cudaPeekAtLastError(), "IM generation peek 1", true);
 	Check(cudaDeviceSynchronize(), "IM generation sync", true);
 
-	while (cudaPeekAtLastError() != cudaSuccess) {
-		Check(cudaGetLastError(), "error pop repeat 2", true);
-	}
+	PopErrorsCheck("IMGen");
 
 	cudaMemcpy3DParms par = { 0 };
 	par.srcPtr.ptr = device_map.ptr;
@@ -483,6 +511,14 @@ __host__ void CUDA::Check(cudaError_t blob, std::string location, bool print_res
 	}
 	else if (print_res) {
 		std::cout << "CUDA STATUS (" << location << ") SUCESS: " << cudaGetErrorString(blob) << std::endl;
+	}
+}
+
+__host__ void CUDA::PopErrorsCheck(std::string location) {
+	int it = 0;
+	while (cudaPeekAtLastError() != cudaSuccess) {
+		Check(cudaGetLastError(), ("error pop repeat <" + location + "> " + std::to_string(it)));
+		++it;
 	}
 }
 
