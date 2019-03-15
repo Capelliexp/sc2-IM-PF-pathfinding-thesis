@@ -91,9 +91,8 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	dim_grid_low = { x2, y2, 1 };
 	threads_in_grid_low = (dim_block_low.x * dim_block_low.y) * (dim_grid_low.x * dim_grid_low.y);
 
+	next_id = 0;
 	unit_list_max_length = 800;
-	unit_type_attracting_pf_pointers.reserve(100);
-	im_pointers.reserve(100);
 
 	PopErrorsCheck("CUDA Initialization base");
 
@@ -311,6 +310,32 @@ __host__ void CUDA::TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1
 	par.kind = cudaMemcpyHostToDevice;
 
 	Check(cudaMemcpy3D(&par), "Dynamic map transfer");
+}
+
+__host__ AttractingFieldMemory * CUDA::QueueDeviceJob(int owner_id, float map[][MAP_Y_R][1]){
+	//check for available slots in vector
+	int storage_found = -1;
+	for (int i = 0; i < PF_mem.size(); ++i) {
+		if (PF_mem.at(i).status == DeviceMemoryStatus::EMPTY) {
+			storage_found = i;
+			break; 
+		}
+	}
+	if (storage_found == -1) {
+		storage_found = PF_mem.size();
+		AttractingFieldMemory mem;
+		PF_mem.push_back(mem);
+	}
+
+	PF_mem.at(storage_found) = {owner_id, next_id, DeviceMemoryStatus::OCCUPIED, map, nullptr};
+	PF_queue.push(next_id);
+	next_id++;
+	
+	return nullptr;
+}
+
+__host__ InfluenceMapMemory * CUDA::QueueDeviceJob(IntPoint2D destination, float map[][MAP_Y_R][1]){
+	return nullptr;
 }
 
 /*KERNAL LAUNCHES START*/
