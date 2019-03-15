@@ -245,14 +245,14 @@ void FooBot::CreatePFs() {
 
 		Entity ent;
 		ent.id = map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type);
-		ent.pos = { player_units[i].unit->pos.x, player_units[i].unit->pos.y };	//Fix coordinates
+		ent.pos = { player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y};
 		ent.enemy = false;
 		host_unit_list.push_back(ent);
 	}
 	for (int i = 0; i < enemy_units.size(); ++i) {
 		Entity ent;
 		ent.id = map_storage->GetUnitIDInHostUnitVec(enemy_units[i].unit->unit_type);
-		ent.pos = { enemy_units[i].unit->pos.x, enemy_units[i].unit->pos.y };
+		ent.pos = { enemy_units[i].unit->pos.x,  MAP_Y_R - 1 - enemy_units[i].unit->pos.y };
 		ent.enemy = true;
 		host_unit_list.push_back(ent);
 	}
