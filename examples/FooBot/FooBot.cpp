@@ -257,7 +257,8 @@ void FooBot::CreatePFs() {
 		host_unit_list.push_back(ent);
 	}
 	map_storage->SetEntityVector(host_unit_list);
-	//map_storage->DO_MY_SHIT();
+	//säg till map_storage att ett specifikt antal PFs ska göras. Använd player_unit_types för detta.
+
 }
 
 void FooBot::CommandsOnEmpty50() {
