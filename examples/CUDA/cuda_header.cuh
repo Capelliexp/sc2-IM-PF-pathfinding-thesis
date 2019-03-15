@@ -187,6 +187,7 @@ public:
 	
 	//Error checking
 	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
+	__host__ void PopErrorsCheck(std::string location = "unknown");
 	
 private:
 	//class pointers
