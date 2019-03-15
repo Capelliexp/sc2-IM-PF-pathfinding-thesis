@@ -67,13 +67,19 @@ private:
 
     bool CheckIfUnitsSpawned(int amount, std::vector<sc2::UnitTypeID> types);
 
+    //! Function that is used to check if a given unit is a structure.
+    //!< \param unit The unit to be checked.
+    //!< \return Returns true if the unit is a structure, false otherwise.
+    bool IsStructure(const sc2::Unit* unit);
+
 private:
     MapStorage* map_storage;
     clock_t step_clock;
     ChatCommands* chat_commands;
-
+    std::vector<Entity> host_unit_list;
     //! A vector of units
-    std::vector<FooBot::Unit> units;
+    std::vector<FooBot::Unit> player_units;
+    std::vector<FooBot::Unit> enemy_units;
     //! Integer that represents the map.
     int map;
     //! Integer that represents the current command.

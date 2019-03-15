@@ -110,6 +110,10 @@ std::vector<int> MapStorage::GetUnitsID() {
     return cuda->GetUnitsID();
 }
 
+int MapStorage::GetUnitIDInHostUnitVec(sc2::UnitTypeID unit_id) {
+    return cuda->GetUnitIDInHostUnitVec(unit_id);
+}
+
 int MapStorage::GetSizeOfUnitInfoList() {
     return cuda->GetSizeOfUnitInfoList();
 }
@@ -345,6 +349,10 @@ Destination_IM & MapStorage::GetAirDestination(sc2::Point2D pos) {
     return destinations_air_IM.back();
 }
 
+void MapStorage::SetEntityVector(std::vector<Entity>& host_unit_list) {
+    cuda->SetHostUnitList(host_unit_list);
+}
+
 void MapStorage::GetGroundAvoidancePF(float PF[][MAP_Y_R][1]) {
     PF = ground_avoidance_PF;
 }
@@ -437,20 +445,6 @@ void MapStorage::CreateIM() {
 //        }
 //    }
 //}
-
-//! Function that is used to check if a given unit is a structure.
-//!< \param unit The unit to be checked.
-//!< \return Returns true if the unit is a structure, false otherwise.
-bool MapStorage::IsStructure(const sc2::Unit * unit) {
-    auto& attributes = observation->GetUnitTypeData().at(unit->unit_type).attributes; //here
-    bool is_structure = false;
-    for (const auto& attribute : attributes) {
-        if (attribute == sc2::Attribute::Structure) {
-            is_structure = true;
-        }
-    }
-    return is_structure;
-}
 
 //void MapStorage::AddObjectiveToIM(sc2::Point2D objective)
 //{

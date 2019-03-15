@@ -173,7 +173,9 @@ public:
 	__host__ void SetRadiusForUnits(std::vector<float> radius);
 	__host__ void SetIsFlyingForUnits(std::vector<bool> is_flying);
 	__host__ int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
+	__host__ int GetUnitIDInHostUnitVec(sc2::UnitTypeID unit_id);
 	__host__ int GetSizeOfUnitInfoList();
+	__host__ void SetHostUnitList(std::vector<Entity>& host_unit_list);
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);

@@ -60,6 +60,7 @@ public:
 	void Test();
 
 	std::vector<int> GetUnitsID();
+	int GetUnitIDInHostUnitVec(sc2::UnitTypeID unit_id);
 	int GetSizeOfUnitInfoList();
 	int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
 	void SetRadiusForUnits(std::vector<float> radius);
@@ -76,6 +77,8 @@ public:
 	//!< \param pos sc2::Point2D the position to create an IM to.
 	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
 	Destination_IM& GetAirDestination(sc2::Point2D pos);
+
+	void SetEntityVector(std::vector<Entity>& host_unit_list);
 
 	void GetGroundAvoidancePF(float PF[][MAP_Y_R][1]);
 
@@ -99,11 +102,6 @@ private:
 	//! No need to calculate the radius.
 	//!< \param unit The unit to be removed.
 	//void IMRemoveUnit(const sc2::Unit* unit);
-
-	//! Function that is used to check if a given unit is a structure.
-	//!< \param unit The unit to be checked.
-	//!< \return Returns true if the unit is a structure, false otherwise.
-	bool IsStructure(const sc2::Unit* unit);
 
 	//! Function to create an image.
 	//! Function will reset the image variable.

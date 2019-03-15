@@ -13,7 +13,7 @@
 #include "../examples/CUDA/cuda_device_functionality.cu"
 #include "../examples/CUDA/cuda_device_tests.cu"
 
-__host__ CUDA::CUDA(){	
+__host__ CUDA::CUDA() {
 }
 
 __host__ CUDA::~CUDA() {
@@ -245,42 +245,42 @@ __host__ void CUDA::AllocateDeviceMemory(){
 }
 
 __host__ void CUDA::FillDeviceUnitArray(sc2::Units units) {
-	host_unit_list.clear();
-	host_unit_list.resize(units.size());
+	//host_unit_list.clear();
+	//host_unit_list.resize(units.size());
 
-	//int device_list_length = map_storage->units.size();
-	int device_list_length = 0;
-	for (const sc2::Unit* unit : units) {
-		std::unordered_map<sc2::UNIT_TYPEID, unsigned int>::const_iterator it = host_unit_transform.find(unit->unit_type);
-		if (it == host_unit_transform.end()) {
-			host_unit_list.resize(host_unit_list.size() - 1);
-			std::cout << "WARNING: invalid entity in map_storage unit vector" << std::endl;
-			continue;
-		}
+	////int device_list_length = map_storage->units.size();
+	//int device_list_length = 0;
+	//for (const sc2::Unit* unit : units) {
+	//	std::unordered_map<sc2::UNIT_TYPEID, unsigned int>::const_iterator it = host_unit_transform.find(unit->unit_type);
+	//	if (it == host_unit_transform.end()) {
+	//		host_unit_list.resize(host_unit_list.size() - 1);
+	//		std::cout << "WARNING: invalid entity in map_storage unit vector" << std::endl;
+	//		continue;
+	//	}
 
-		host_unit_list.at(device_list_length).id = it->second;
-		host_unit_list.at(device_list_length).pos = { unit->pos.x * GRID_DIVISION, unit->pos.y * GRID_DIVISION };
-		switch (unit->alliance)
-		{
-		case sc2::Unit::Alliance::Self:
-			host_unit_list.at(device_list_length).enemy = false;
-			break;
-		case sc2::Unit::Alliance::Ally:
-			host_unit_list.at(device_list_length).enemy = false;
-			break;
-		case sc2::Unit::Alliance::Neutral:
-			host_unit_list.at(device_list_length).enemy = false;
-				break;
-		case sc2::Unit::Alliance::Enemy:
-			host_unit_list.at(device_list_length).enemy = true;
-			break;
-		default:
-			host_unit_list.at(device_list_length).enemy = false;
-			break;
-		}
+	//	host_unit_list.at(device_list_length).id = it->second;
+	//	host_unit_list.at(device_list_length).pos = { unit->pos.x * GRID_DIVISION, unit->pos.y * GRID_DIVISION };
+	//	switch (unit->alliance)
+	//	{
+	//	case sc2::Unit::Alliance::Self:
+	//		host_unit_list.at(device_list_length).enemy = false;
+	//		break;
+	//	case sc2::Unit::Alliance::Ally:
+	//		host_unit_list.at(device_list_length).enemy = false;
+	//		break;
+	//	case sc2::Unit::Alliance::Neutral:
+	//		host_unit_list.at(device_list_length).enemy = false;
+	//			break;
+	//	case sc2::Unit::Alliance::Enemy:
+	//		host_unit_list.at(device_list_length).enemy = true;
+	//		break;
+	//	default:
+	//		host_unit_list.at(device_list_length).enemy = false;
+	//		break;
+	//	}
 
-		device_list_length++;
-	}	
+	//	device_list_length++;
+	//}	
 }
 
 __host__ void CUDA::TransferUnitsToDevice() {
@@ -571,6 +571,14 @@ __host__ int CUDA::GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID) {
 	return host_unit_transform.at(typeID);
 }
 
+__host__ int CUDA::GetUnitIDInHostUnitVec(sc2::UnitTypeID unit_id) {
+	return host_unit_transform[unit_id.ToType()];
+}
+
 __host__ int CUDA::GetSizeOfUnitInfoList() {
 	return host_unit_info.size();
+}
+
+__host__ void CUDA::SetHostUnitList(std::vector<Entity>& host_unit_list) {
+	this->host_unit_list = host_unit_list;
 }
