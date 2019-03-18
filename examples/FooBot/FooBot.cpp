@@ -611,7 +611,7 @@ void FooBot::CommandsOnSpiral50() {
 			spawned_units = 1;
 		}
 		else if (player_units.size() == spawned_units) {
-			SetDestination(player_units, sc2::Point2D(7), behaviors::DEFENCE, false);
+			SetDestination(player_units, sc2::Point2D(25), behaviors::DEFENCE, false);
 			spawned_units = 0;
 			command = 0;
 		}

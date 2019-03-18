@@ -37,6 +37,10 @@ struct Destination_IM {
 	float map[MAP_X_R][MAP_Y_R][1];
 };
 
+struct Potential_Field {
+	float map[MAP_X_R][MAP_Y_R][1];
+};
+
 class MapStorage {
 public:
 	enum colors
@@ -178,7 +182,7 @@ private:
 	float air_avoidance_PF[MAP_X_R][MAP_Y_R][1];
 
 	//! List of attracting PFs
-	std::list<float[MAP_X_R][MAP_Y_R][1]> attracting_PFs;
+	std::list<Potential_Field> attracting_PFs;
 
 	//! image is an vector that holds the values representing the map
 	std::vector<float> image;

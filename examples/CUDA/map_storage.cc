@@ -131,8 +131,8 @@ void MapStorage::SetRadiusForUnits(std::vector<float> radius) {
 // std::vector<unsigned char>& image
 void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height) {
     image.resize(width * height * 4);
-    for (unsigned y = 0; y < height; y++)
-        for (unsigned x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
             float mapP = map[x][y][0];
             image[4 * width * y + 4 * x + 0] = mapP;
             image[4 * width * y + 4 * x + 1] = mapP;
@@ -144,8 +144,8 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
 void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color) {
     std::vector<float> selected_color = DetermineColor(color);
     image.resize(width * height * 4);
-    for (unsigned y = 0; y < height; y++)
-        for (unsigned x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
             float mapP = map[x][y][0];
             if (mapP < 32767)
                 max_value = max(max_value, mapP);
@@ -167,8 +167,8 @@ void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heig
 void MapStorage::AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color) {
     std::vector<float> selected_color = DetermineColor(color);
     //! Can be optimized to only loop over the area that is affected. Need a radius parameter
-    for (unsigned y = 0; y < height; y++)
-        for (unsigned x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
             //If the tile is unpathebale don't write to it.
             if (image[4 * width * y + 4 * x + 0] == 0 && image[4 * width * y + 4 * x + 1] == 0 && image[4 * width * y + 4 * x + 2] == 0) continue;
             float mapP = map[x][y][0];
@@ -184,8 +184,8 @@ void MapStorage::AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heigh
 }
 
 void MapStorage::AddToImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color) {
-    for (unsigned y = 0; y < height; y++)
-        for (unsigned x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++) {
             //If the pixel is unpathebale don't write to it.
             if (image[4 * width * y + 4 * x + 0] == 0 && image[4 * width * y + 4 * x + 1] == 0 && image[4 * width * y + 4 * x + 2] == 0) continue;
             float mapP = map[x][y][0];
@@ -337,8 +337,7 @@ Destination_IM & MapStorage::GetAirDestination(sc2::Point2D pos) {
         if (dest.destination == pos)
             return dest;
     }
-    Destination_IM map;
-    destinations_air_IM.push_back(map);
+    destinations_air_IM.push_back({});
     destinations_air_IM.back().destination = pos;
     destinations_air_IM.back().air_path = true;
     cuda->IMGeneration(IntPoint2D{ (integer)pos.x, (integer)pos.y }, destinations_air_IM.back().map, true);
@@ -358,9 +357,8 @@ void MapStorage::GetGroundAvoidancePF(float PF[][MAP_Y_R][1]) {
 }
 
 void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
-    float PF[MAP_X_R][MAP_Y_R][1];
-    attracting_PFs.push_back(PF);
-    cuda->AttractingPFGeneration(cuda->GetUnitIDInHostUnitVec(unit_id), attracting_PFs.back());
+    attracting_PFs.push_back({});
+    cuda->AttractingPFGeneration(cuda->GetUnitIDInHostUnitVec(unit_id), attracting_PFs.back().map);
 }
 
 
