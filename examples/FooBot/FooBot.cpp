@@ -212,6 +212,7 @@ void FooBot::UpdateUnitsPaths() {
 		//Get the value from the IM and PF to determine the total value of the tile.
 		int current_value = player_units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
 		//current_value += PF[(int)translated_pos.y][(int)translated_pos.x][0];
+		float PFvalue = PF[(int)translated_pos.y][(int)translated_pos.x][0];
 
 		Debug()->DebugTextOut(std::to_string(current_value), p, sc2::Colors::Green, 10);
 
@@ -263,7 +264,7 @@ void FooBot::CreatePFs() {
 		else
 			iter->second += 1;
 	}
-	//säg till map_storage att ett specifikt antal PFs ska göras. Använd player_unit_types för detta.
+	//sï¿½g till map_storage att ett specifikt antal PFs ska gï¿½ras. Anvï¿½nd player_unit_types fï¿½r detta.
 	//for (auto& unit : player_unit_types)
 		//map_storage->CreateAttractingPF(unit.first);
 

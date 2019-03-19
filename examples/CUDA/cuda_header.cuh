@@ -142,7 +142,7 @@ class CUDA {
 public:
 	__host__ CUDA();
 	__host__ ~CUDA();
-
+	
 	//Initialization (requires cleanup)
 	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions);
 	__host__ void PrintGenInfo();

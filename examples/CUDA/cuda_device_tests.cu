@@ -6,7 +6,8 @@
 __global__ void TestDeviceLookupUsage(float* result) {
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
 
-	result[id] = device_unit_lookup[id].range;
+	UnitInfoDevice a = device_unit_lookup[id];
+	result[id] = a.range;
 }
 
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map) {

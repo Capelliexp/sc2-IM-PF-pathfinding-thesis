@@ -101,7 +101,10 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	PrintGenInfo();
 
 	//device_malloc
-	AllocateDeviceMemory();
+	//std::string file = "unitInfo.txt";
+	//CreateUnitLookupOnHost(file);
+
+	//AllocateDeviceMemory();
 
 	PopErrorsCheck("CUDA Initialization malloc");
 
@@ -230,15 +233,17 @@ __host__ void CUDA::CreateUnitLookupOnHost(std::string file){
 __host__ void CUDA::TransferStaticMapToHost(){}
 
 __host__ void CUDA::TransferUnitLookupToDevice(){
-	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host.data(), device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "lookup_memcpy");
-	Check(cudaMemcpyToSymbol(device_unit_lookup, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "lookup_symbol_memcpy");
+	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host.data(), device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "lookup_memcpy", true);
+	Check(cudaMemcpyToSymbol(device_unit_lookup, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "lookup_symbol_memcpy", true);
 	std::cout << "device_unit_lookup array transfered to device" << std::endl;
+
+	 //TestLookupTable();
 }
 
 __host__ void CUDA::AllocateDeviceMemory(){
 	//cudaMalloc3D(&static_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//static map
 	cudaMalloc3D(&dynamic_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//dynamic map
-	cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice));	//lookup table (global on device)
+	Check(cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice)), "lookup alloc", true);	//lookup table (global on device)
 	cudaMalloc((void**)&device_unit_list_pointer, unit_list_max_length * sizeof(Entity));	//unit list (might extend size during runtime)
 	cudaMalloc3D(&repelling_pf_ground_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling on ground
 	cudaMalloc3D(&repelling_pf_air_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling in air
@@ -312,8 +317,10 @@ __host__ void CUDA::TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1
 /*KERNAL LAUNCHES START*/
 
 __host__ void CUDA::RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
-	DeviceRepellingPFGeneration<<<dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity))>>>
-		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	if (host_unit_list.size() > 0) {
+		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
+			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	}
 
 	cudaMemcpy3DParms par = { 0 };
 	par.srcPtr.ptr = repelling_pf_ground_map_pointer.ptr;
@@ -427,13 +434,16 @@ __host__ void CUDA::TestLookupTable() {
 
 	float* write_data_d;
 	cudaMalloc((void**)&write_data_d, table_length * sizeof(float));
-
-	TestDeviceLookupUsage << <1, table_length >> > (write_data_d);
+	
+	TestDeviceLookupUsage << <1, table_length>> > (write_data_d);
 
 	float* return_data = new float[table_length];
 	cudaMemcpy(return_data, write_data_d, table_length * sizeof(float), cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize();
 
 	for (int i = 0; i < table_length; ++i) {
+		float a = return_data[i];
+		float b = device_unit_lookup_on_host[i].range;
 		if (std::abs(return_data[i] - device_unit_lookup_on_host[i].range) > 0.01) {
 			std::cout << "lookup table test FAILED" << std::endl;
 			delete return_data;
@@ -578,6 +588,12 @@ __host__ void CUDA::ReadUnitInfoFromFile(std::string filename) {
 		this->host_unit_info.push_back(unit);
 		this->host_unit_transform.insert({ { sc2::UNIT_TYPEID(unit.id), host_iterator } });
 		++host_iterator;
+	}
+
+	for (int i = 0; i < host_unit_info.size(); ++i) {
+		device_unit_lookup_on_host.push_back({ host_unit_info.at(i).range, host_unit_info.at(i).radius,
+			host_unit_info.at(i).is_flying, host_unit_info.at(i).can_attack_air,
+			host_unit_info.at(i).can_attack_ground });
 	}
 }
 
