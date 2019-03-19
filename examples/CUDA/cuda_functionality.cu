@@ -292,7 +292,7 @@ __host__ void CUDA::TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1
 	Check(cudaMemcpy3D(&par), "Dynamic map transfer");
 }
 
-__host__ AttractingFieldMemory * CUDA::QueueDeviceJob(int owner_id, float map[][MAP_Y_R][1]){
+__host__ int CUDA::QueueDeviceJob(int owner_id, float* map){
 	//check for available slots in vector
 	int storage_found = -1;
 	for (int i = 0; i < PF_mem.size(); ++i) {
@@ -311,11 +311,68 @@ __host__ AttractingFieldMemory * CUDA::QueueDeviceJob(int owner_id, float map[][
 	PF_queue.push(next_id);
 	next_id++;
 	
-	return nullptr;
+	return 0;
 }
 
-__host__ InfluenceMapMemory * CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float map[][MAP_Y_R][1]){
-	return nullptr;
+__host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* map){
+	return 0;
+}
+
+__host__ Result CUDA::TransferMapToHost(int id){
+	DeviceMemoryStatus* status;
+	float* map;
+	cudaPitchedPtr map_ptr;
+	bool found = false;
+
+	for (int i = 0; i < IM_mem.size(); ++i) {
+		if (IM_mem.at(i).queue_id == id) {
+			status = &IM_mem.at(i).status;
+			map = IM_mem.at(i).map;
+			map_ptr = IM_mem.at(i).map_ptr;
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		for (int i = 0; i < PF_mem.size(); ++i) {
+			if (PF_mem.at(i).queue_id == id) {
+				status = &PF_mem.at(i).status;
+				map = PF_mem.at(i).map;
+				map_ptr = PF_mem.at(i).map_ptr;
+				found = true;
+				break;
+			}
+		}
+	}
+
+	if (!found) {
+		return Result::BAD_ARG;
+	}
+
+	cudaMemcpy3DParms par = { 0 };
+	par.srcPtr.ptr = map_ptr.ptr;
+	par.srcPtr.pitch = map_ptr.pitch;
+	par.srcPtr.xsize = MAP_X_R;
+	par.srcPtr.ysize = MAP_Y_R;
+	par.dstPtr.ptr = map;
+	par.dstPtr.pitch = MAP_X_R * sizeof(float);
+	par.dstPtr.xsize = MAP_X_R;
+	par.dstPtr.ysize = MAP_Y_R;
+	par.extent.width = MAP_X_R * sizeof(float);
+	par.extent.height = MAP_Y_R;
+	par.extent.depth = 1;
+	par.kind = cudaMemcpyDeviceToHost;
+
+	cudaError_t err = cudaMemcpy3D(&par);	//transfer
+	Check(err, "Transfer queued map to host");
+	if (err != cudaSuccess) {
+		*status = DeviceMemoryStatus::EMPTY;
+		return Result::BAD_RES;
+	}
+
+	*status = DeviceMemoryStatus::EMPTY;
+
+	return Result::OK;
 }
 
 /*KERNAL LAUNCHES START*/

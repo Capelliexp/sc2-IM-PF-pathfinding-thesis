@@ -191,8 +191,10 @@ private:
 	void RequestIM(sc2::Point2DI pos, bool air_path);
 	void RequestPF(sc2::UnitTypeID sc2_unit_id);
 
-	std::vector<AttractingFieldMemory*> requested_PF;
-	std::vector<InfluenceMapMemory*> requested_IM;
+	void TransferMapToHost(int mem_id);
+
+	std::vector<int> requested_PF;
+	std::vector<int> requested_IM;
 
 	//---------------
 

@@ -458,18 +458,15 @@ bool MapStorage::CheckIfFileExists(std::string filename) {
 }
 
 void MapStorage::RequestIM(sc2::Point2DI pos, bool air_path){
-    destinations_IM.push_back({});
-    destinations_IM.back().destination = { pos.x, pos.y };
-    destinations_IM.back().air_path = air_path;
-    InfluenceMapMemory* mem_pointer = cuda->QueueDeviceJob({ pos.x, pos.y }, air_path, destinations_IM.back().map);
-
-    requested_IM.push_back(mem_pointer);
+    int mem_id = cuda->QueueDeviceJob({ pos.x, pos.y }, air_path, (float*)destinations_IM.back().map);
+    requested_IM.push_back(mem_id);
 }
 
 void MapStorage::RequestPF(sc2::UnitTypeID sc2_unit_id){
-    attracting_PF.push_back({});
-    attracting_PF.back().sc2_id = sc2_unit_id;
-    AttractingFieldMemory* mem_pointer = cuda->QueueDeviceJob(cuda->TranslateSC2IDToDeviceID(sc2_unit_id), attracting_PF.back().map);
+    int mem_id = cuda->QueueDeviceJob(cuda->TranslateSC2IDToDeviceID(sc2_unit_id), (float*)attracting_PF.back().map);
+    requested_PF.push_back(mem_id);
+}
 
-    requested_PF.push_back(mem_pointer);
+void MapStorage::TransferMapToHost(int mem_id) {
+
 }
