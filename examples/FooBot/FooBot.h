@@ -50,6 +50,7 @@ private:
     //! Function to set destination for the given units and the behavior.
     void SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit);
     void SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior);
+    void SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID behavior);
 
     //! Function to update all units.
     void UpdateUnitsPaths();

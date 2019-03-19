@@ -182,6 +182,12 @@ void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior) {
 	Actions()->UnitCommand(units, behavior);
 }
 
+void FooBot::SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID behavior) {
+	for (int i = 0; i < units_vec.size(); ++i) {
+		Actions()->UnitCommand(units_vec[i].unit, behavior);
+	}
+}
+
 //NOTE!!!! x- and y-coordinates are fliped.
 void FooBot::UpdateUnitsPaths() {
 	float PF[MAP_X_R][MAP_Y_R][1];
@@ -191,6 +197,11 @@ void FooBot::UpdateUnitsPaths() {
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;
+
+		sc2::Point3D p = player_units[i].unit->pos;
+		p.z += 0.1;
+		Debug()->DebugSphereOut(p, 1.25f, sc2::Colors::Purple);
+		
 		translated_pos.x = translated_pos.x;
 		translated_pos.y = MAP_Y_R - 1 - translated_pos.y;
 
@@ -202,6 +213,9 @@ void FooBot::UpdateUnitsPaths() {
 		int current_value = player_units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
 		//current_value += PF[(int)translated_pos.y][(int)translated_pos.x][0];
 
+		Debug()->DebugTextOut(std::to_string(current_value), p, sc2::Colors::Green, 10);
+
+
 		std::vector<sc2::Point2D> udlr;				//y,  x
 		udlr.push_back(translated_pos + sc2::Point2D( 0,  1));	//Down
 		udlr.push_back(translated_pos + sc2::Point2D( 1,  1));	//Down, right
@@ -212,12 +226,16 @@ void FooBot::UpdateUnitsPaths() {
 		udlr.push_back(translated_pos + sc2::Point2D(-1,  0));	//Left
 		udlr.push_back(translated_pos + sc2::Point2D(-1,  1));	//Down, left
 
+
 		float min_value = 5000;
 		int next_tile = 0;
 		for (int j = 0; j < udlr.size(); ++j) {
 			//Get the value from the IM and PF to determine the total value of the new tile.
 			int new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
 			//new_value += PF[(int)udlr[j].y][(int)udlr[j].x][0];
+
+			p = sc2::Point3D(udlr[j].x, MAP_Y_R - 1 - udlr[j].y, p.z);
+			Debug()->DebugTextOut(std::to_string(new_value), p, sc2::Colors::Green, 10);
 
 			if (new_value < 0) continue;	//Unpathable terrain
 			//This needs to be modified.
@@ -232,6 +250,7 @@ void FooBot::UpdateUnitsPaths() {
 		new_pos.y = MAP_Y_R - 1 - new_pos.y;
 		Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 	}
+	Debug()->SendDebug();
 }
 
 void FooBot::CreatePFs() {
@@ -245,8 +264,8 @@ void FooBot::CreatePFs() {
 			iter->second += 1;
 	}
 	//säg till map_storage att ett specifikt antal PFs ska göras. Använd player_unit_types för detta.
-	for (auto& unit : player_unit_types)
-		map_storage->CreateAttractingPF(unit.first);
+	//for (auto& unit : player_unit_types)
+		//map_storage->CreateAttractingPF(unit.first);
 
 }
 
@@ -624,6 +643,23 @@ void FooBot::CommandsOnSpiral50() {
 		}
 		else if (player_units.size() == spawned_units) {
 			SetDestination(player_units, sc2::Point2D(5), behaviors::DEFENCE, true);
+			spawned_units = 0;
+			command = 0;
+		}
+		break;
+	}
+	case 3: {
+		if (spawned_units == 0) {
+			Debug()->DebugEnemyControl();
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(45));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(43, 10), 2);
+			spawned_units = 1;
+		}
+		else if (player_units.size() == spawned_units) {
+			SetDestination(player_units, sc2::Point2D(25), behaviors::DEFENCE, false);
+		}
+		if (enemy_units.size() == spawned_units) {
+			SetBehavior(enemy_units, sc2::ABILITY_ID::HOLDPOSITION);
 			spawned_units = 0;
 			command = 0;
 		}
