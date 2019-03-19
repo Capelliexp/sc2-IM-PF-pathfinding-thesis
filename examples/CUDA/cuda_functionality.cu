@@ -43,26 +43,6 @@ __host__ void CUDA::PrintGenInfo() {
 	std::cout << std::endl;
 }
 
-__host__ void CUDA::Update(clock_t dt_ticks, sc2::Units units, float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
-	//float dt = ((float)dt_ticks) / CLOCKS_PER_SEC;	//get dt in seconds
-	
-	PopErrorsCheck("CUDA Update pre");	//run first
-
-	//if (map_storage->update_terrain) {
-	//	TransferDynamicMapToDevice();
-	//	//DeleteAllIMs();	//this might be drastic. should search for which require update and delete those...
-	//}
-
-
-	FillDeviceUnitArray(units);
-	TransferUnitsToDevice();
-	RepellingPFGeneration(ground_avoidance_PF, air_avoidance_PF);
-
-	PopErrorsCheck("CUDA Update post");	//run last
-
-	//run generation of PFs
-}
-
 __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions){
 	std::cout << "Initializing CUDA object" << std::endl;
 	
@@ -334,7 +314,7 @@ __host__ AttractingFieldMemory * CUDA::QueueDeviceJob(int owner_id, float map[][
 	return nullptr;
 }
 
-__host__ InfluenceMapMemory * CUDA::QueueDeviceJob(IntPoint2D destination, float map[][MAP_Y_R][1]){
+__host__ InfluenceMapMemory * CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float map[][MAP_Y_R][1]){
 	return nullptr;
 }
 
@@ -638,4 +618,8 @@ __host__ int CUDA::GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID) {
 
 __host__ int CUDA::GetSizeOfUnitInfoList() {
 	return host_unit_info.size();
+}
+
+__host__ int CUDA::TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id) {
+	return host_unit_transform.at(sc2_id);
 }

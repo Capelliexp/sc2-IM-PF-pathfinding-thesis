@@ -13,7 +13,7 @@
 #include "sc2api/sc2_api.h"
 #include "sc2lib/sc2_lib.h"
 #include "../LoadPNG/lodepng.h"
-#include "../examples/CUDA/cuda_header.cuh"	//do NOT include, causes shit 2 b strange
+#include "../examples/CUDA/cuda_header.cuh"
 /*
 Textures:
 * destinations (global, ground or air)
@@ -37,8 +37,12 @@ struct Destination_IM {
 	float map[MAP_X_R][MAP_Y_R][1];
 };
 
+struct Potential_Field {
+	sc2::UnitTypeID sc2_id;
+	float map[MAP_X_R][MAP_Y_R][1];
+};
+
 class MapStorage {
-	//friend class CUDA;	//might be wrong? used to access private maps & units
 public:
 	enum colors
 	{
@@ -94,15 +98,17 @@ public:
 	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
 	Destination_IM* GetAirDestination(sc2::Point2D pos);
 
-	std::list<Destination_IM> destinations_ground_IM;
-	std::list<Destination_IM> destinations_air_IM;
+	std::list<Destination_IM> destinations_ground_IM;	//WILL BE REPLACED
+	std::list<Destination_IM> destinations_air_IM;		//WILL BE REPLACED
 
 	float ground_avoidance_PF[MAP_X_R][MAP_Y_R][1];
 	float air_avoidance_PF[MAP_X_R][MAP_Y_R][1];
 
 	//std::vector<Attraction> unit_attraction_PF;
 	//std::unordered_map<sc2::UNIT_TYPEID, float[MAP_X_R][MAP_Y_R]> unit_attraction_PF;
-	std::unordered_map<sc2::UNIT_TYPEID, float*> unit_attraction_PF;
+	//std::unordered_map<sc2::UNIT_TYPEID, float*> unit_attraction_PF;
+	std::list<Potential_Field> attracting_PF;
+	std::list<Destination_IM> destinations_IM;
 
 private:
 	//! Craetes the influence map based on the size of the map.
@@ -165,7 +171,7 @@ private:
 	//void AddObjectiveToIM(sc2::Point2D objective);
 
 private:
-	CUDA* cuda;	//do NOT include 
+	CUDA* cuda;
 	const sc2::ObservationInterface* observation;
 	sc2::DebugInterface* debug;
 	sc2::ActionInterface* actions;
@@ -181,6 +187,12 @@ private:
 	//! max_value is an float holding the largest, non center value, in the map. Center value of units are usually > 1000, these values are outliers and can be clamped.
 	float max_value;
 	bool update_terrain;
+
+	void RequestIM(sc2::Point2DI pos, bool air_path);
+	void RequestPF(sc2::UnitTypeID sc2_unit_id);
+
+	std::vector<AttractingFieldMemory*> requested_PF;
+	std::vector<InfluenceMapMemory*> requested_IM;
 
 	//---------------
 

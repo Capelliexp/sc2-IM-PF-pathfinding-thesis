@@ -133,7 +133,6 @@ typedef struct {
 	DeviceMemoryStatus status;
 	void* map[MAP_Y_R][1];
 	cudaPitchedPtr map_ptr;
-	//cudaMemcpy3DParms parameters;
 } AttractingFieldMemory;
 
 typedef struct {
@@ -175,12 +174,11 @@ public:
 	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
 
 	//Runtime functionality
-	__host__ void Update(clock_t dt_ticks, sc2::Units units, float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
 	__host__ void FillDeviceUnitArray(sc2::Units units);
 	__host__ void TransferUnitsToDevice();
 	__host__ void TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]);
 	__host__ AttractingFieldMemory* QueueDeviceJob(int owner_id, float map[][MAP_Y_R][1] = nullptr);	//start PF generation job
-	__host__ InfluenceMapMemory* QueueDeviceJob(IntPoint2D destination, float map[][MAP_Y_R][1] = nullptr);	//start IM generation job
+	__host__ InfluenceMapMemory* QueueDeviceJob(IntPoint2D destination, bool air_path, float map[][MAP_Y_R][1] = nullptr);	//start IM generation job
 
 	//Other functionality
 	__host__ const sc2::ObservationInterface* GetObservation();
@@ -196,6 +194,7 @@ public:
 	__host__ void SetIsFlyingForUnits(std::vector<bool> is_flying);
 	__host__ int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
 	__host__ int GetSizeOfUnitInfoList();
+	__host__ int TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id);
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
