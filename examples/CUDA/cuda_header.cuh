@@ -137,6 +137,7 @@ typedef struct {
 
 typedef struct {
 	IntPoint2D destination;	//how map_storage identifies the map
+	bool air_path;
 	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
 	float* map;

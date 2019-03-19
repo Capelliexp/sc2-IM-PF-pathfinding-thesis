@@ -311,11 +311,28 @@ __host__ int CUDA::QueueDeviceJob(int owner_id, float* map){
 	PF_queue.push(next_id);
 	next_id++;
 	
-	return 0;
+	return next_id - 1;
 }
 
 __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* map){
-	return 0;
+	//check for available slots in vector
+	int storage_found = -1;
+	for (int i = 0; i < IM_mem.size(); ++i) {
+		if (IM_mem.at(i).status == DeviceMemoryStatus::EMPTY) {
+			storage_found = i;
+			break;
+		}
+	}
+	if (storage_found == -1) {
+		storage_found = IM_mem.size();
+		IM_mem.push_back({});
+	}
+
+	IM_mem.at(storage_found) = { destination, air_path, next_id, DeviceMemoryStatus::OCCUPIED, map, nullptr };
+	PF_queue.push(next_id);
+	next_id++;
+
+	return next_id - 1;
 }
 
 __host__ Result CUDA::TransferMapToHost(int id){
