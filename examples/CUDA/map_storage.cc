@@ -105,6 +105,7 @@ void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::strin
 
 void MapStorage::Update(clock_t dt) {
     cuda->Update(dt, units, ground_avoidance_PF, air_avoidance_PF);
+    PrintMap(ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 }
 
 std::vector<int> MapStorage::GetUnitsID() {
@@ -317,7 +318,7 @@ void MapStorage::CreateUnitLookUpTable() {
 //}
 
 Destination_IM & MapStorage::GetGroundDestination(sc2::Point2D pos) {
-    for (Destination_IM dest : destinations_ground_IM) {
+    for (auto& dest : destinations_ground_IM) {
         if (dest.destination == pos)
             return dest;
     }
@@ -353,8 +354,8 @@ void MapStorage::SetEntityVector(std::vector<Entity>& host_unit_list) {
     cuda->SetHostUnitList(host_unit_list);
 }
 
-void MapStorage::GetGroundAvoidancePF(float PF[][MAP_Y_R][1]) {
-    PF = ground_avoidance_PF;
+float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
+    return ground_avoidance_PF[x][y][0];
 }
 
 void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {

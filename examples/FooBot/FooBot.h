@@ -88,7 +88,8 @@ private:
     bool spawn_all_units;
     //! Bool indicating if the command can spawn units.
     bool spawn_units;
-    int spawned_units;
+    int spawned_player_units;
+    int spawned_enemy_units;
     bool get_radius = true;
     uint32_t restarts_;
 };

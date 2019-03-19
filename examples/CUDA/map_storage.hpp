@@ -84,7 +84,7 @@ public:
 
 	void SetEntityVector(std::vector<Entity>& host_unit_list);
 
-	void GetGroundAvoidancePF(float PF[][MAP_Y_R][1]);
+	float GetGroundAvoidancePFValue(int x, int y);
 
 	void CreateAttractingPF(sc2::UnitTypeID unit_id);
 

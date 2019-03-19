@@ -4,7 +4,8 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	restarts_(0), 
 	spawn_all_units(spaw_alla_units) {
 	this->command = 0;
-	this->spawned_units = 0;
+	this->spawned_player_units = 0;
+	this->spawned_enemy_units = 0;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
 	else if (map == "height")		this->map = 3;
@@ -190,8 +191,6 @@ void FooBot::SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID b
 
 //NOTE!!!! x- and y-coordinates are fliped.
 void FooBot::UpdateUnitsPaths() {
-	float PF[MAP_X_R][MAP_Y_R][1];
-	map_storage->GetGroundAvoidancePF(PF);
 	for (int i = 0; i < player_units.size(); ++i) {
 		if (player_units[i].destination == nullptr) continue;	//No destination to go to
 
@@ -200,21 +199,20 @@ void FooBot::UpdateUnitsPaths() {
 
 		sc2::Point3D p = player_units[i].unit->pos;
 		p.z += 0.1;
-		Debug()->DebugSphereOut(p, 1.25f, sc2::Colors::Purple);
 		
 		translated_pos.x = translated_pos.x;
-		translated_pos.y = MAP_Y_R - 1 - translated_pos.y;
+		translated_pos.y = MAP_Y_R - translated_pos.y;
 
 		if (player_units[i].destination->destination == sc2::Point2D((int)translated_pos.x, (int)translated_pos.y)) {	//Found destination.
 			player_units[i].destination = nullptr;
 			continue;
 		}
 		//Get the value from the IM and PF to determine the total value of the tile.
-		int current_value = player_units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
-		//current_value += PF[(int)translated_pos.y][(int)translated_pos.x][0];
-		float PFvalue = PF[(int)translated_pos.y][(int)translated_pos.x][0];
+		float current_value = player_units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
+		float current_pf = map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x);
+		current_value += current_pf;
 
-		Debug()->DebugTextOut(std::to_string(current_value), p, sc2::Colors::Green, 10);
+		Debug()->DebugTextOut(std::to_string((int)(current_value)), p, sc2::Colors::Green, 10);
 
 
 		std::vector<sc2::Point2D> udlr;				//y,  x
@@ -232,13 +230,16 @@ void FooBot::UpdateUnitsPaths() {
 		int next_tile = 0;
 		for (int j = 0; j < udlr.size(); ++j) {
 			//Get the value from the IM and PF to determine the total value of the new tile.
-			int new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
-			//new_value += PF[(int)udlr[j].y][(int)udlr[j].x][0];
+			float new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
+			
+			p = sc2::Point3D(udlr[j].x, MAP_Y_R - udlr[j].y, p.z);
+			Debug()->DebugTextOut(std::to_string((int)(new_value)), p, sc2::Colors::Green, 10);
+			
+			if (new_value < 0) continue;
+			float pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
+			new_value += pf_value;
 
-			p = sc2::Point3D(udlr[j].x, MAP_Y_R - 1 - udlr[j].y, p.z);
-			Debug()->DebugTextOut(std::to_string(new_value), p, sc2::Colors::Green, 10);
-
-			if (new_value < 0) continue;	//Unpathable terrain
+			//if (new_value < 0) continue;	//Unpathable terrain
 			//This needs to be modified.
 			//if ((current_value - new_value) > 2) continue;	//Invalid move
 			if (min_value > new_value) {
@@ -291,112 +292,112 @@ void FooBot::UpdateHostUnitList() {
 void FooBot::CommandsOnEmpty50() {
 	switch (command) {
 	case 1: {
-		if (spawned_units == 0) {
+		if (spawned_player_units == 0) {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5, 5));
-			spawned_units = 1;
+			spawned_player_units = 1;
 		}
-		else if (player_units.size() == spawned_units) {
+		else if (player_units.size() == spawned_player_units) {
 			SetDestination(player_units, sc2::Point2D(25), behaviors::DEFENCE, false);
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	case 2: {
-		if (spawned_units == 0) {
+		if (spawned_player_units == 0) {
 			Debug()->DebugEnemyControl();
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(25, 25), 2);
-			spawned_units = 1;
+			spawned_player_units = 1;
 		}
-		else if (player_units.size() == spawned_units) {
+		else if (player_units.size() == spawned_player_units) {
 			SetDestination(player_units, sc2::Point2D(45), behaviors::PASSIVE, false);
 		}
 		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT })) {
 			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	case 3: {
-		if (spawned_units == 0) {
+		if (spawned_player_units == 0) {
 			Debug()->DebugEnemyControl();
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(25, 25), 2);
-			spawned_units = 1;
+			spawned_player_units = 1;
 		}
-		else if (player_units.size() == spawned_units) {
+		else if (player_units.size() == spawned_player_units) {
 			SetDestination(player_units, sc2::Point2D(45), behaviors::ATTACK, false);
 		}
 		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT })) {
 			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	case 4: {
-		if (spawned_units == 0) {
+		if (spawned_player_units == 0) {
 			Debug()->DebugEnemyControl();
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(25, 25), 2);
-			spawned_units = 1;
+			spawned_player_units = 1;
 		}
-		else if (player_units.size() == spawned_units) {
+		else if (player_units.size() == spawned_player_units) {
 			SetDestination(player_units, sc2::Point2D(45), behaviors::ATTACK, false);
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	case 5: {
-		if (spawned_units == 0) {
+		if (spawned_player_units == 0) {
 			Debug()->DebugEnemyControl();
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(25, 25), 2);
-			spawned_units = 5;
+			spawned_player_units = 5;
 		}
 		else if (player_units.size() == 5) {
 			SetDestination(player_units, sc2::Point2D(25), behaviors::ATTACK, false);
 		}
 		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT })) {
 			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	case 6: {
-		if (spawned_units == 0) {
+		if (spawned_player_units == 0) {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(25, 25), 2);
-			spawned_units = 5;
+			spawned_player_units = 5;
 		}
-		else if (player_units.size() == spawned_units) {
+		else if (player_units.size() == spawned_player_units) {
 			SetDestination(player_units, sc2::Point2D(45), behaviors::ATTACK, false);
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	case 7: {
-		if (spawned_units == 0) {
+		if (spawned_player_units == 0) {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(45, 45));
-			spawned_units = 10;
+			spawned_player_units = 10;
 		}
 		else if (player_units.size() == 10) {
 			//This needs to be fixed. Converted to "new way"
 			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(45, 45), sc2::ABILITY_ID::MOVE, sc2::Point2D(3), sc2::Point2D(8));
 			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(5, 5), sc2::ABILITY_ID::MOVE, sc2::Point2D(43), sc2::Point2D(48));
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	default: {
-		spawned_units = 0;
+		spawned_player_units = 0;
 		command = 0;
 		break;
 	}
@@ -626,48 +627,51 @@ void FooBot::CommandsOnEmpty20() {
 void FooBot::CommandsOnSpiral50() {
 	switch (command) {
 	case 1: {
-		if (spawned_units == 0) {
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(45));
-			spawned_units = 1;
+		if (spawned_player_units == 0) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
 		}
-		else if (player_units.size() == spawned_units) {
+		else if (player_units.size() == spawned_player_units) {
 			SetDestination(player_units, sc2::Point2D(25), behaviors::DEFENCE, false);
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	case 2: {
-		if (spawned_units == 0) {
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_VIKINGFIGHTER, 1, sc2::Point2D(45));
-			spawned_units = 1;
+		if (spawned_player_units == 0) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_VIKINGFIGHTER, spawned_player_units, sc2::Point2D(45));
 		}
-		else if (player_units.size() == spawned_units) {
+		else if (player_units.size() == spawned_player_units) {
 			SetDestination(player_units, sc2::Point2D(5), behaviors::DEFENCE, true);
-			spawned_units = 0;
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	case 3: {
-		if (spawned_units == 0) {
+		if (spawned_player_units == 0 && spawned_enemy_units == 0) {
 			Debug()->DebugEnemyControl();
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(45));
-			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(43, 10), 2);
-			spawned_units = 1;
+			spawned_player_units = 1;
+			spawned_enemy_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(43, 10), 2);
 		}
-		else if (player_units.size() == spawned_units) {
+		else if (player_units.size() == spawned_player_units) {
 			SetDestination(player_units, sc2::Point2D(25), behaviors::DEFENCE, false);
+			spawned_player_units = 0;
 		}
-		if (enemy_units.size() == spawned_units) {
+		if (enemy_units.size() == spawned_enemy_units) {
 			SetBehavior(enemy_units, sc2::ABILITY_ID::HOLDPOSITION);
-			spawned_units = 0;
+			spawned_enemy_units = 0;
 			command = 0;
 		}
 		break;
 	}
 	default: {
-		spawned_units = 0;
+		spawned_player_units = 0;
+		spawned_enemy_units = 0;
 		command = 0;
 		break;
 	}
