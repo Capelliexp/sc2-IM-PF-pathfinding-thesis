@@ -292,7 +292,7 @@ __host__ void CUDA::TransferUnitsToDevice() {
 	}
 
 	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), 
-		min(host_unit_list.size(), unit_list_max_length) * sizeof(Entity),
+		std::min((int)host_unit_list.size(), unit_list_max_length) * sizeof(Entity),
 		cudaMemcpyHostToDevice),
 		"TransferUnitsToDevice");
 }
