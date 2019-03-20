@@ -131,6 +131,7 @@ typedef struct {
 	int owner_id;	//how map_storage identifies the map
 	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
+	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
 } AttractingFieldMemory;
@@ -140,6 +141,7 @@ typedef struct {
 	bool air_path;
 	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
+	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
 } InfluenceMapMemory;
@@ -176,10 +178,15 @@ public:
 	//Runtime functionality
 	__host__ void TransferUnitsToDevice();
 	__host__ void TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]);
+
+	//Runtime jobs
 	__host__ int QueueDeviceJob(int owner_id, float* map = nullptr);	//start PF generation job
 	__host__ int QueueDeviceJob(IntPoint2D destination, bool air_path, float* map = nullptr);	//start IM generation job
 	__host__ Result ExecuteDeviceJobs();
 	__host__ Result TransferMapToHost(int id);	//start transfer from device to pre-defined host array
+	__host__ DeviceMemoryStatus CheckJobStatus(int id);
+	__host__ DeviceMemoryStatus CheckJobStatus(AttractingFieldMemory* mem);
+	__host__ DeviceMemoryStatus CheckJobStatus(InfluenceMapMemory* mem);
 
 	//Other functionality
 	__host__ const sc2::ObservationInterface* GetObservation();
