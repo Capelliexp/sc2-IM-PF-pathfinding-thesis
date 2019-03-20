@@ -87,6 +87,8 @@ public:
 	float GetGroundAvoidancePFValue(int x, int y);
 
 	void CreateAttractingPF(sc2::UnitTypeID unit_id);
+	
+	float GetAttractingPF(int x, int y);
 
 private:
 	//! Craetes the influence map based on the size of the map.

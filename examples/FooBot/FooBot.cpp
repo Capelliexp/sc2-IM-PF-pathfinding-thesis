@@ -232,6 +232,8 @@ void FooBot::UpdateUnitsPaths() {
 			float pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x + 1);
 			new_value += pf_value;
 
+			float atracting = map_storage->GetAttractingPF((int)udlr[j].y, (int)udlr[j].x + 1);
+
 			//if (new_value < 0) continue;	//Unpathable terrain
 			//This needs to be modified.
 			//if ((current_value - new_value) > 2) continue;	//Invalid move
