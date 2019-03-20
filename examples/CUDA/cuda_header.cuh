@@ -170,12 +170,10 @@ public:
 	__host__ void TransferStaticMapToHost();
 	__host__ void AllocateDeviceMemory();
 	__host__ void TransferUnitLookupToDevice();
-	__host__ void HostTransfer(sc2::Units units);
 	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);
 	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
 
 	//Runtime functionality
-	__host__ void FillDeviceUnitArray(sc2::Units units);
 	__host__ void TransferUnitsToDevice();
 	__host__ void TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]);
 	__host__ int QueueDeviceJob(int owner_id, float* map = nullptr);	//start PF generation job
@@ -188,8 +186,6 @@ public:
 	__host__ sc2::DebugInterface* GetDebug();
 	__host__ sc2::ActionInterface* GetAction();
 	__host__ sc2::ActionFeatureLayerInterface* GetActionFeature();
-	__host__ void CreateUnitRadiusTable();
-	__host__ bool DeleteAllIMs();
 	__host__ void PrintUnitInfoToFile(std::string filename);
 	__host__ void ReadUnitInfoFromFile(std::string filename);
 	__host__ std::vector<int> GetUnitsID();

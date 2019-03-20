@@ -8,9 +8,6 @@
 #include <filesystem>
 
 MapStorage::MapStorage() {
-    //unit_attraction_PF.reserve(bot_faction_unit_type_count);
-    update_terrain = true;
-    max_value = 0;
 }
 
 MapStorage::~MapStorage() {
@@ -23,22 +20,20 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     this->debug = debug;
     this->actions = actions;
     this->actions_feature_layer = actions_feature_layer;
-
+    this->max_value = 0;
     CreateIM();
-    //PrintIM();
 
     cuda = new CUDA();
-    cuda->InitializeCUDA(observations, debug, actions, ground_avoidance_PF, air_avoidance_PF);
+    cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
     CreateUnitLookUpTable();
     cuda->AllocateDeviceMemory();
-    cuda->HostTransfer(units);
     cuda->DeviceTransfer(dynamic_terrain);
-    cuda->Tests(ground_avoidance_PF, air_avoidance_PF);
+    cuda->Tests(ground_repelling_PF, air_repelling_PF);
 
     cuda->UpdateDynamicMap({ 10, 10 }, 4, false);
 
-    PrintMap(ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
-    PrintMap(air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
+    PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
+    PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
 
     PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
 }
@@ -87,17 +82,6 @@ void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::strin
         out << std::endl;
     }
     out.close();
-}
-
-void MapStorage::Update(clock_t dt) {
-    //float dt = ((float)dt_ticks) / CLOCKS_PER_SEC;	//get dt in seconds
-    cuda->PopErrorsCheck("CUDA Update pre");	//run first
-
-    //cuda->FillDeviceUnitArray(units); //not used
-    cuda->TransferUnitsToDevice();
-    cuda->RepellingPFGeneration(ground_avoidance_PF, air_avoidance_PF);
-
-    cuda->PopErrorsCheck("CUDA Update post");	//run last
 }
 
 std::vector<int> MapStorage::GetUnitsID() {
@@ -289,26 +273,6 @@ void MapStorage::CreateUnitLookUpTable() {
     }
 }
 
-//! The bot is abdle to print its IM to a file.
-//void MapStorage::PrintIM()
-//{
-//    std::stringstream str(std::stringstream::out | std::stringstream::binary);
-//    for (int y = map_y_r - 1; y >= 0; --y)
-//    {
-//        for (int x = 0; x < map_x_r; ++x)
-//        {
-//            str << InfluenceMap[x + y * map_x_r] << " ";
-//        }
-//        str << std::endl;
-//    }
-//    std::ofstream file;
-//    file.open("InfluenceMap.txt", std::ofstream::binary);
-//    PrintStatus("File open and printing to file");
-//    file.write(str.str().c_str(), str.str().length());
-//    file.close();
-//    PrintStatus("File closed");
-//}
-
 Destination_IM & MapStorage::RequestGroundDestination(sc2::Point2D pos) {
     for (auto& dest : destinations_ground_IM) {
         if (dest.destination == pos)
@@ -318,7 +282,7 @@ Destination_IM & MapStorage::RequestGroundDestination(sc2::Point2D pos) {
     destinations_ground_IM.push_back(map);
     destinations_ground_IM.back().destination = pos;
     destinations_ground_IM.back().air_path = false;
-    requested_maps.push_back(cuda->QueueDeviceJob({ pos.x, pos.y }, false, (float*)destinations_ground_IM.back().map));
+    requested_IM.push_back(cuda->QueueDeviceJob({ (integer)pos.x, (integer)pos.y }, false, (float*)destinations_ground_IM.back().map));
     return destinations_ground_IM.back();
 }
 
@@ -330,21 +294,42 @@ Destination_IM & MapStorage::RequestAirDestination(sc2::Point2D pos) {
     destinations_air_IM.push_back({});
     destinations_air_IM.back().destination = pos;
     destinations_air_IM.back().air_path = true;
-    requested_maps.push_back(cuda->QueueDeviceJob({ pos.x, pos.y }, true, (float*)destinations_air_IM.back().map));
+    requested_IM.push_back(cuda->QueueDeviceJob({ (integer)pos.x, (integer)pos.y }, true, (float*)destinations_air_IM.back().map));
     return destinations_air_IM.back();
 }
 
-void MapStorage::SetEntityVector(std::vector<Entity>& host_unit_list) {
+void MapStorage::UpdateEntityVector(std::vector<Entity>& host_unit_list) {
     cuda->SetHostUnitList(host_unit_list);
+    cuda->TransferUnitsToDevice();
 }
 
 float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
-    return ground_avoidance_PF[x][y][0];
+    return ground_repelling_PF[x][y][0];
 }
 
 void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
     attracting_PFs.push_back({});
-    requested_maps.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));
+    requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));
+}
+
+void MapStorage::ExecuteDeviceJobs() {
+    cuda->ExecuteDeviceJobs();
+}
+
+void MapStorage::TransferPFFromDevice() {
+    for (int i = 0; i < requested_PF.size(); ++i) {
+        Result res = cuda->TransferMapToHost(requested_PF[i]);
+        if (res == Result::OK)
+            requested_PF.erase(requested_PF.begin() + i);
+    }
+}
+
+void MapStorage::TransferIMFromDevice() {
+    for (int i = 0; i < requested_IM.size(); ++i) {
+        Result res = cuda->TransferMapToHost(requested_IM[i]);
+        if (res == Result::OK)
+            requested_IM.erase(requested_IM.begin() + i);
+    }
 }
 
 
@@ -367,97 +352,6 @@ void MapStorage::CreateIM() {
     }
 }
 
-//! Function that is used to add a list of units to the IM.
-//!< \param units The list of units to be added.
-//void MapStorage::IMAddUnits(sc2::Units units)
-//{
-//    for (const auto& unit : units)
-//    {
-//        IMAddUnit(unit);
-//    }
-//}
-
-//! Function that is used to add an unit to the IM.
-//! Uses radius to indicate which tiles that can't be pathed.
-//!< \param unit The unit to be added.
-//void MapStorage::IMAddUnit(const sc2::Unit* unit)
-//{
-//    int d = int(unit->radius * 2) * grid_division;  //How many squares does the building occupy in one direction?
-//    int rr = pow(unit->radius * grid_division, 2);
-//    int xc = unit->pos.x * grid_division;
-//    int yc = unit->pos.y * grid_division;
-//    int startX = xc - d / 2;
-//    int startY = yc - d / 2;
-//
-//    for (int y = 0; y < d; ++y)
-//    {
-//        int yp = pow(y - d / 2, 2);
-//        for (int x = 0; x < d; ++x)
-//        {
-//            float dd = pow(x - d / 2, 2) + yp;
-//            InfluenceMap[startX + x + (startY + y) * width] = (dd < rr) ? 0 : 1;
-//        }
-//    }
-//}
-
-//! Function that is used to remove an unit from the IM.
-//! We know that the tiles that the building occupied can be pathed now.
-//! No need to calculate the radius.
-//!< \param unit The unit to be removed.
-//void MapStorage::IMRemoveUnit(const sc2::Unit * unit)
-//{
-//    int d = int(unit->radius * 2) * pathingGridSize;  //How many squares does the building occupy in one direction?
-//    int xc = unit->pos.x * pathingGridSize;
-//    int yc = unit->pos.y * pathingGridSize;
-//    int startX = xc - d / 2;
-//    int startY = yc - d / 2;
-//
-//    for (int y = 0; y < d; ++y)
-//    {
-//        int yp = (startY + y) * width;
-//        for (int x = 0; x < d; ++x)
-//        {
-//            InfluenceMap[startX + x + yp] = 0;
-//        }
-//    }
-//}
-
-//void MapStorage::AddObjectiveToIM(sc2::Point2D objective)
-//{
-//    PrintStatus("Started adding objective.");
-//    int start = 2 * pathingGridSize;
-//    double start_s = clock();
-//    int ww = width * 1.5;
-//    for (int y = start; y < height - 2; ++y)
-//    {
-//        int yp = pow(y - objective.y * pathingGridSize, 2);
-//        for (int x = start; x < width - 2; ++x)
-//        {
-//            if (InfluenceMap[x + y * width] == 1)
-//            {
-//                int xp = pow(x - objective.x * pathingGridSize, 2);
-//                InfluenceMap[x + y * width] = ww - sqrt(xp + yp);
-//            }
-//        }
-//    }
-//    double stop_s = clock();
-//    PrintStatus("Objective added. Took " + std::to_string((stop_s - start_s) / 1000));
-//}
-
 bool MapStorage::CheckIfFileExists(std::string filename) {
     return std::filesystem::exists(filename);
-}
-
-void MapStorage::RequestIM(sc2::Point2DI pos, bool air_path){
-    int mem_id = cuda->QueueDeviceJob({ pos.x, pos.y }, air_path, (float*)destinations_IM.back().map);
-    requested_IM.push_back(mem_id);
-}
-
-void MapStorage::RequestPF(sc2::UnitTypeID sc2_unit_id){
-    int mem_id = cuda->QueueDeviceJob(cuda->TranslateSC2IDToDeviceID(sc2_unit_id), (float*)attracting_PF.back().map);
-    requested_PF.push_back(mem_id);
-}
-
-void MapStorage::TransferMapToHost(int mem_id) {
-
 }

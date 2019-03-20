@@ -95,14 +95,6 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	//Check(cudaPeekAtLastError(), "init check 7", true);
 }
 
-__host__ void CUDA::HostTransfer(sc2::Units units) {
-	//host_transfer
-	TransferStaticMapToHost();
-	FillDeviceUnitArray(units);
-
-	Check(cudaPeekAtLastError(), "init check 4", true);
-}
-
 __host__ void CUDA::DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]) {
 	//device_transfer
 	TransferDynamicMapToDevice(dynamic_terrain);
@@ -234,45 +226,6 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	Check(cudaPeekAtLastError(), "cuda allocation peek", true);
 }
 
-__host__ void CUDA::FillDeviceUnitArray(sc2::Units units) {
-	//host_unit_list.clear();
-	//host_unit_list.resize(units.size());
-
-	////int device_list_length = map_storage->units.size();
-	//int device_list_length = 0;
-	//for (const sc2::Unit* unit : units) {
-	//	std::unordered_map<sc2::UNIT_TYPEID, unsigned int>::const_iterator it = host_unit_transform.find(unit->unit_type);
-	//	if (it == host_unit_transform.end()) {
-	//		host_unit_list.resize(host_unit_list.size() - 1);
-	//		std::cout << "WARNING: invalid entity in map_storage unit vector" << std::endl;
-	//		continue;
-	//	}
-
-	//	host_unit_list.at(device_list_length).id = it->second;
-	//	host_unit_list.at(device_list_length).pos = { unit->pos.x * GRID_DIVISION, unit->pos.y * GRID_DIVISION };
-	//	switch (unit->alliance)
-	//	{
-	//	case sc2::Unit::Alliance::Self:
-	//		host_unit_list.at(device_list_length).enemy = false;
-	//		break;
-	//	case sc2::Unit::Alliance::Ally:
-	//		host_unit_list.at(device_list_length).enemy = false;
-	//		break;
-	//	case sc2::Unit::Alliance::Neutral:
-	//		host_unit_list.at(device_list_length).enemy = false;
-	//			break;
-	//	case sc2::Unit::Alliance::Enemy:
-	//		host_unit_list.at(device_list_length).enemy = true;
-	//		break;
-	//	default:
-	//		host_unit_list.at(device_list_length).enemy = false;
-	//		break;
-	//	}
-
-	//	device_list_length++;
-	//}	
-}
-
 __host__ void CUDA::TransferUnitsToDevice() {
 
 	if (host_unit_list.size() > unit_list_max_length) {
@@ -365,9 +318,10 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	}
 
 	//start IM job
-	InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
-	IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
-
+	if (IM_queue.size() > 0) {
+		InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
+		IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
+	}
 	PopErrorsCheck();
 
 	return Result::OK;
