@@ -347,6 +347,7 @@ float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
 void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
     attracting_PFs.push_back({});
     cuda->AttractingPFGeneration(cuda->GetUnitIDInHostUnitVec(unit_id), attracting_PFs.back().map);
+
 }
 
 

@@ -266,22 +266,30 @@ void FooBot::printValues(int unit, sc2::Point2D pos) {
 }
 
 void FooBot::CreatePFs() {
-	host_unit_list.clear();
-	std::map<int, int> player_unit_types;
+	std::map<sc2::UnitTypeID, int> player_unit_types;
 	for (int i = 0; i < player_units.size(); ++i) {
-		std::map<int, int>::iterator iter = player_unit_types.find(player_units[i].unit->unit_type);
-		if (iter == player_unit_types.end())
-			player_unit_types[map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type)] = 1;
+		auto search = player_unit_types.find(player_units[i].unit->unit_type);
+		if (search == player_unit_types.end())
+			player_unit_types[player_units[i].unit->unit_type] = 1;
 		else
-			iter->second += 1;
+			search->second += 1;
+
+
+
+		/*std::map<sc2::UnitTypeID, int>::iterator iter = player_unit_types.find(player_units[i].unit->unit_type);
+		if (iter == player_unit_types.end())
+			player_unit_types[player_units[i].unit->unit_type] = 1;
+		else
+			iter->second += 1;*/
 	}
 	//s�g till map_storage att ett specifikt antal PFs ska g�ras. Anv�nd player_unit_types f�r detta.
-	//for (auto& unit : player_unit_types)
-		//map_storage->CreateAttractingPF(unit.first);
+	for (auto& unit : player_unit_types)
+		map_storage->CreateAttractingPF(unit.first);
 
 }
 
 void FooBot::UpdateHostUnitList() {
+	host_unit_list.clear();
 	for (int i = 0; i < player_units.size(); ++i) {
 		Entity ent;
 		ent.id = map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type);
@@ -675,6 +683,20 @@ void FooBot::CommandsOnSpiral50() {
 		if (enemy_units.size() == spawned_enemy_units) {
 			SetBehavior(enemy_units, sc2::ABILITY_ID::HOLDPOSITION);
 			spawned_enemy_units = 0;
+			command = 0;
+		}
+		break;
+	}
+	case 4: {
+		if (spawned_player_units == 0) {
+			spawned_player_units = 1;
+			spawned_enemy_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(42, 18), 2);
+		}
+		else if (player_units.size() == spawned_player_units) {
+			SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, false);
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
