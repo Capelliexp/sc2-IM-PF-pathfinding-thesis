@@ -32,7 +32,7 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     //PrintIM();
 
     cuda = new CUDA();
-    cuda->InitializeCUDA(observations, debug, actions);
+    cuda->InitializeCUDA(observations, debug, actions, ground_avoidance_PF, air_avoidance_PF);
     CreateUnitLookUpTable();
     cuda->HostTransfer(units);
     cuda->DeviceTransfer(dynamic_terrain);

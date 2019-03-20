@@ -132,7 +132,7 @@ typedef struct {
 	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
 	float* map;
-	cudaPitchedPtr map_ptr;
+	cudaPitchedPtr device_map_ptr;
 } AttractingFieldMemory;
 
 typedef struct {
@@ -141,7 +141,7 @@ typedef struct {
 	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
 	float* map;
-	cudaPitchedPtr map_ptr;
+	cudaPitchedPtr device_map_ptr;
 } InfluenceMapMemory;
 
 //DEVICE FUNCTION
@@ -164,7 +164,7 @@ public:
 	__host__ ~CUDA();
 
 	//Initialization (requires cleanup)
-	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions);
+	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float ground_PF[][MAP_Y_R][1], float air_PF[][MAP_Y_R][1]);
 	__host__ void PrintGenInfo();
 	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
@@ -180,7 +180,8 @@ public:
 	__host__ void TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]);
 	__host__ int QueueDeviceJob(int owner_id, float* map = nullptr);	//start PF generation job
 	__host__ int QueueDeviceJob(IntPoint2D destination, bool air_path, float* map = nullptr);	//start IM generation job
-	__host__ Result TransferMapToHost(int id);
+	__host__ Result ExecuteDeviceJobs();
+	__host__ Result TransferMapToHost(int id);	//start transfer from device to pre-defined host array
 
 	//Other functionality
 	__host__ const sc2::ObservationInterface* GetObservation();
@@ -200,13 +201,11 @@ public:
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
-	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1]);
-	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path);
+	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map);
+	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path, cudaPitchedPtr device_map);
 	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);
 
 	__host__ void Test3DArrayUsage();
-	__host__ void TestAttractingPFGeneration();
-	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
 	__host__ void TestLookupTable();
 	
 	//Error checking (should not be used in release)
@@ -247,6 +246,8 @@ private:
 	int next_id;
 
 	//host data (holders for host->device transfers)
+	float* ground_PF;
+	float* air_PF;
 	std::vector<UnitInfo> host_unit_info;
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;
 	std::unordered_map<sc2::UNIT_TYPEID, unsigned int> host_unit_transform;
