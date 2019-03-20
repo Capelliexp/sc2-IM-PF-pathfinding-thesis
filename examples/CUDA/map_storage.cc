@@ -41,20 +41,6 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     PrintMap(air_avoidance_PF, MAP_X_R, MAP_Y_R, "air");
 
     PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
-    CreateImage(dynamic_terrain, MAP_X_R, MAP_Y_R);
-    AddToImage(ground_avoidance_PF, MAP_X_R, MAP_Y_R, colors::BLUE);
-    PrintImage("image.png", MAP_X_R, MAP_Y_R);
-
-    //Destination_IM map;
-    //map.destination = {25,25};
-    //map.air_path = false;
-    //cuda->IMGeneration(IntPoint2D{ (integer)25, (integer)25 }, map.map, false);
-    ////Add the map to list.
-    //PrintMap(map.map, MAP_X_R, MAP_Y_R, "IM");
-    //CreateImage(map.map, MAP_X_R, MAP_Y_R, colors::GREEN);
-    //PrintImage("res.png", MAP_X_R, MAP_Y_R);
-
-    //CreateImage2(dynamic_terrain, MAP_X_R, MAP_Y_R, "image.png");
 }
 
 void MapStorage::Test() {
@@ -83,10 +69,10 @@ void MapStorage::PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::str
 
 void MapStorage::PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file) {
     std::ofstream out(file + ".txt");
-    int width = x;
-    for (int i = 0; i < y; i++)
-    {
-        for (int j = 0; j < width; j++) out << map[i][j][0] << ",";
+    for (int i = 0; i < y; i++) {
+        for (int j = 0; j < x; j++) {
+            out << map[i][j][0] << ",";
+        }
         out << std::endl;
     }
     out.close();
@@ -105,7 +91,7 @@ void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::strin
 
 void MapStorage::Update(clock_t dt) {
     cuda->Update(dt, units, ground_avoidance_PF, air_avoidance_PF);
-    PrintMap(ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
+    //PrintMap(ground_avoidance_PF, MAP_X_R, MAP_Y_R, "ground");
 }
 
 std::vector<int> MapStorage::GetUnitsID() {

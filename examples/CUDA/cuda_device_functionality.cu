@@ -29,13 +29,13 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	float dist = 0;
 	for (int i = 0; i < nr_of_units; ++i) {
 		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
-		float range_sub = unit.range;
+		float range_sub = unit.range + 1;
 		dist = (FloatDistance(unit_list_s[i].pos.x, unit_list_s[i].pos.y, x, y) + 0.0001);
 
 		if (unit_list_s[i].enemy) {	//avoid enemies
 			if (dist < range_sub) {
-				ground_charge += ((range_sub / dist) * unit.can_attack_ground);
-				air_charge += ((range_sub / dist) * unit.can_attack_air);
+				ground_charge += ((range_sub / dist) * unit.can_attack_ground) + 5;
+				air_charge += ((range_sub / dist) * unit.can_attack_air) + 5;
 			}
 		}
 		else {	//avoid friendlies

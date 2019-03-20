@@ -73,6 +73,8 @@ private:
     //!< \return Returns true if the unit is a structure, false otherwise.
     bool IsStructure(const sc2::Unit* unit);
 
+    void printValues(int unit, sc2::Point2D pos);
+
 private:
     MapStorage* map_storage;
     clock_t step_clock;

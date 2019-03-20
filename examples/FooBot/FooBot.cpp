@@ -196,9 +196,6 @@ void FooBot::UpdateUnitsPaths() {
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;
-
-		sc2::Point3D p = player_units[i].unit->pos;
-		p.z += 0.1;
 		
 		translated_pos.x = translated_pos.x;
 		translated_pos.y = MAP_Y_R - translated_pos.y;
@@ -212,8 +209,6 @@ void FooBot::UpdateUnitsPaths() {
 		float current_pf = map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x);
 		current_value += current_pf;
 
-		Debug()->DebugTextOut(std::to_string((int)(current_value)), p, sc2::Colors::Green, 10);
-
 
 		std::vector<sc2::Point2D> udlr;				//y,  x
 		udlr.push_back(translated_pos + sc2::Point2D( 0,  1));	//Down
@@ -225,6 +220,7 @@ void FooBot::UpdateUnitsPaths() {
 		udlr.push_back(translated_pos + sc2::Point2D(-1,  0));	//Left
 		udlr.push_back(translated_pos + sc2::Point2D(-1,  1));	//Down, left
 
+		//printValues(i, translated_pos);
 
 		float min_value = 5000;
 		int next_tile = 0;
@@ -232,11 +228,8 @@ void FooBot::UpdateUnitsPaths() {
 			//Get the value from the IM and PF to determine the total value of the new tile.
 			float new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
 			
-			p = sc2::Point3D(udlr[j].x, MAP_Y_R - udlr[j].y, p.z);
-			Debug()->DebugTextOut(std::to_string((int)(new_value)), p, sc2::Colors::Green, 10);
-			
 			if (new_value < 0) continue;
-			float pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
+			float pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x + 1);
 			new_value += pf_value;
 
 			//if (new_value < 0) continue;	//Unpathable terrain
@@ -249,10 +242,27 @@ void FooBot::UpdateUnitsPaths() {
 		}
 
 		sc2::Point2D new_pos = udlr[next_tile];
-		new_pos.y = MAP_Y_R - 1 - new_pos.y;
+		new_pos.y = MAP_Y_R - new_pos.y;
 		Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 	}
 	Debug()->SendDebug();
+}
+
+void FooBot::printValues(int unit, sc2::Point2D pos) {
+	sc2::Point3D pp = player_units[unit].unit->pos;
+	pp.z += 0.1;
+	sc2::Point3D p = { pos.x, pos.y, player_units[unit].unit->pos.z };
+	p.z += 0.1;
+	for (int i = -5; i <= 5; ++i) {
+		for (int j = -5; j <= 5; ++j) {
+			if (p.x < MAP_X_R && p.y < MAP_Y_R && p.x >= 0 && p.y >= 0) {
+				float new_value = player_units[unit].destination->map[(int)p.y - i][(int)p.x + j][0];
+				if (new_value >= 0)
+					new_value += map_storage->GetGroundAvoidancePFValue((int)p.y - i, (int)p.x + j + 1);
+				Debug()->DebugTextOut(std::to_string(new_value), { pp.x + j, pp.y + i, pp.z }, sc2::Colors::Green, 8);
+			}
+		}
+	}
 }
 
 void FooBot::CreatePFs() {
@@ -656,10 +666,10 @@ void FooBot::CommandsOnSpiral50() {
 			spawned_player_units = 1;
 			spawned_enemy_units = 1;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(43, 10), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(42, 18), 2);
 		}
 		else if (player_units.size() == spawned_player_units) {
-			SetDestination(player_units, sc2::Point2D(25), behaviors::DEFENCE, false);
+			SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, false);
 			spawned_player_units = 0;
 		}
 		if (enemy_units.size() == spawned_enemy_units) {
