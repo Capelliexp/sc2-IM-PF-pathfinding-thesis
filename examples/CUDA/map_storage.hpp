@@ -90,6 +90,8 @@ public:
 
 	void CreateAttractingPF(sc2::UnitTypeID unit_id);
 	
+	void ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int value);
+
 	//std::vector<Attraction> unit_attraction_PF;
 	//std::unordered_map<sc2::UNIT_TYPEID, float[MAP_X_R][MAP_Y_R]> unit_attraction_PF;
 	//std::unordered_map<sc2::UNIT_TYPEID, float*> unit_attraction_PF;

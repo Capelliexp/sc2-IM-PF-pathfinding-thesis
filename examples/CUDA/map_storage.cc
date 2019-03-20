@@ -355,6 +355,10 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
     cuda->AttractingPFGeneration(cuda->GetUnitIDInHostUnitVec(unit_id), attracting_PFs.back().map);
 }
 
+void MapStorage::ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int value){
+    cuda->UpdateDynamicMap({ center.x, center.y }, radius, value);
+}
+
 
 //! Craetes the influence map based on the size of the map.
 void MapStorage::CreateIM() {

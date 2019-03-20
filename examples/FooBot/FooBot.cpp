@@ -73,7 +73,8 @@ void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
 		this->enemy_units.push_back(new_unit);
 	}
 	else {
-		//kernel (FILIP)
+		//kernel launch
+		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
 	}
 }
 
@@ -87,7 +88,8 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 		}
 	}
 	else {
-		//kernel (FILIP)
+		//kernel launch
+		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, 0);
 	}
 
 	//Remove structure if destroyed
@@ -102,7 +104,8 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 		this->player_units.push_back(new_unit);
 	}
 	else {
-		//kernel (FILIP)
+		//kernel launch
+		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
 	}
 }
 
