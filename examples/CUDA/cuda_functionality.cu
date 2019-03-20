@@ -306,6 +306,8 @@ __host__ int CUDA::QueueDeviceJob(int owner_id, float* map){
 	for (int i = 0; i < PF_mem.size(); ++i) {
 		if (PF_mem.at(i).status == DeviceMemoryStatus::EMPTY) {
 			storage_found = i;
+			cudaEventDestroy(PF_mem.at(i).begin);	//destroy previous events
+			cudaEventDestroy(PF_mem.at(i).done);
 			break; 
 		}
 	}
@@ -316,7 +318,9 @@ __host__ int CUDA::QueueDeviceJob(int owner_id, float* map){
 		PF_mem.push_back(mem);
 	}
 
-	PF_mem.at(storage_found) = {owner_id, next_id, DeviceMemoryStatus::OCCUPIED, map, PF_mem.at(storage_found).device_map_ptr};
+	cudaEventCreate(&PF_mem.at(storage_found).begin);
+	cudaEventCreate(&PF_mem.at(storage_found).done);
+	PF_mem.at(storage_found) = { owner_id, next_id, DeviceMemoryStatus::OCCUPIED, PF_mem.at(storage_found).begin, PF_mem.at(storage_found).done, map, PF_mem.at(storage_found).device_map_ptr };
 	PF_queue.push(next_id);
 	next_id++;
 	
@@ -331,17 +335,22 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 	for (int i = 0; i < IM_mem.size(); ++i) {
 		if (IM_mem.at(i).status == DeviceMemoryStatus::EMPTY) {
 			storage_found = i;
+			cudaEventDestroy(IM_mem.at(i).begin);	//destroy previous events
+			cudaEventDestroy(IM_mem.at(i).done);
 			break;
 		}
 	}
 	if (storage_found == -1) {
 		storage_found = IM_mem.size();
 		InfluenceMapMemory mem;
-		cudaMalloc3D(&mem.device_map_ptr, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
+		cudaMalloc3D(&mem.device_map_ptr, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//alloc new device mem
 		IM_mem.push_back(mem);
 	}
 
-	IM_mem.at(storage_found) = { destination, air_path, next_id, DeviceMemoryStatus::OCCUPIED, map, IM_mem.at(storage_found).device_map_ptr };
+
+	cudaEventCreate(&IM_mem.at(storage_found).begin);	//creante new events
+	cudaEventCreate(&IM_mem.at(storage_found).done);
+	IM_mem.at(storage_found) = { destination, air_path, next_id, DeviceMemoryStatus::OCCUPIED, IM_mem.at(storage_found).begin, IM_mem.at(storage_found).done, map, IM_mem.at(storage_found).device_map_ptr };
 	PF_queue.push(next_id);
 	next_id++;
 
@@ -359,22 +368,25 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	//start PF-attracting jobs
 	for (int i = 0; i < std::min((int)PF_queue.size(), 5); ++i) {
 		AttractingFieldMemory* mem = &PF_mem.at(PF_queue.front());
+		cudaEventRecord(mem->begin);
 		AttractingPFGeneration(mem->owner_id, (float(*)[MAP_Y_R][1])mem->map, mem->device_map_ptr);
+		cudaEventRecord(mem->done);
 		mem->status = DeviceMemoryStatus::BUSY;
 		PF_queue.pop();
 	}
 
 	//start IM job
 	InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
+	cudaEventRecord(mem->begin);
 	IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
-
+	cudaEventRecord(mem->done);
 	PopErrorsCheck();
 
 	return Result::OK;
 }
 
 __host__ Result CUDA::TransferMapToHost(int id){
-	//SE TIL LATT DEN *KAN* SKICKAS
+	//SE TILL ATT DEN *KAN* SKICKAS
 
 	DeviceMemoryStatus* status;
 	float* map;
@@ -433,6 +445,52 @@ __host__ Result CUDA::TransferMapToHost(int id){
 
 	return Result::OK;
 }
+
+__host__ DeviceMemoryStatus CUDA::CheckJobStatus(int id){
+	for (int i = 0; i < IM_mem.size(); ++i) {
+		if (IM_mem.at(i).queue_id == id) {
+			return CheckJobStatus(&IM_mem.at(i));
+		}
+	}
+	for (int i = 0; i < PF_mem.size(); ++i) {
+		if (PF_mem.at(i).queue_id == id) {
+			return CheckJobStatus(&PF_mem.at(i));
+		}
+	}
+}
+
+__host__ DeviceMemoryStatus CUDA::CheckJobStatus(AttractingFieldMemory* mem){
+	if (mem->status == DeviceMemoryStatus::EMPTY) {
+		return DeviceMemoryStatus::EMPTY;
+	}
+	if (cudaEventQuery(mem->done) == cudaSuccess) {
+		mem->status == DeviceMemoryStatus::DONE;
+		return DeviceMemoryStatus::DONE;
+	}
+	if (cudaEventQuery(mem->begin) == cudaSuccess) {
+		mem->status == DeviceMemoryStatus::BUSY;
+		return DeviceMemoryStatus::BUSY;
+	}
+
+	return DeviceMemoryStatus::OCCUPIED;
+}
+
+__host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
+	if (mem->status == DeviceMemoryStatus::EMPTY) {
+		return DeviceMemoryStatus::EMPTY;
+	}
+	if (cudaEventQuery(mem->done) == cudaSuccess) {
+		mem->status == DeviceMemoryStatus::DONE;
+		return DeviceMemoryStatus::DONE;
+	}
+	if (cudaEventQuery(mem->begin) == cudaSuccess) {
+		mem->status == DeviceMemoryStatus::BUSY;
+		return DeviceMemoryStatus::BUSY;
+	}
+
+	return DeviceMemoryStatus::OCCUPIED;
+}
+
 
 /*KERNAL LAUNCHES START*/
 
