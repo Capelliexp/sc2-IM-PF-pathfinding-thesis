@@ -162,7 +162,7 @@ class CUDA {
 public:
 	__host__ CUDA();
 	__host__ ~CUDA();
-
+	
 	//Initialization (requires cleanup)
 	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float ground_PF[][MAP_Y_R][1], float air_PF[][MAP_Y_R][1]);
 	__host__ void PrintGenInfo();
@@ -196,8 +196,10 @@ public:
 	__host__ void SetRadiusForUnits(std::vector<float> radius);
 	__host__ void SetIsFlyingForUnits(std::vector<bool> is_flying);
 	__host__ int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
+	__host__ int GetUnitIDInHostUnitVec(sc2::UnitTypeID unit_id);
 	__host__ int GetSizeOfUnitInfoList();
 	__host__ int TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id);
+	__host__ void SetHostUnitList(std::vector<Entity>& host_unit_list);
 
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);

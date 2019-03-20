@@ -48,27 +48,41 @@ private:
     //! Function to set destination for the given units and the behavior.
     void SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
     //! Function to set destination for the given units and the behavior.
-    void SetDestination(std::vector<FooBot::Unit> units_vec, sc2::Point2D pos, behaviors type_of_movement);
+    void SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit);
     void SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior);
+    void SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID behavior);
 
     //! Function to update all units.
     void UpdateUnitsPaths();
+
+    void CreatePFs();
+    void UpdateHostUnitList();
 
     void CommandsOnEmpty50();
     void CommandsOnEmpty200();
     void CommandsOnHeight();
     void CommandsOnLabyrinth();
     void CommandsOnWall();
+    void CommandsOnEmpty20();
+    void CommandsOnSpiral50();
 
     bool CheckIfUnitsSpawned(int amount, std::vector<sc2::UnitTypeID> types);
+
+    //! Function that is used to check if a given unit is a structure.
+    //!< \param unit The unit to be checked.
+    //!< \return Returns true if the unit is a structure, false otherwise.
+    bool IsStructure(const sc2::Unit* unit);
+
+    void printValues(int unit, sc2::Point2D pos);
 
 private:
     MapStorage* map_storage;
     clock_t step_clock;
     ChatCommands* chat_commands;
-
+    std::vector<Entity> host_unit_list;
     //! A vector of units
-    std::vector<FooBot::Unit> units;
+    std::vector<FooBot::Unit> player_units;
+    std::vector<FooBot::Unit> enemy_units;
     //! Integer that represents the map.
     int map;
     //! Integer that represents the current command.
@@ -76,7 +90,8 @@ private:
     bool spawn_all_units;
     //! Bool indicating if the command can spawn units.
     bool spawn_units;
-    int spawned_units;
+    int spawned_player_units;
+    int spawned_enemy_units;
     bool get_radius = true;
     uint32_t restarts_;
 };
