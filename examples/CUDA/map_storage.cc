@@ -366,31 +366,17 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
 
 //! Craetes the influence map based on the size of the map.
 void MapStorage::CreateIM() {
-    std::string IM = observation->GetGameInfo().pathing_grid.data;    //here
-    //The multiplication is done due to that the returned pathing grid is the wrong size. It is the same size as placement grid.
-    /*width = observation->GetGameInfo().pathing_grid.width * GRID_DIVISION;
-    height = observation->GetGameInfo().pathing_grid.height * GRID_DIVISION;*/
-
-    //InfluenceMap = std::vector<float>(width*height);
-
-    //Fill a 8x8 cube with the same value
-    for (int i = 0; i < MAP_Y; ++i)
-    {
+    std::string IM = observation->GetGameInfo().pathing_grid.data;
+    //Fill a 8x8 cube with the same value or what GRID_DIVISION have for value, max 8x8
+    for (int i = 0; i < MAP_Y; ++i) {
         int iP = i * GRID_DIVISION;
-        for (int j = 0; j < MAP_X; ++j)
-        {
+        for (int j = 0; j < MAP_X; ++j) {
             int jP = j * GRID_DIVISION;
-            for (int y = 0; y < GRID_DIVISION; ++y)
-            {
+            for (int y = 0; y < GRID_DIVISION; ++y) {
                 int yp = (y + iP);
-                for (int x = 0; x < GRID_DIVISION; ++x)
-                {
+                for (int x = 0; x < GRID_DIVISION; ++x) {
                     int xp = x + jP;
-                    //InfluenceMap[xp + yp] = (IM[j + i * width / GRID_DIVISION] == -1) ? 0 : 1;
-                    dynamic_terrain[yp][xp][0] = (IM[j + i * MAP_X] == -1) ? 0 : 1;
-                    //dynamic_terrain[xp][MAP_Y_R - yp][0] = (IM[j + i * MAP_X] == -1) ? 0 : 1;
-                    //dynamic_terrain[yp][xp][0] = xp + yp*10;
-                    //Should maybe xp + yp * map_x
+                    dynamic_terrain[xp][yp][0] = (IM[i + j * MAP_X] == -1) ? 0 : 1;
                 }
             }
         }
