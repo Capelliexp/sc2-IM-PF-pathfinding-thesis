@@ -225,7 +225,7 @@ void FooBot::SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID b
 void FooBot::UpdateUnitsPaths() {
 	for (int i = 0; i < player_units.size(); ++i) {
 		if (player_units[i].destination == nullptr) continue;		//No destination set
-		if (player_units[i].destination->map == nullptr) continue;	//No destination ready to be used
+		if (player_units[i].destination->map[0][0][0] == -107374176) continue;	//No destination ready to be used
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;

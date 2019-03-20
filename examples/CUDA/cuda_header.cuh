@@ -118,7 +118,8 @@ typedef enum {
 	BUSY,
 	OCCUPIED,
 	DONE,
-	EMPTY
+	EMPTY,
+	UNKNOWN
 } DeviceMemoryStatus;
 
 typedef enum {
@@ -141,6 +142,7 @@ typedef struct {
 	bool air_path;
 	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
+	bool started;
 	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
@@ -203,7 +205,7 @@ public:
 	__host__ int GetSizeOfUnitInfoList();
 	__host__ int TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id);
 	__host__ void SetHostUnitList(std::vector<Entity>& host_unit_list);
-
+	
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
 	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map);

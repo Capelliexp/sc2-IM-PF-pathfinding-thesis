@@ -101,19 +101,19 @@ __host__ void CUDA::DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]) {
 	TransferUnitLookupToDevice();
 	TransferUnitsToDevice();
 
-	Check(cudaPeekAtLastError(), "init check 5", true);
+	Check(cudaPeekAtLastError(), "init check 5");
 }
 
 __host__ void CUDA::Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
 	//tests
 	//TestLookupTable();
-	Check(cudaPeekAtLastError(), "init check 6a", true);
+	Check(cudaPeekAtLastError(), "init check 6a");
 
 	//Test3DArrayUsage();
-	Check(cudaPeekAtLastError(), "init check 6b", true);
+	Check(cudaPeekAtLastError(), "init check 6b");
 
 	RepellingPFGeneration(ground_avoidance_PF, air_avoidance_PF);
-	Check(cudaPeekAtLastError(), "init check 6c", true);
+	Check(cudaPeekAtLastError(), "init check 6c");
 }
 
 __host__ const sc2::ObservationInterface* CUDA::GetObservation(){
@@ -207,23 +207,20 @@ __host__ void CUDA::CreateUnitLookupOnHost(std::string file){
 __host__ void CUDA::TransferStaticMapToHost(){}
 
 __host__ void CUDA::TransferUnitLookupToDevice(){
-	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host.data(), device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "lookup_memcpy", true);
-	Check(cudaMemcpyToSymbol(device_unit_lookup, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "lookup_symbol_memcpy", true);
-	std::cout << "device_unit_lookup array transfered to device" << std::endl;
-
-	 //TestLookupTable();
+	Check(cudaMemcpy(unit_lookup_device_pointer, device_unit_lookup_on_host.data(), device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice), cudaMemcpyHostToDevice), "lookup_memcpy");
+	Check(cudaMemcpyToSymbol(device_unit_lookup, &unit_lookup_device_pointer, sizeof(UnitInfoDevice*)), "lookup_symbol_memcpy");
 }
 
 __host__ void CUDA::AllocateDeviceMemory(){
 	//cudaMalloc3D(&static_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//static map
 	cudaMalloc3D(&dynamic_map_device_pointer, cudaExtent{ MAP_X_R * sizeof(bool), MAP_Y_R, 1 });	//dynamic map
-	Check(cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice)), "lookup alloc", true);	//lookup table (global on device)
+	Check(cudaMalloc(&unit_lookup_device_pointer, device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice)), "lookup alloc");	//lookup table (global on device)
 	cudaMalloc((void**)&device_unit_list_pointer, unit_list_max_length * sizeof(Entity));	//unit list (might extend size during runtime)
 	cudaMalloc3D(&repelling_pf_ground_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling on ground
 	cudaMalloc3D(&repelling_pf_air_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling in air
-	Check(cudaMalloc((void**)&global_memory_im_list_storage, 256000000 * sizeof(list_double_entry)), "big AF allocation", true);	//big AF list for A* open/closed list
+	Check(cudaMalloc((void**)&global_memory_im_list_storage, 256000000 * sizeof(list_double_entry)), "big AF allocation");	//big AF list for A* open/closed list
 
-	Check(cudaPeekAtLastError(), "cuda allocation peek", true);
+	Check(cudaPeekAtLastError(), "cuda allocation peek");
 }
 
 __host__ void CUDA::TransferUnitsToDevice() {
@@ -288,8 +285,8 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 	for (int i = 0; i < IM_mem.size(); ++i) {
 		if (IM_mem.at(i).status == DeviceMemoryStatus::EMPTY) {
 			storage_found = i;
-			cudaEventDestroy(IM_mem.at(i).begin);	//destroy previous events
-			cudaEventDestroy(IM_mem.at(i).done);
+			Check(cudaEventDestroy(IM_mem.at(i).begin), "event begin reset");	//destroy previous events
+			Check(cudaEventDestroy(IM_mem.at(i).done), "event done reset");
 			break;
 		}
 	}
@@ -300,11 +297,12 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 		IM_mem.push_back(mem);
 	}
 
-
-	cudaEventCreate(&IM_mem.at(storage_found).begin);	//creante new events
-	cudaEventCreate(&IM_mem.at(storage_found).done);
-	IM_mem.at(storage_found) = { destination, air_path, next_id, DeviceMemoryStatus::OCCUPIED, IM_mem.at(storage_found).begin, IM_mem.at(storage_found).done, map, IM_mem.at(storage_found).device_map_ptr };
-	PF_queue.push(next_id);
+	Check(cudaEventCreate(&IM_mem.at(storage_found).create, cudaEventDisableTiming), "event begin create");	//creante new events
+	Check(cudaEventCreate(&IM_mem.at(storage_found).begin, cudaEventDisableTiming), "event begin create");
+	Check(cudaEventCreate(&IM_mem.at(storage_found).done, cudaEventDisableTiming), "event done create");
+	IM_mem.at(storage_found) = { destination, air_path, next_id, DeviceMemoryStatus::OCCUPIED, IM_mem.at(storage_found).create, IM_mem.at(storage_found).begin, IM_mem.at(storage_found).done, map, IM_mem.at(storage_found).device_map_ptr };
+	cudaEventRecord(IM_mem.at(storage_found).create);
+	IM_queue.push(next_id);
 	next_id++;
 
 	PopErrorsCheck();
@@ -321,9 +319,9 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	//start PF-attracting jobs
 	for (int i = 0; i < std::min((int)PF_queue.size(), 5); ++i) {
 		AttractingFieldMemory* mem = &PF_mem.at(PF_queue.front());
-		cudaEventRecord(mem->begin);
+		cudaEventRecord(mem->begin, 0);
 		AttractingPFGeneration(mem->owner_id, (float(*)[MAP_Y_R][1])mem->map, mem->device_map_ptr);
-		cudaEventRecord(mem->done);
+		cudaEventRecord(mem->done, 0);
 		mem->status = DeviceMemoryStatus::BUSY;
 		PF_queue.pop();
 	}
@@ -331,9 +329,10 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	//start IM job
 	if (IM_queue.size() > 0) {
 		InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
-		cudaEventRecord(mem->begin);
+		cudaEventRecord(mem->begin, 0);
 		IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
-		cudaEventRecord(mem->done);
+		cudaEventRecord(mem->done, 0);
+		IM_queue.pop();
 	}
 	PopErrorsCheck();
 
@@ -341,8 +340,6 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 }
 
 __host__ Result CUDA::TransferMapToHost(int id){
-	//SE TILL ATT DEN *KAN* SKICKAS
-
 	DeviceMemoryStatus* status;
 	float* map;
 	cudaPitchedPtr map_ptr;
@@ -350,6 +347,7 @@ __host__ Result CUDA::TransferMapToHost(int id){
 
 	for (int i = 0; i < IM_mem.size(); ++i) {
 		if (IM_mem.at(i).queue_id == id) {
+			IM_mem.at(i).status = CheckJobStatus(&IM_mem.at(i));
 			status = &IM_mem.at(i).status;
 			map = IM_mem.at(i).map;
 			map_ptr = IM_mem.at(i).device_map_ptr;
@@ -360,6 +358,7 @@ __host__ Result CUDA::TransferMapToHost(int id){
 	if (!found) {
 		for (int i = 0; i < PF_mem.size(); ++i) {
 			if (PF_mem.at(i).queue_id == id) {
+				PF_mem.at(i).status = CheckJobStatus(&PF_mem.at(i));
 				status = &PF_mem.at(i).status;
 				map = PF_mem.at(i).map;
 				map_ptr = PF_mem.at(i).device_map_ptr;
@@ -369,8 +368,12 @@ __host__ Result CUDA::TransferMapToHost(int id){
 		}
 	}
 
-	if (!found) {
+	if (!found || *status == DeviceMemoryStatus::EMPTY || *status == DeviceMemoryStatus::UNKNOWN) {
 		return Result::BAD_ARG;
+	}
+
+	if (*status == DeviceMemoryStatus::BUSY || *status == DeviceMemoryStatus::OCCUPIED) {
+		return Result::BAD_RES;
 	}
 
 	cudaMemcpy3DParms par = { 0 };
@@ -412,6 +415,8 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(int id){
 			return CheckJobStatus(&PF_mem.at(i));
 		}
 	}
+
+	return DeviceMemoryStatus::UNKNOWN;
 }
 
 __host__ DeviceMemoryStatus CUDA::CheckJobStatus(AttractingFieldMemory* mem){
@@ -431,16 +436,22 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(AttractingFieldMemory* mem){
 }
 
 __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
-	if (mem->status == DeviceMemoryStatus::EMPTY) {
-		return DeviceMemoryStatus::EMPTY;
-	}
-	if (cudaEventQuery(mem->done) == cudaSuccess) {
-		mem->status == DeviceMemoryStatus::DONE;
-		return DeviceMemoryStatus::DONE;
-	}
-	if (cudaEventQuery(mem->begin) == cudaSuccess) {
-		mem->status == DeviceMemoryStatus::BUSY;
-		return DeviceMemoryStatus::BUSY;
+	cudaError_t a = cudaEventQuery(mem->create);
+	cudaError_t b = cudaEventQuery(mem->begin);
+	cudaError_t c = cudaEventQuery(mem->done);
+
+	if (cudaEventQuery(mem->create) == cudaSuccess) {
+		if (mem->status == DeviceMemoryStatus::EMPTY) {
+			return DeviceMemoryStatus::EMPTY;
+		}
+		if (cudaEventQuery(mem->done) == cudaSuccess) {
+			mem->status == DeviceMemoryStatus::DONE;
+			return DeviceMemoryStatus::DONE;
+		}
+		if (cudaEventQuery(mem->begin) == cudaSuccess) {
+			mem->status == DeviceMemoryStatus::BUSY;
+			return DeviceMemoryStatus::BUSY;
+		}
 	}
 
 	return DeviceMemoryStatus::OCCUPIED;
@@ -451,8 +462,10 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 
 __host__ void CUDA::RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
 	if (host_unit_list.size() > 0) {
+		cudaDeviceSynchronize();
 		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
 			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+		cudaDeviceSynchronize();
 	}
 
 	/*cudaMemcpy3DParms par = { 0 };
@@ -487,9 +500,10 @@ __host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_
 
 	//cudaPitchedPtr device_map;
 	//cudaMalloc3D(&device_map, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });
-
+	cudaDeviceSynchronize();
 	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
 		(device_unit_list_pointer, host_unit_list.size(), owner_type_id, device_map);
+	cudaDeviceSynchronize();
 
 	/*cudaMemcpy3DParms par = { 0 };
 	par.srcPtr.ptr = device_map.ptr;
@@ -520,6 +534,7 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 
 	IntPoint2D destination_R = {destination.x * GRID_DIVISION, destination.y * GRID_DIVISION};*/
 
+	cudaDeviceSynchronize();
 	if (!air_path) {
 		DeviceGroundIMGeneration <<<dim_grid_low, dim_block_low>>>
 			(destination, device_map, dynamic_map_device_pointer, global_memory_im_list_storage);
@@ -527,6 +542,7 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 	else {
 		DeviceAirIMGeneration <<<dim_grid_low, dim_block_high>>> (destination, device_map);
 	}
+	cudaDeviceSynchronize();
 
 	/*Check(cudaPeekAtLastError(), "IM generation peek 1", true);
 	Check(cudaDeviceSynchronize(), "IM generation sync", true);
@@ -556,8 +572,11 @@ __host__ void CUDA::UpdateDynamicMap(IntPoint2D center, float radius, int value)
 	IntPoint2D top_left = { center.x - radius - 1, center.y - radius - 1};
 	IntPoint2D bottom_right = { center.x + radius + 1, center.y + radius + 1};
 
+	cudaDeviceSynchronize();
 	DeviceUpdateDynamicMap <<< {((bottom_right.x - top_left.x) / dim_block_high.x) + 1, ((bottom_right.y - top_left.y) / dim_block_high.y) + 1, 1},
 		dim_block_high >> > (top_left, bottom_right, center, radius, value, dynamic_map_device_pointer);
+	cudaDeviceSynchronize();
+
 }
 
 __host__ void CUDA::TestLookupTable() {

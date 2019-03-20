@@ -333,7 +333,7 @@ void MapStorage::TransferIMFromDevice() {
 }
 
 void MapStorage::ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int value){
-    cuda->UpdateDynamicMap({ center.x, center.y }, radius, value);
+    cuda->UpdateDynamicMap({ (integer)center.x, (integer)center.y }, radius, value);
 }
 
 
