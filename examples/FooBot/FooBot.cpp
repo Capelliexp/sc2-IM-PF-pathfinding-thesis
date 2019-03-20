@@ -72,16 +72,24 @@ void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
 		new_unit.behavior = behaviors::PASSIVE;
 		this->enemy_units.push_back(new_unit);
 	}
+	else {
+		//kernel (FILIP)
+	}
 }
 
 void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
-	//Delete unit if it died
-	for (int i = 0; i < player_units.size(); ++i) {
-		if (player_units[i].unit == unit) {
-			player_units.erase(player_units.begin() + i);
-			return;
+	if (!IsStructure(unit)) {
+		for (int i = 0; i < player_units.size(); ++i) {
+			if (player_units[i].unit == unit) {
+				player_units.erase(player_units.begin() + i);
+				return;
+			}
 		}
 	}
+	else {
+		//kernel (FILIP)
+	}
+
 	//Remove structure if destroyed
 	//Remove structure from IMs
 }
@@ -92,6 +100,9 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 		new_unit.unit = unit;
 		new_unit.behavior = behaviors::DEFENCE;
 		this->player_units.push_back(new_unit);
+	}
+	else {
+		//kernel (FILIP)
 	}
 }
 

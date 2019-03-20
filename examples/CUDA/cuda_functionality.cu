@@ -374,6 +374,8 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 }
 
 __host__ Result CUDA::TransferMapToHost(int id){
+	//SE TIL LATT DEN *KAN* SKICKAS
+
 	DeviceMemoryStatus* status;
 	float* map;
 	cudaPitchedPtr map_ptr;
@@ -507,10 +509,10 @@ __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1]
 
 	if (!air_path) {
 		DeviceGroundIMGeneration <<<dim_grid_low, dim_block_low>>>
-			(destination_R, device_map, dynamic_map_device_pointer, global_memory_im_list_storage);
+			(destination, device_map, dynamic_map_device_pointer, global_memory_im_list_storage);
 	}
 	else {
-		DeviceAirIMGeneration <<<dim_grid_low, dim_block_high>>> (destination_R, device_map);
+		DeviceAirIMGeneration <<<dim_grid_low, dim_block_high>>> (destination, device_map);
 	}
 
 	/*Check(cudaPeekAtLastError(), "IM generation peek 1", true);
