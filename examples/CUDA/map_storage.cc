@@ -309,7 +309,7 @@ void MapStorage::CreateUnitLookUpTable() {
 //    PrintStatus("File closed");
 //}
 
-Destination_IM & MapStorage::GetGroundDestination(sc2::Point2D pos) {
+Destination_IM & MapStorage::RequestGroundDestination(sc2::Point2D pos) {
     for (auto& dest : destinations_ground_IM) {
         if (dest.destination == pos)
             return dest;
@@ -318,15 +318,11 @@ Destination_IM & MapStorage::GetGroundDestination(sc2::Point2D pos) {
     destinations_ground_IM.push_back(map);
     destinations_ground_IM.back().destination = pos;
     destinations_ground_IM.back().air_path = false;
-    cuda->IMGeneration(IntPoint2D{ (integer)pos.x, (integer)pos.y }, destinations_ground_IM.back().map, false);
-    
-    PrintMap(destinations_ground_IM.back().map, MAP_X_R, MAP_Y_R, "IM");
-    CreateImage(destinations_ground_IM.back().map, MAP_X_R, MAP_Y_R, colors::GREEN);
-    PrintImage("res.png", MAP_X_R, MAP_Y_R);
+    requested_maps.push_back(cuda->QueueDeviceJob({ pos.x, pos.y }, false, (float*)destinations_ground_IM.back().map));
     return destinations_ground_IM.back();
 }
 
-Destination_IM & MapStorage::GetAirDestination(sc2::Point2D pos) {
+Destination_IM & MapStorage::RequestAirDestination(sc2::Point2D pos) {
     for (Destination_IM dest : destinations_air_IM) {
         if (dest.destination == pos)
             return dest;
@@ -334,11 +330,7 @@ Destination_IM & MapStorage::GetAirDestination(sc2::Point2D pos) {
     destinations_air_IM.push_back({});
     destinations_air_IM.back().destination = pos;
     destinations_air_IM.back().air_path = true;
-    cuda->IMGeneration(IntPoint2D{ (integer)pos.x, (integer)pos.y }, destinations_air_IM.back().map, true);
-
-    PrintMap(destinations_air_IM.back().map, MAP_X_R, MAP_Y_R, "IM_air");
-    CreateImage(destinations_air_IM.back().map, MAP_X_R, MAP_Y_R, colors::GREEN);
-    PrintImage("res_air.png", MAP_X_R, MAP_Y_R);
+    requested_maps.push_back(cuda->QueueDeviceJob({ pos.x, pos.y }, true, (float*)destinations_air_IM.back().map));
     return destinations_air_IM.back();
 }
 
@@ -352,7 +344,7 @@ float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
 
 void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
     attracting_PFs.push_back({});
-    cuda->AttractingPFGeneration(cuda->GetUnitIDInHostUnitVec(unit_id), attracting_PFs.back().map);
+    requested_maps.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));
 }
 
 

@@ -76,12 +76,12 @@ public:
 	//! Will create IM if needed.
 	//!< \param pos sc2::Point2D the position to create an IM to.
 	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
-	Destination_IM& GetGroundDestination(sc2::Point2D pos);
+	Destination_IM& RequestGroundDestination(sc2::Point2D pos);
 	//! Functions to get IM destination for air.
 	//! Will create IM if needed.
 	//!< \param pos sc2::Point2D the position to create an IM to.
 	//!< \return Returns a reference to the IM, will return nullptr if something went wrong.
-	Destination_IM& GetAirDestination(sc2::Point2D pos);
+	Destination_IM& RequestAirDestination(sc2::Point2D pos);
 
 	void SetEntityVector(std::vector<Entity>& host_unit_list);
 	
@@ -198,6 +198,8 @@ private:
 	float max_value;
 	bool update_terrain;
 
+	std::vector<int> requested_maps;
+
 	void RequestIM(sc2::Point2DI pos, bool air_path);
 	void RequestPF(sc2::UnitTypeID sc2_unit_id);
 
@@ -207,17 +209,6 @@ private:
 	std::vector<int> requested_IM;
 
 	//---------------
-
-	////! Width of map
-	//int map_x;
-	////! Height of map
-	//int map_y;
-	////! Pathing grid is 8 time larger than what is returned from API. Specifies how much we subdivide the grid.
-	//int grid_division;
-	////! Map width that is multiplied with pathingGridSize to get actual width of the pathfinding grid
-	//int map_x_r;
-	////! Map height that is multiplied with pathingGridSize to get actual height of the pathfinding grid
-	//int map_y_r;
 	
 	int kFeatureLayerSize;
 	int kPixelDrawSize;

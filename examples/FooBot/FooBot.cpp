@@ -178,13 +178,13 @@ void FooBot::SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D p
 	if (air_unit) {
 		for (int i = 0; i < units_vec.size(); ++i) {
 			units_vec[i].behavior = type_of_movement;
-			units_vec[i].destination = &map_storage->GetAirDestination(pos);
+			units_vec[i].destination = &map_storage->RequestAirDestination(pos);
 		}
 	}
 	else {
 		for (int i = 0; i < units_vec.size(); ++i) {
 			units_vec[i].behavior = type_of_movement;
-			units_vec[i].destination = &map_storage->GetGroundDestination(pos);
+			units_vec[i].destination = &map_storage->RequestGroundDestination(pos);
 		}
 	}
 	
@@ -203,7 +203,8 @@ void FooBot::SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID b
 //NOTE!!!! x- and y-coordinates are fliped.
 void FooBot::UpdateUnitsPaths() {
 	for (int i = 0; i < player_units.size(); ++i) {
-		if (player_units[i].destination == nullptr) continue;	//No destination to go to
+		if (player_units[i].destination == nullptr) continue;		//No destination set
+		if (player_units[i].destination->map == nullptr) continue;	//No destination ready to be used
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;
