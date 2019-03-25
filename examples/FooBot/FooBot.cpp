@@ -38,23 +38,41 @@ void FooBot::OnGameStart() {
 
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
+	//Messages from chat
 	std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
 	if (in_messages.size() > 0 && command == 0)
 		command = chat_commands->ParseCommands(in_messages[0].message);
+
+
+	//Map transfer PF a/r
+	map_storage->TransferPFFromDevice();
+
+	//Set destination
 	ExecuteCommand();
-	UpdateUnitsPaths();
+
+	//Unit transfer
 	UpdateHostUnitList();
-	map_storage->Update(clock() - step_clock);
+
+	//Pathfinding
+	UpdateUnitsPaths();
+
+	//Map transfer IM
+	map_storage->TransferIMFromDevice();
+
+	//Start IM
+	//Start PF a/r
+	CreateAttractingPFs();
+	map_storage->ExecuteDeviceJobs();
+
+
 
 	Actions()->SendActions();
-	step_clock = clock();
 
 	if (spawn_all_units)
 		if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
 			GatherRadius();
 			get_radius = false;
 		}
-	CreatePFs();
 }
 
 void FooBot::OnGameEnd() {
@@ -72,16 +90,26 @@ void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
 		new_unit.behavior = behaviors::PASSIVE;
 		this->enemy_units.push_back(new_unit);
 	}
+	else {
+		//kernel launch
+		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
+	}
 }
 
 void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
-	//Delete unit if it died
-	for (int i = 0; i < player_units.size(); ++i) {
-		if (player_units[i].unit == unit) {
-			player_units.erase(player_units.begin() + i);
-			return;
+	if (!IsStructure(unit)) {
+		for (int i = 0; i < player_units.size(); ++i) {
+			if (player_units[i].unit == unit) {
+				player_units.erase(player_units.begin() + i);
+				return;
+			}
 		}
 	}
+	else {
+		//kernel launch
+		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, 0);
+	}
+
 	//Remove structure if destroyed
 	//Remove structure from IMs
 }
@@ -92,6 +120,10 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 		new_unit.unit = unit;
 		new_unit.behavior = behaviors::DEFENCE;
 		this->player_units.push_back(new_unit);
+	}
+	else {
+		//kernel launch
+		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
 	}
 }
 
@@ -167,13 +199,13 @@ void FooBot::SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D p
 	if (air_unit) {
 		for (int i = 0; i < units_vec.size(); ++i) {
 			units_vec[i].behavior = type_of_movement;
-			units_vec[i].destination = &map_storage->GetAirDestination(pos);
+			units_vec[i].destination = &map_storage->RequestAirDestination(pos);
 		}
 	}
 	else {
 		for (int i = 0; i < units_vec.size(); ++i) {
 			units_vec[i].behavior = type_of_movement;
-			units_vec[i].destination = &map_storage->GetGroundDestination(pos);
+			units_vec[i].destination = &map_storage->RequestGroundDestination(pos);
 		}
 	}
 	
@@ -192,7 +224,9 @@ void FooBot::SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID b
 //NOTE!!!! x- and y-coordinates are fliped.
 void FooBot::UpdateUnitsPaths() {
 	for (int i = 0; i < player_units.size(); ++i) {
-		if (player_units[i].destination == nullptr) continue;	//No destination to go to
+		if (player_units[i].destination == nullptr) continue;		//No destination set
+		if (player_units[i].destination->map[0][0][0] == -107374176) continue;	//No destination ready to be used
+		//if (is not transfered... ) continue (new cuda event)
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;
@@ -250,9 +284,9 @@ void FooBot::UpdateUnitsPaths() {
 
 void FooBot::printValues(int unit, sc2::Point2D pos) {
 	sc2::Point3D pp = player_units[unit].unit->pos;
-	pp.z += 0.1;
+	pp.z += 0.1f;
 	sc2::Point3D p = { pos.x, pos.y, player_units[unit].unit->pos.z };
-	p.z += 0.1;
+	p.z += 0.1f;
 	for (int i = -5; i <= 5; ++i) {
 		for (int j = -5; j <= 5; ++j) {
 			if (p.x < MAP_X_R && p.y < MAP_Y_R && p.x >= 0 && p.y >= 0) {
@@ -265,23 +299,25 @@ void FooBot::printValues(int unit, sc2::Point2D pos) {
 	}
 }
 
-void FooBot::CreatePFs() {
-	host_unit_list.clear();
+void FooBot::CreateAttractingPFs() {
 	std::map<int, int> player_unit_types;
 	for (int i = 0; i < player_units.size(); ++i) {
-		std::map<int, int>::iterator iter = player_unit_types.find(player_units[i].unit->unit_type);
-		if (iter == player_unit_types.end())
-			player_unit_types[map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type)] = 1;
-		else
-			iter->second += 1;
+		if (player_units[i].behavior == behaviors::ATTACK) {
+			std::map<int, int>::iterator iter = player_unit_types.find(player_units[i].unit->unit_type);
+			if (iter == player_unit_types.end())
+				player_unit_types[map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type)] = 1;
+			else
+				iter->second += 1;
+		}
 	}
-	//s�g till map_storage att ett specifikt antal PFs ska g�ras. Anv�nd player_unit_types f�r detta.
-	//for (auto& unit : player_unit_types)
-		//map_storage->CreateAttractingPF(unit.first);
+	//säg till map_storage att ett specifikt antal PFs ska göras. Använd player_unit_types för detta.
+	for (auto& unit : player_unit_types)
+		map_storage->CreateAttractingPF(unit.first);
 
 }
 
 void FooBot::UpdateHostUnitList() {
+	host_unit_list.clear();
 	for (int i = 0; i < player_units.size(); ++i) {
 		Entity ent;
 		ent.id = map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type);
@@ -296,7 +332,7 @@ void FooBot::UpdateHostUnitList() {
 		ent.enemy = true;
 		host_unit_list.push_back(ent);
 	}
-	map_storage->SetEntityVector(host_unit_list);
+	map_storage->UpdateEntityVector(host_unit_list);
 }
 
 void FooBot::CommandsOnEmpty50() {
