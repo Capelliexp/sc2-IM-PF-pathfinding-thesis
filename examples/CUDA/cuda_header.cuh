@@ -132,6 +132,7 @@ typedef struct {
 	int owner_id;	//how map_storage identifies the map
 	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
+	bool initialized;
 	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
@@ -142,7 +143,7 @@ typedef struct {
 	bool air_path;
 	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
-	bool started;
+	bool initialized;
 	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
