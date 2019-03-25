@@ -555,14 +555,15 @@ void FooBot::CommandsOnEmpty200() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units / 2, sc2::Point2D(195));
 		}
 		else if (player_units.size() == spawned_player_units) {
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(195), sc2::ABILITY_ID::MOVE, sc2::Point2D(3), sc2::Point2D(8));
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(5), sc2::ABILITY_ID::MOVE, sc2::Point2D(193), sc2::Point2D(198));
-			spawn_units = true;
+			SetDestination(player_units, sc2::Point2D(195), behaviors::DEFENCE, false, sc2::Point2D(3), sc2::Point2D(8));
+			SetDestination(player_units, sc2::Point2D(5), behaviors::DEFENCE, false, sc2::Point2D(193), sc2::Point2D(198));
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	default:
-		spawn_units = true;
+		spawned_player_units = 0;
+		spawned_enemy_units = 0;
 		command = 0;
 		break;
 	}
