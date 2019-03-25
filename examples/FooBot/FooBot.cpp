@@ -636,52 +636,57 @@ void FooBot::CommandsOnHeight() {
 void FooBot::CommandsOnLabyrinth() {
 	switch (command) {
 	case 1:
-		if (spawn_units) {
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(50));
-			spawn_units = false;
+		if (spawned_player_units == 0) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(50));
 		}
-		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(95), sc2::ABILITY_ID::MOVE);
-			spawn_units = true;
+		else if (player_units.size() == spawned_player_units) {
+			SetDestination(player_units, sc2::Point2D(95), behaviors::PASSIVE, false);
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	case 2:
-		if (spawn_units) {
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(95));
+		if (spawned_player_units == 0) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(95));
 			spawn_units = false;
 		}
-		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(50), sc2::ABILITY_ID::MOVE);
-			spawn_units = true;
+		else if (player_units.size() == spawned_player_units) {
+			SetDestination(player_units, sc2::Point2D(50), behaviors::PASSIVE, false);
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	case 3:
-		if (spawn_units) {
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5));
+		if (spawned_player_units == 0 && spawned_enemy_units == 0) {
+			spawned_player_units = 0;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5));
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(18, 40), 2);
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(28, 25), 2);
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(75, 16), 2);
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(75, 50), 2);
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(55, 60), 2);
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(20, 14), 2);
-			spawn_units = false;
+			spawned_enemy_units = 6;
 		}
-		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(95), sc2::ABILITY_ID::MOVE);
+		else if (player_units.size() == spawned_player_units) {
+			SetDestination(player_units, sc2::Point2D(95), behaviors::DEFENCE, false);
+			spawned_player_units = 0;
 		}
-		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
-			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::ABILITY_ID::HOLDPOSITION);
+		if (enemy_units.size() > 0) {
+			SetBehavior(enemy_units, sc2::ABILITY_ID::HOLDPOSITION);
 		}
-		if (sc2::Point2D(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE))[0]->pos) == sc2::Point2D(95)) {
-			spawn_units = true;
+		if (sc2::Point2D(player_units[0].unit->pos) == sc2::Point2D(95)) {
+			spawned_player_units = 0;
+			spawned_enemy_units = 0;
 			command = 0;
 		}
 		break;
 	default:
+		spawned_player_units = 0;
+		spawned_enemy_units = 0;
 		command = 0;
-		spawn_units = true;
 		break;
 	}
 }
@@ -721,11 +726,11 @@ void FooBot::CommandsOnSpiral50() {
 			Debug()->DebugEnemyControl();
 			spawned_player_units = 1;
 			spawned_enemy_units = 1;
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
-			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(42, 18), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_SIEGETANK, spawned_player_units, sc2::Point2D(45));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(42, 18), 2);
 		}
 		else if (player_units.size() == spawned_player_units) {
-			SetDestination(player_units, sc2::Point2D(27), behaviors::ATTACK, false);
+			SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, false);
 			spawned_player_units = 0;
 		}
 		if (enemy_units.size() == spawned_enemy_units) {
