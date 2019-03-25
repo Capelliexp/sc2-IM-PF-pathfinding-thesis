@@ -226,6 +226,7 @@ void FooBot::UpdateUnitsPaths() {
 	for (int i = 0; i < player_units.size(); ++i) {
 		if (player_units[i].destination == nullptr) continue;		//No destination set
 		if (player_units[i].destination->map[0][0][0] == -107374176) continue;	//No destination ready to be used
+		//if (is not transfered... ) continue (new cuda event)
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;

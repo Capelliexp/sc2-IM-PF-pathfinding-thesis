@@ -229,7 +229,7 @@ __host__ void CUDA::TransferUnitsToDevice() {
 		std::cout << "WARNING: too many units! Increase allocation size, overflow discarded" << std::endl;
 	}
 
-	Check(cudaMemcpy(device_unit_list_pointer, host_unit_list.data(), 
+	Check(cudaMemcpyAsync(device_unit_list_pointer, host_unit_list.data(), 
 		std::min((int)host_unit_list.size(), unit_list_max_length) * sizeof(Entity),
 		cudaMemcpyHostToDevice),
 		"TransferUnitsToDevice");
@@ -247,7 +247,7 @@ __host__ void CUDA::TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyHostToDevice;
 
-	Check(cudaMemcpy3D(&par), "Dynamic map transfer");
+	Check(cudaMemcpy3DAsync(&par), "Dynamic map transfer");
 }
 
 __host__ int CUDA::QueueDeviceJob(int owner_id, float* map){
@@ -309,7 +309,7 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 }
 
 __host__ Result CUDA::ExecuteDeviceJobs(){
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 
 	//start PF-repelling job
 	RepellingPFGeneration((float(*)[MAP_Y_R][1])ground_PF, (float(*)[MAP_Y_R][1])air_PF);
@@ -391,7 +391,7 @@ __host__ Result CUDA::TransferMapToHost(int id){
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
-	cudaError_t err = cudaMemcpy3D(&par);	//transfer
+	cudaError_t err = cudaMemcpy3DAsync(&par);	//transfer
 	Check(err, "Transfer queued map to host");
 	if (err != cudaSuccess) {
 		*status = DeviceMemoryStatus::EMPTY;
