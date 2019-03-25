@@ -206,7 +206,11 @@ void FooBot::UpdateUnitsPaths() {
 		}
 		//Get the value from the IM and PF to determine the total value of the tile.
 		float current_value = player_units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
-		float current_pf = map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x);
+		float current_pf = 0;
+		if (player_units[i].behavior == behaviors::DEFENCE)
+			current_pf = map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x);
+		else if (player_units[i].behavior == behaviors::ATTACK)
+			current_pf = map_storage->GetAttractingPF((int)translated_pos.y, (int)translated_pos.x);
 		current_value += current_pf;
 
 
@@ -229,10 +233,12 @@ void FooBot::UpdateUnitsPaths() {
 			float new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
 			
 			if (new_value < 0) continue;
-			float pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x + 1);
+			float pf_value = 0;
+			if (player_units[i].behavior == behaviors::DEFENCE)
+				pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x + 1);
+			else if (player_units[i].behavior == behaviors::ATTACK)
+				pf_value = map_storage->GetAttractingPF((int)udlr[j].y, (int)udlr[j].x + 1);
 			new_value += pf_value;
-
-			float atracting = map_storage->GetAttractingPF((int)udlr[j].y, (int)udlr[j].x + 1);
 
 			//if (new_value < 0) continue;	//Unpathable terrain
 			//This needs to be modified.
@@ -269,6 +275,7 @@ void FooBot::printValues(int unit, sc2::Point2D pos) {
 
 void FooBot::CreatePFs() {
 	std::map<sc2::UnitTypeID, int> player_unit_types;
+	//Detta skulle kunna ändras till att bara göras om de ska attackera.
 	for (int i = 0; i < player_units.size(); ++i) {
 		auto search = player_unit_types.find(player_units[i].unit->unit_type);
 		if (search == player_unit_types.end())
