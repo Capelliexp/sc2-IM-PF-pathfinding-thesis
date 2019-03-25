@@ -434,29 +434,31 @@ void FooBot::CommandsOnEmpty50() {
 void FooBot::CommandsOnEmpty200() {
 	switch (command) {
 	case 1:
-		if (spawn_units) {
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5));
-			spawn_units = false;
+		if (spawned_player_units == 0) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5));
 		}
-		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(195), sc2::ABILITY_ID::MOVE);
-			spawn_units = true;
+		else if (player_units.size() == spawned_player_units) {
+			SetDestination(player_units, sc2::Point2D(195), behaviors::PASSIVE, false);
+			spawned_player_units = 0;
 			command = 0;
 		}
 		break;
 	case 2:
-		if (spawn_units) {
+		if (spawned_player_units == 0 && spawned_enemy_units == 0) {
 			Debug()->DebugEnemyControl();
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(5));
-			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, 1, sc2::Point2D(100), 2);
-			spawn_units = false;
+			spawned_player_units = 1;
+			spawned_enemy_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5));
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(100), 2);
 		}
-		else if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::TERRAN_MARINE })) {
-			SetDestination(Observation()->GetUnits(sc2::Unit::Alliance::Self, sc2::IsUnit(sc2::UNIT_TYPEID::TERRAN_MARINE)), sc2::Point2D(195), sc2::ABILITY_ID::MOVE);
+		else if (player_units.size() == spawned_player_units) {
+			SetDestination(player_units, sc2::Point2D(195), behaviors::DEFENCE, false);
+			spawned_player_units = 0;
 		}
-		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT })) {
-			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
-			spawn_units = true;
+		if (enemy_units.size() == spawned_enemy_units) {
+			SetBehavior(enemy_units, sc2::ABILITY_ID::HOLDPOSITION);
+			spawned_enemy_units = 0;
 			command = 0;
 		}
 		break;
