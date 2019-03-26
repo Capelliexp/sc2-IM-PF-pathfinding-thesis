@@ -333,13 +333,14 @@ void FooBot::printValues(int unit, sc2::Point2D pos) {
 
 void FooBot::CreateAttractingPFs() {
 	std::map<sc2::UnitTypeID, int> player_unit_types;
-	//Detta skulle kunna ändras till att bara göras om de ska attackera.
 	for (int i = 0; i < player_units.size(); ++i) {
-		auto search = player_unit_types.find(player_units[i].unit->unit_type);
-		if (search == player_unit_types.end())
-			player_unit_types[player_units[i].unit->unit_type] = 1;
-		else
-			search->second += 1;
+		if (player_units[i].behavior == behaviors::ATTACK) {
+			auto& searche = player_unit_types.find(player_units[i].unit->unit_type);
+			if (searche == player_unit_types.end())
+				player_unit_types[player_units[i].unit->unit_type] = 1;
+			else
+				searche->second += 1;
+		}
 	}
 	//s�g till map_storage att ett specifikt antal PFs ska g�ras. Anv�nd player_unit_types f�r detta.
 	for (auto& unit : player_unit_types)
