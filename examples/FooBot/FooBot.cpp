@@ -336,10 +336,13 @@ std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 	bool destination_found = false;
 	Node node = start;
 	closed_list.push_back(start);
+	//! Path to destination
 	while (!destination_found) {
-		if (node.x == destination.x && node.y == destination.y)
-			return closed_list;
-		
+		if (node.x == destination.x && node.y == destination.y) {
+			destination_found = true;
+			continue;
+		}
+
 		Node a;
 		if (map_storage->GetDynamicMap(node.x, node.y + 1) && !NodeExistsInOpenList(sc2::Point2D(node.x, node.y + 1), open_list)) {
 			a.x = node.x;
@@ -375,6 +378,22 @@ std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 		node = closed_list.back();
 	}
 
+	std::vector<Node> path;
+	path.push_back(closed_list.back());
+
+	bool generating_shortest_path = true;
+	//! Get shortest distance path
+	while (generating_shortest_path) {
+		for (int i = 0; i < closed_list.size(); ++i) {
+			if (path.back().parentX == closed_list[i].x && path.back().parentY == closed_list[i].y) {
+				path.push_back(closed_list[i]);
+				break;
+			}
+		}
+		if (path.back().x == agent.x && path.back().y == agent.y)
+			generating_shortest_path = false;
+	}
+	return path;
 }
 
 float FooBot::CalculateEuclideanDistance(sc2::Point2D pos, sc2::Point2D dest) {
