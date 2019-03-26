@@ -130,23 +130,47 @@ typedef enum {
 
 typedef struct {
 	int owner_id;	//how map_storage identifies the map
-	int queue_id;	//how the queue identifies the map
+	int queue_id;	//how the queue identifies the map (MUST BE SECOND VARIABLE)
 	DeviceMemoryStatus status;
 	bool initialized;
 	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
+
+	bool operator==(const AttractingFieldMemory& other) {
+		if (this->queue_id == other.queue_id) {
+			return true;
+		}
+	}
+
+	bool operator!=(const AttractingFieldMemory& other) {
+		if (this->queue_id != other.queue_id) {
+			return true;
+		}
+	}
 } AttractingFieldMemory;
 
 typedef struct {
 	IntPoint2D destination;	//how map_storage identifies the map
+	int queue_id;	//how the queue identifies the map  (MUST BE SECOND VARIABLE)
 	bool air_path;
-	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
 	bool initialized;
 	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
+
+	bool operator==(const InfluenceMapMemory& other) {
+		if (this->queue_id == other.queue_id) {
+			return true;
+		}
+	}
+
+	bool operator!=(const InfluenceMapMemory& other) {
+		if (this->queue_id != other.queue_id) {
+			return true;
+		}
+	}
 } InfluenceMapMemory;
 
 //DEVICE FUNCTION

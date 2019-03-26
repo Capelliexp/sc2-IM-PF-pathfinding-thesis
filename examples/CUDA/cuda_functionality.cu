@@ -299,7 +299,7 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 
 	Check(cudaEventCreateWithFlags(&IM_mem.at(storage_found).begin, cudaEventDisableTiming), "IM event begin create");
 	Check(cudaEventCreateWithFlags(&IM_mem.at(storage_found).done, cudaEventDisableTiming), "IM event done create");
-	IM_mem.at(storage_found) = { destination, air_path, next_id, DeviceMemoryStatus::OCCUPIED, false, IM_mem.at(storage_found).begin, IM_mem.at(storage_found).done, map, IM_mem.at(storage_found).device_map_ptr };
+	IM_mem.at(storage_found) = { destination, next_id, air_path, DeviceMemoryStatus::OCCUPIED, false, IM_mem.at(storage_found).begin, IM_mem.at(storage_found).done, map, IM_mem.at(storage_found).device_map_ptr };
 	IM_queue.push(next_id);
 	next_id++;
 
@@ -316,7 +316,9 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 
 	//start PF-attracting jobs
 	for (int i = 0; i < std::min((int)PF_queue.size(), 5); ++i) {
-		AttractingFieldMemory* mem = &PF_mem.at(PF_queue.front());
+		//AttractingFieldMemory* mem = &PF_mem.at(PF_queue.front());
+		std::vector<AttractingFieldMemory>::iterator it = std::find(PF_mem.begin(), PF_mem.end(), AttractingFieldMemory{ 0, PF_queue.front() });
+		AttractingFieldMemory* mem = &(*it);
 		cudaEventRecord(mem->begin, 0);
 		AttractingPFGeneration(mem->owner_id, (float(*)[MAP_Y_R][1])mem->map, mem->device_map_ptr);
 		mem->initialized = true;
@@ -327,7 +329,9 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 
 	//start IM job
 	if (IM_queue.size() > 0) {
-		InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
+		//InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
+		std::vector<InfluenceMapMemory>::iterator it = std::find(IM_mem.begin(), IM_mem.end(), InfluenceMapMemory{ 0, PF_queue.front() });
+		InfluenceMapMemory* mem = &(*it);
 		cudaEventRecord(mem->begin, 0);
 		IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
 		mem->initialized = true;
