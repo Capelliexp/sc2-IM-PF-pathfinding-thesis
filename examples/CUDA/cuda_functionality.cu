@@ -330,7 +330,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	//start IM job
 	if (IM_queue.size() > 0) {
 		//InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
-		std::vector<InfluenceMapMemory>::iterator it = std::find(IM_mem.begin(), IM_mem.end(), InfluenceMapMemory{ 0, PF_queue.front() });
+		std::vector<InfluenceMapMemory>::iterator it = std::find(IM_mem.begin(), IM_mem.end(), InfluenceMapMemory{ {0,0}, IM_queue.front() });
 		InfluenceMapMemory* mem = &(*it);
 		cudaEventRecord(mem->begin, 0);
 		IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
@@ -778,4 +778,26 @@ __host__ int CUDA::TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id) {
 
 __host__ void CUDA::SetHostUnitList(std::vector<Entity>& host_unit_list) {
 	this->host_unit_list = host_unit_list;
+}
+
+//operator overloads
+
+bool operator==(const AttractingFieldMemory& first, const AttractingFieldMemory& second) {
+	if (first.queue_id == second.queue_id) return true;
+	return false;
+}
+
+bool operator!=(const AttractingFieldMemory& first, const AttractingFieldMemory& second) {
+	if (first.queue_id != second.queue_id) return true;
+	return false;
+}
+
+bool operator==(const InfluenceMapMemory& first, const InfluenceMapMemory& second) {
+	if (first.queue_id == second.queue_id) return true;
+	return false;
+}
+
+bool operator!=(const InfluenceMapMemory& first, const InfluenceMapMemory& second) {
+	if (first.queue_id != second.queue_id) return true;
+	return false;
 }

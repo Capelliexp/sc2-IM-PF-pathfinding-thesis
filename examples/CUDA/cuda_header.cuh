@@ -136,19 +136,19 @@ typedef struct {
 	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
-
-	bool operator==(const AttractingFieldMemory& other) {
-		if (this->queue_id == other.queue_id) {
-			return true;
-		}
-	}
-
-	bool operator!=(const AttractingFieldMemory& other) {
-		if (this->queue_id != other.queue_id) {
-			return true;
-		}
-	}
 } AttractingFieldMemory;
+
+bool operator==(const AttractingFieldMemory& first, const AttractingFieldMemory& second);
+//bool operator==(const AttractingFieldMemory& first, const AttractingFieldMemory& second) {
+//	if (first.queue_id == second.queue_id) return true;
+//	return false;
+//}
+
+bool operator!=(const AttractingFieldMemory& first, const AttractingFieldMemory& second);
+//bool operator!=(const AttractingFieldMemory& first, const AttractingFieldMemory& second) {
+//	if (first.queue_id != second.queue_id) return true;
+//	return false;
+//}
 
 typedef struct {
 	IntPoint2D destination;	//how map_storage identifies the map
@@ -159,19 +159,19 @@ typedef struct {
 	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
-
-	bool operator==(const InfluenceMapMemory& other) {
-		if (this->queue_id == other.queue_id) {
-			return true;
-		}
-	}
-
-	bool operator!=(const InfluenceMapMemory& other) {
-		if (this->queue_id != other.queue_id) {
-			return true;
-		}
-	}
 } InfluenceMapMemory;
+
+bool operator==(const InfluenceMapMemory& first, const InfluenceMapMemory& second);
+//bool operator==(const InfluenceMapMemory& first, const InfluenceMapMemory& second) {
+//	if (first.queue_id == second.queue_id) return true;
+//	return false;
+//}
+
+bool operator!=(const InfluenceMapMemory& first, const InfluenceMapMemory& second);
+//bool operator!=(const InfluenceMapMemory& first, const InfluenceMapMemory& second) {
+//	if (first.queue_id != second.queue_id) return true;
+//	return false;
+//}
 
 //DEVICE FUNCTION
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
