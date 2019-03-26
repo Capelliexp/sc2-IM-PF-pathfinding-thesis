@@ -86,7 +86,7 @@ public:
 
 	void CreateAttractingPF(sc2::UnitTypeID unit_id);
 	
-	float GetAttractingPF(int x, int y);
+	float GetAttractingPF(sc2::UnitTypeID unit_id, int x, int y);
 
 	void TransferPFFromDevice();
 	void TransferIMFromDevice();
@@ -165,12 +165,6 @@ private:
 	std::vector<float> image;
 	//! max_value is an float holding the largest, non center value, in the map. Center value of units are usually > 1000, these values are outliers and can be clamped.
 	float max_value;
-
-	//std::vector<Attraction> unit_attraction_PF;
-	//std::unordered_map<sc2::UNIT_TYPEID, float[MAP_X_R][MAP_Y_R]> unit_attraction_PF;
-	//std::unordered_map<sc2::UNIT_TYPEID, float*> unit_attraction_PF;
-	std::list<Potential_Field> attracting_PF;
-	std::list<Destination_IM> destinations_IM;
 
 	std::vector<int> requested_PF;
 	std::vector<int> requested_IM;

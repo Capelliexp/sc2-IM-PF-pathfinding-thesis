@@ -261,7 +261,7 @@ void FooBot::UpdateUnitsPaths() {
 		if (player_units[i].behavior == behaviors::DEFENCE)
 			current_pf = map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x);
 		else if (player_units[i].behavior == behaviors::ATTACK)
-			current_pf = map_storage->GetAttractingPF((int)translated_pos.y, (int)translated_pos.x);
+			current_pf = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)translated_pos.y, (int)translated_pos.x);
 		current_value += current_pf;
 
 
@@ -288,7 +288,7 @@ void FooBot::UpdateUnitsPaths() {
 			if (player_units[i].behavior == behaviors::DEFENCE)
 				pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x + 1);
 			else if (player_units[i].behavior == behaviors::ATTACK)
-				pf_value = map_storage->GetAttractingPF((int)udlr[j].y, (int)udlr[j].x + 1);
+				pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x + 1);
 			new_value += pf_value;
 
 			//if (new_value < 0) continue;	//Unpathable terrain

@@ -310,6 +310,7 @@ float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
 void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
     attracting_PFs.clear();
     attracting_PFs.push_back({});
+    attracting_PFs.back().sc2_id = unit_id;
     requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));
 }
 
@@ -337,10 +338,12 @@ void MapStorage::ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int v
     cuda->UpdateDynamicMap({ (integer)center.x, (integer)center.y }, radius, value);
 }
 
-float MapStorage::GetAttractingPF(int x, int y) {
-	if (attracting_PFs.size() != 0)
-		return attracting_PFs.front().map[x][y][0];
-	return -1;
+float MapStorage::GetAttractingPF(sc2::UnitTypeID unit_id, int x, int y) {
+    for (auto& it : attracting_PFs) {
+        if (it.sc2_id == unit_id)
+            return it.map[x][y][0];
+    }
+    return 0;
 }
 
 //! Craetes the influence map based on the size of the map.
