@@ -705,7 +705,7 @@ void FooBot::CommandsOnSpiral50() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(42, 18), 2);
 		}
 		else if (player_units.size() == spawned_player_units) {
-			SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, false);
+			SetDestination(player_units, sc2::Point2D(27), behaviors::ATTACK, false);
 			spawned_player_units = 0;
 		}
 		if (enemy_units.size() == spawned_enemy_units) {
