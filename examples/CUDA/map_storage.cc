@@ -346,6 +346,10 @@ float MapStorage::GetAttractingPF(sc2::UnitTypeID unit_id, int x, int y) {
     return 0;
 }
 
+bool MapStorage::GetDynamicMap(int x, int y) {
+    return dynamic_terrain[x][y][0];
+}
+
 //! Craetes the influence map based on the size of the map.
 void MapStorage::CreateIM() {
     std::string IM = observation->GetGameInfo().pathing_grid.data;

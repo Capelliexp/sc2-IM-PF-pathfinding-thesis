@@ -13,6 +13,19 @@ enum behaviors
     PASSIVE
 };
 
+struct Node {
+    int x;
+    int y;
+    int parentX;
+    int parentY;
+    float euc_dist;
+    float walk_dist;
+};
+
+inline bool operator < (const Node& lhs, const Node& rhs) {
+    return lhs.euc_dist < rhs.euc_dist;
+}
+
 class FooBot : public sc2::Agent {
     //! struct holding a unit and info about its destination and the behavior
     struct Unit {
@@ -54,6 +67,10 @@ private:
 
     //! Function to update all units.
     void UpdateUnitsPaths();
+
+    std::vector<Node> Astar(Node agent, sc2::Point2D destination);
+    float CalculateEuclideanDistance(sc2::Point2D pos, sc2::Point2D dest);
+    bool NodeExistsInOpenList(sc2::Point2D pos, std::vector<Node> open_list);
 
     void CreateAttractingPFs();
     void UpdateHostUnitList();

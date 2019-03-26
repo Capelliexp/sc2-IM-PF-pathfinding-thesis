@@ -88,6 +88,8 @@ public:
 	
 	float GetAttractingPF(sc2::UnitTypeID unit_id, int x, int y);
 
+	bool GetDynamicMap(int x, int y);
+
 	void TransferPFFromDevice();
 	void TransferIMFromDevice();
 	void ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int value);

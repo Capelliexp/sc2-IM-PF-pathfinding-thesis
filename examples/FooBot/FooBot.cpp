@@ -314,6 +314,82 @@ void FooBot::UpdateUnitsPaths() {
 	Debug()->SendDebug();
 }
 
+std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
+	std::vector<Node> empty;
+	if (!map_storage->GetDynamicMap(agent.x, agent.y))
+		return empty;
+	if (sc2::Point2D(agent.x, agent.y) == destination)
+		return empty;
+	std::vector<Node> closed_list;
+	std::vector<Node> open_list;
+
+	Node start;
+	start.euc_dist = CalculateEuclideanDistance(sc2::Point2D(agent.x, agent.y), destination);
+	start.walk_dist = 0;
+	start.parentX = -1;
+	start.parentY = -1;
+	start.x = agent.x;
+	start.y = agent.y;
+	open_list.emplace_back(start);
+	float shortest_distance = open_list[0].euc_dist + open_list[0].walk_dist;
+
+	bool destination_found = false;
+	Node node = start;
+	closed_list.push_back(start);
+	while (!destination_found) {
+		if (node.x == destination.x && node.y == destination.y)
+			return closed_list;
+		
+		Node a;
+		if (map_storage->GetDynamicMap(node.x, node.y + 1) && !NodeExistsInOpenList(sc2::Point2D(node.x, node.y + 1), open_list)) {
+			a.x = node.x;
+			a.y = node.y + 1;
+			a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
+			open_list.push_back(a);
+		}
+		if (map_storage->GetDynamicMap(node.x + 1, node.y) && !NodeExistsInOpenList(sc2::Point2D(node.x + 1, node.y), open_list)) {
+			a.x = node.x + 1;
+			a.y = node.y;
+			a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
+			open_list.push_back(a);
+		}
+		if (map_storage->GetDynamicMap(node.x, node.y - 1) && !NodeExistsInOpenList(sc2::Point2D(node.x, node.y - 1), open_list)) {
+			a.x = node.x;
+			a.y = node.y - 1;
+			a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
+			open_list.push_back(a);
+		}
+		if (map_storage->GetDynamicMap(node.x - 1, node.y) && !NodeExistsInOpenList(sc2::Point2D(node.x - 1, node.y), open_list)) {
+			a.x = node.x - 1;
+			a.y = node.y;
+			a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
+			open_list.push_back(a);
+		}
+		int nearest_node;
+		for (int i = 0; i < open_list.size(); ++i) {
+			if (shortest_distance < (open_list[i].euc_dist + open_list[i].walk_dist))
+				nearest_node = i;
+		}
+		closed_list.push_back(open_list[nearest_node]);
+		open_list.erase(open_list.begin() + nearest_node);
+		node = closed_list.back();
+	}
+
+}
+
+float FooBot::CalculateEuclideanDistance(sc2::Point2D pos, sc2::Point2D dest) {
+	double H = (sqrt((pos.x - pos.x)*(pos.x - pos.x) + (pos.y - dest.y)*(pos.y - dest.y)));
+	return H;
+}
+
+bool FooBot::NodeExistsInOpenList(sc2::Point2D pos, std::vector<Node> open_list) {
+	for (Node n : open_list) {
+		if (n.x == pos.x && n.y == pos.y)
+			return true;
+	}
+	return false;
+}
+
 void FooBot::printValues(int unit, sc2::Point2D pos) {
 	sc2::Point3D pp = player_units[unit].unit->pos;
 	pp.z += 0.1f;
