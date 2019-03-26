@@ -77,6 +77,9 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	this->ground_PF = (float*)ground_PF;
 	this->air_PF = (float*)air_PF;
 
+	Check(cudaEventCreate(&repelling_PF_event_done), "init event done create");
+	Check(cudaEventRecord(repelling_PF_event_done), "init event done record");
+
 	PopErrorsCheck("CUDA Initialization base");
 
 	//analysis
@@ -312,7 +315,13 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	//cudaDeviceSynchronize();
 
 	//start PF-repelling job
-	RepellingPFGeneration((float(*)[MAP_Y_R][1])ground_PF, (float(*)[MAP_Y_R][1])air_PF);
+	if (cudaEventQuery(repelling_PF_event_done) == cudaSuccess) {
+		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
+		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");
+
+		RepellingPFGeneration((float(*)[MAP_Y_R][1])ground_PF, (float(*)[MAP_Y_R][1])air_PF);
+		cudaEventRecord(repelling_PF_event_done);
+	}
 
 	//start IM job
 	if (IM_queue.size() > 0) {

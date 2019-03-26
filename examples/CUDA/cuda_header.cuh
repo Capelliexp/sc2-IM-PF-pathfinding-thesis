@@ -258,6 +258,7 @@ private:
 	std::queue<int> PF_queue;
 	std::queue<int> IM_queue;
 	int next_id;
+	cudaEvent_t repelling_PF_event_done;
 
 	//host data (holders for host->device transfers)
 	float* ground_PF;
