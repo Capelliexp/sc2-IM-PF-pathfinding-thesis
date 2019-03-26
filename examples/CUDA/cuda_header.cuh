@@ -13,6 +13,7 @@
 #include <cmath>
 #include <utility>
 #include <tuple>
+#include <queue>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -113,16 +114,40 @@ typedef struct {
 	bool enemy;
 } Entity;
 
-typedef struct {
-	int id;
-	cudaPitchedPtr map_ptr;
-	cudaMemcpy3DParms parameters;
-} AttractingFieldPointer;
+typedef enum {
+	BUSY,
+	OCCUPIED,
+	DONE,
+	EMPTY,
+	UNKNOWN
+} DeviceMemoryStatus;
+
+typedef enum {
+	OK,
+	BAD_ARG,
+	BAD_RES
+} Result;
 
 typedef struct {
-	IntPoint2D destination;
-	cudaPitchedPtr map_ptr;
-} InfluenceMapPointer;
+	int owner_id;	//how map_storage identifies the map
+	int queue_id;	//how the queue identifies the map
+	DeviceMemoryStatus status;
+	bool initialized;
+	cudaEvent_t begin, done;
+	float* map;
+	cudaPitchedPtr device_map_ptr;
+} AttractingFieldMemory;
+
+typedef struct {
+	IntPoint2D destination;	//how map_storage identifies the map
+	bool air_path;
+	int queue_id;	//how the queue identifies the map
+	DeviceMemoryStatus status;
+	bool initialized;
+	cudaEvent_t begin, done;
+	float* map;
+	cudaPitchedPtr device_map_ptr;
+} InfluenceMapMemory;
 
 //DEVICE FUNCTION
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
@@ -144,29 +169,33 @@ public:
 	__host__ ~CUDA();
 	
 	//Initialization (requires cleanup)
-	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions);
+	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float ground_PF[][MAP_Y_R][1], float air_PF[][MAP_Y_R][1]);
 	__host__ void PrintGenInfo();
 	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
 	__host__ void AllocateDeviceMemory();
 	__host__ void TransferUnitLookupToDevice();
-	__host__ void HostTransfer(sc2::Units units);
 	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);
 	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
 
 	//Runtime functionality
-	__host__ void Update(clock_t dt_ticks, sc2::Units units, float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
-	__host__ void FillDeviceUnitArray(sc2::Units units);
 	__host__ void TransferUnitsToDevice();
 	__host__ void TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]);
+
+	//Runtime jobs
+	__host__ int QueueDeviceJob(int owner_id, float* map = nullptr);	//start PF generation job
+	__host__ int QueueDeviceJob(IntPoint2D destination, bool air_path, float* map = nullptr);	//start IM generation job
+	__host__ Result ExecuteDeviceJobs();
+	__host__ Result TransferMapToHost(int id);	//start transfer from device to pre-defined host array
+	__host__ DeviceMemoryStatus CheckJobStatus(int id);
+	__host__ DeviceMemoryStatus CheckJobStatus(AttractingFieldMemory* mem);
+	__host__ DeviceMemoryStatus CheckJobStatus(InfluenceMapMemory* mem);
 
 	//Other functionality
 	__host__ const sc2::ObservationInterface* GetObservation();
 	__host__ sc2::DebugInterface* GetDebug();
 	__host__ sc2::ActionInterface* GetAction();
 	__host__ sc2::ActionFeatureLayerInterface* GetActionFeature();
-	__host__ void CreateUnitRadiusTable();
-	__host__ bool DeleteAllIMs();
 	__host__ void PrintUnitInfoToFile(std::string filename);
 	__host__ void ReadUnitInfoFromFile(std::string filename);
 	__host__ std::vector<int> GetUnitsID();
@@ -175,21 +204,20 @@ public:
 	__host__ int GetPosOFUnitInHostUnitVec(sc2::UNIT_TYPEID typeID);
 	__host__ int GetUnitIDInHostUnitVec(sc2::UnitTypeID unit_id);
 	__host__ int GetSizeOfUnitInfoList();
+	__host__ int TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id);
 	__host__ void SetHostUnitList(std::vector<Entity>& host_unit_list);
-
+	
 	//Kernel launches
 	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
-	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1]);
-	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path);
+	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map);
+	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path, cudaPitchedPtr device_map);
 	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);
 
 	__host__ void Test3DArrayUsage();
-	__host__ void TestAttractingPFGeneration();
-	__host__ void TestIMGeneration(sc2::Point2D destination, bool air_route);
 	__host__ void TestLookupTable();
 	
-	//Error checking
-	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);	//should not be used in release
+	//Error checking (should not be used in release)
+	__host__ void Check(cudaError_t blob, std::string location = "unknown", bool print_res = false);
 	__host__ void PopErrorsCheck(std::string location = "unknown");
 	
 private:
@@ -208,18 +236,26 @@ private:
 	int threads_in_grid_high;
 	int threads_in_grid_low;
 
-	//device memory pointers
+	//device memory single map pointers
 	cudaPitchedPtr dynamic_map_device_pointer;
-	UnitInfoDevice* unit_lookup_device_pointer;
-	Entity* device_unit_list_pointer;
 	cudaPitchedPtr repelling_pf_ground_map_pointer;
 	cudaPitchedPtr repelling_pf_air_map_pointer;
-	std::vector<AttractingFieldPointer> unit_type_attracting_pf_pointers;
-	std::vector<InfluenceMapPointer> im_pointers;
+
+	//device memory array pointers
+	UnitInfoDevice* unit_lookup_device_pointer;
+	Entity* device_unit_list_pointer;
 	list_double_entry* global_memory_im_list_storage;
 
+	//device memory map lists & queues
+	std::vector<AttractingFieldMemory> PF_mem;
+	std::vector<InfluenceMapMemory> IM_mem;
+	std::queue<int> PF_queue;
+	std::queue<int> IM_queue;
+	int next_id;
 
-	//data
+	//host data (holders for host->device transfers)
+	float* ground_PF;
+	float* air_PF;
 	std::vector<UnitInfo> host_unit_info;
 	std::vector<UnitInfoDevice> device_unit_lookup_on_host;
 	std::unordered_map<sc2::UNIT_TYPEID, unsigned int> host_unit_transform;

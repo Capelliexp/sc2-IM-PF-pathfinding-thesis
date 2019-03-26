@@ -55,7 +55,7 @@ private:
     //! Function to update all units.
     void UpdateUnitsPaths();
 
-    void CreatePFs();
+    void CreateAttractingPFs();
     void UpdateHostUnitList();
 
     void CommandsOnEmpty50();
