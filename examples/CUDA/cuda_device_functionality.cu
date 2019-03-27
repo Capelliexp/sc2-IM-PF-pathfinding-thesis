@@ -129,13 +129,13 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 }
 
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, list_double_entry* global_memory_im_list_storage) {
-	int block_size = blockDim.x*blockDim.y;
+	int block_size = blockDim.x * blockDim.y;
 	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
 
-	int id_block = blockIdx.x + blockIdx.y * gridDim.x;
-	int original_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int original_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int original_id = threadIdx.x + id_block * block_size + threadIdx.y * blockDim.x;
+	int id_block = blockIdx.x + (blockIdx.y * gridDim.x);
+	int original_x = threadIdx.x + (blockIdx.x * blockDim.x);
+	int original_y = threadIdx.y + (blockIdx.y * blockDim.y);
+	int original_id = threadIdx.x + (id_block * block_size) + (threadIdx.y * blockDim.x);
 
 	//thread spreading
 	int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
@@ -146,10 +146,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//int start_id = original_id;
 	//int x = original_x;
 	//int y = original_y;
-
-	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
-		return;
-	}
 
 	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
@@ -163,10 +159,16 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		return;
 	}
 
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
+
 	if (GetBoolMapValue(dynamic_map, x, y) == 0) {	//return if start tex is in terrain
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -2;
 		return;
 	}
+
+	bool active = true;
 
 	node* open_list = (node*)malloc(3000 * sizeof(node));
 	node* closed_list = (node*)malloc(3000 * sizeof(node));
@@ -191,7 +193,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		for (int i = 0; i < open_list_it; ++i) {
 			entry = open_list[i];
 			if (entry.pos != -1) {
-				if (entry.est_dist_start_to_dest_via_pos <= closest_distance_found) {
+				if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {
 					closest_distance_found = entry.est_dist_start_to_dest_via_pos;
 					closest_coord_found = i;
 					closest_entry = entry;
@@ -253,8 +255,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 						node new_list_entry = {
 							coord_global,
 							closed_list_it - 1,
-							closest_entry.steps_from_start + 0.8,
-							closest_entry.steps_from_start + 0.8 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
+							closest_entry.steps_from_start + /*0.8*/ 1,
+							closest_entry.steps_from_start + /*0.8*/ 1 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
 						};
 						open_list[open_list_it + new_open_list_entries] = new_list_entry;
 						++new_open_list_entries;
