@@ -26,20 +26,20 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	float dist = 0;
 	for (int i = 0; i < nr_of_units; ++i) {
 		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
-		float range_sub = unit.range + 1;
-		dist = (FloatDistance(unit_list_s[i].pos.x, unit_list_s[i].pos.y, x, y) + 0.0001);
+		float range_sub = unit.range + 2;
+		dist = (FloatDistance((int)unit_list_s[i].pos.x, (int)unit_list_s[i].pos.y, x, y) + 0.0001);
 
 		if (unit_list_s[i].enemy) {	//avoid enemies
 			if (dist < range_sub) {
-				ground_charge += ((range_sub / dist) * unit.can_attack_ground) + 5;
-				air_charge += ((range_sub / dist) * unit.can_attack_air) + 5;
+				ground_charge += ((range_sub / dist) * unit.can_attack_ground) + 50;
+				air_charge += ((range_sub / dist) * unit.can_attack_air) + 50;
 			}
 		}
 		else {	//avoid friendlies
-			int res = 1 - (int)dist + 1 - (int)(unit.radius + 0.5);
+			int res = 3 - (int)dist - (int)(unit.radius + 0.5);
 			if (res > 0) {
-				ground_charge += (res/2) * !(unit.is_flying);
-				air_charge += (res/2) * unit.is_flying;
+				ground_charge += (res/2.f) * !(unit.is_flying);
+				air_charge += (res/2.f) * unit.is_flying;
 			}
 		}
 	}
@@ -76,7 +76,7 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 		UnitInfoDevice other_info = device_unit_lookup[unit_list_s[i].id];
 		Entity other_entity = unit_list_s[i];
 
-		float dist = (FloatDistance(other_entity.pos.x, other_entity.pos.y, x, y) + 0.0001);
+		float dist = (FloatDistance((int)other_entity.pos.x, (int)other_entity.pos.y, x, y) + 0.0001);
 		bool self_can_attack_other = (other_info.is_flying && self_info.can_attack_air) || (!other_info.is_flying && self_info.can_attack_ground);
 
 		if (other_entity.enemy) {	//attack enemy
@@ -88,14 +88,26 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 					}
 				}
 				else {	//self is ranged
-					if(dist < (self_info.range - 3)){	//avoid area close to enemy
-						//tot_charge -= 10 / dist;
-						tot_charge += 10 / dist;
+					float range_diff = self_info.range - other_info.range;
+					if (range_diff > 0) {	//self more range than other
+						if (dist < (other_info.range + (self_info.radius/* + 1*/))) {	//avoid area close to enemy
+							tot_charge += 10 / dist;
+						}
+						else if (dist < self_info.range * 1.2 || dist < 10) {	//attack enemy
+							tot_charge -= 10 / dist;
+						}
 					}
-					else if (dist > (self_info.range - 3) && (dist < self_info.range * 1.2 || dist < 10)) {	//attack enemy
-						//tot_charge += 10 / dist;
+					else {	//attack other with larger range than self
 						tot_charge -= 10 / dist;
 					}
+					//if(dist < (self_info.range - 3)){	//avoid area close to enemy
+					//	//tot_charge -= 10 / dist;
+					//	tot_charge += 10 / dist;
+					//}
+					//else if (dist > (self_info.range - 3) && (dist < self_info.range * 1.2 || dist < 10)) {	//attack enemy
+					//	//tot_charge += 10 / dist;
+					//	tot_charge -= 10 / dist;
+					//}
 				}
 			}
 		}
@@ -104,9 +116,9 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 				/*if (dist < (other_info.radius * 1.2)) {
 					tot_charge += 10 / dist;
 				}*/
-				int res = 1 - (int)dist + 1 - (int)(other_info.radius + 0.5);	//new calc
+				int res = 3 - (int)dist - (int)(other_info.radius + 0.5);	//new calc
 				if (res > 0) {
-					tot_charge += (res / 2);
+					tot_charge += (res / 2.f);
 				}
 			}
 		}

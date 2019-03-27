@@ -77,6 +77,9 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	this->ground_PF = (float*)ground_PF;
 	this->air_PF = (float*)air_PF;
 	
+	repelling_PF_memcpy_params_ground = { 0 };
+	repelling_PF_memcpy_params_air = { 0 };
+
 	Check(cudaEventCreate(&repelling_PF_event_done), "init event done create");
 	Check(cudaEventRecord(repelling_PF_event_done), "init event done record");
 
@@ -383,6 +386,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	}
 
 	PopErrorsCheck();
+	cudaDeviceSynchronize();
 	return Result::OK;
 }
 

@@ -27,8 +27,8 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
     CreateUnitLookUpTable();
     cuda->AllocateDeviceMemory();
-    cuda->BindRepellingMapsToTransferParams();
     cuda->DeviceTransfer(dynamic_terrain);
+    cuda->BindRepellingMapsToTransferParams();
     cuda->Tests(ground_repelling_PF, air_repelling_PF);
 
     cuda->UpdateDynamicMap({ 10, 10 }, 4, false);
@@ -319,6 +319,10 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
 
 void MapStorage::ExecuteDeviceJobs() {
     cuda->ExecuteDeviceJobs();
+    int a = 0;
+    if (a == 1) {
+        PrintMap(attracting_PFs.front().map, MAP_X_R, MAP_Y_R, "hehehehehehehe");
+    }
 }
 
 void MapStorage::TransferPFFromDevice() {
