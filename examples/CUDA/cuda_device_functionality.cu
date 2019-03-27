@@ -11,9 +11,6 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
 	int id_global = x + y * blockDim.x;
 
-	//x = MAP_X_R - x;
-	//y = MAP_Y_R - y;
-
 	//move unit list to shared memory
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
 
@@ -62,9 +59,6 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
 	int id_global = x + y * blockDim.x;
 
-	//x = MAP_X_R - x;
-	//y = MAP_Y_R - y;
-
 	//move unit list to shared memory
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
 
@@ -89,23 +83,30 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 			if (self_can_attack_other) {	//can attack unit
 				if (self_info.range < 1.1) {	//self is melee
 					if (dist < 10) {	//attack enemy
-						tot_charge += 10 / dist;
+						//tot_charge += 10 / dist;
+						tot_charge -= 10 / dist;
 					}
 				}
 				else {	//self is ranged
-					if(dist < (self_info.range - 3)){	//avoid enemy
-						tot_charge -= 10 / dist;
+					if(dist < (self_info.range - 3)){	//avoid area close to enemy
+						//tot_charge -= 10 / dist;
+						tot_charge += 10 / dist;
 					}
 					else if (dist > (self_info.range - 3) && (dist < self_info.range * 1.2 || dist < 10)) {	//attack enemy
-						tot_charge += 10 / dist;
+						//tot_charge += 10 / dist;
+						tot_charge -= 10 / dist;
 					}
 				}
 			}
 		}
 		else {	//avoid friend
 			if (self_info.is_flying == other_info.is_flying) {
-				if (dist < (other_info.radius * 1.2)) {
+				/*if (dist < (other_info.radius * 1.2)) {
 					tot_charge += 10 / dist;
+				}*/
+				int res = 1 - (int)dist + 1 - (int)(other_info.radius + 0.5);	//new calc
+				if (res > 0) {
+					tot_charge += (res / 2);
 				}
 			}
 		}
