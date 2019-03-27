@@ -76,6 +76,9 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 
 	this->ground_PF = (float*)ground_PF;
 	this->air_PF = (float*)air_PF;
+	
+	repelling_PF_memcpy_params_ground = { 0 };
+	repelling_PF_memcpy_params_air = { 0 };
 
 	Check(cudaEventCreate(&repelling_PF_event_done), "init event done create");
 	Check(cudaEventRecord(repelling_PF_event_done), "init event done record");
@@ -226,6 +229,34 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	Check(cudaPeekAtLastError(), "cuda allocation peek");
 }
 
+__host__ void CUDA::BindRepellingMapsToTransferParams(){
+	repelling_PF_memcpy_params_ground.srcPtr.ptr = repelling_pf_ground_map_pointer.ptr;
+	repelling_PF_memcpy_params_ground.srcPtr.pitch = repelling_pf_ground_map_pointer.pitch;
+	repelling_PF_memcpy_params_ground.srcPtr.xsize = MAP_X_R;
+	repelling_PF_memcpy_params_ground.srcPtr.ysize = MAP_Y_R;
+	repelling_PF_memcpy_params_ground.dstPtr.ptr = ground_PF;
+	repelling_PF_memcpy_params_ground.dstPtr.pitch = MAP_X_R * sizeof(float);
+	repelling_PF_memcpy_params_ground.dstPtr.xsize = MAP_X_R;
+	repelling_PF_memcpy_params_ground.dstPtr.ysize = MAP_Y_R;
+	repelling_PF_memcpy_params_ground.extent.width = MAP_X_R * sizeof(float);
+	repelling_PF_memcpy_params_ground.extent.height = MAP_Y_R;
+	repelling_PF_memcpy_params_ground.extent.depth = 1;
+	repelling_PF_memcpy_params_ground.kind = cudaMemcpyDeviceToHost;
+
+	repelling_PF_memcpy_params_air.srcPtr.ptr = repelling_pf_air_map_pointer.ptr;
+	repelling_PF_memcpy_params_air.srcPtr.pitch = repelling_pf_air_map_pointer.pitch;
+	repelling_PF_memcpy_params_air.srcPtr.xsize = MAP_X_R;
+	repelling_PF_memcpy_params_air.srcPtr.ysize = MAP_Y_R;
+	repelling_PF_memcpy_params_air.dstPtr.ptr = air_PF;
+	repelling_PF_memcpy_params_air.dstPtr.pitch = MAP_X_R * sizeof(float);
+	repelling_PF_memcpy_params_air.dstPtr.xsize = MAP_X_R;
+	repelling_PF_memcpy_params_air.dstPtr.ysize = MAP_Y_R;
+	repelling_PF_memcpy_params_air.extent.width = MAP_X_R * sizeof(float);
+	repelling_PF_memcpy_params_air.extent.height = MAP_Y_R;
+	repelling_PF_memcpy_params_air.extent.depth = 1;
+	repelling_PF_memcpy_params_air.kind = cudaMemcpyDeviceToHost;
+}
+
 __host__ void CUDA::TransferUnitsToDevice() {
 
 	if (host_unit_list.size() > unit_list_max_length) {
@@ -316,13 +347,14 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 
 	//start PF-repelling job
 	if (cudaEventQuery(repelling_PF_event_done) == cudaSuccess) {
-
-
-
 		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
 		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");
 
 		RepellingPFGeneration((float(*)[MAP_Y_R][1])ground_PF, (float(*)[MAP_Y_R][1])air_PF);
+
+		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_ground), "repelling PF ground memcpy");
+		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_air), "repelling PF air memcpy");
+
 		cudaEventRecord(repelling_PF_event_done);
 	}
 
@@ -354,6 +386,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	}
 
 	PopErrorsCheck();
+	cudaDeviceSynchronize();
 	return Result::OK;
 }
 
