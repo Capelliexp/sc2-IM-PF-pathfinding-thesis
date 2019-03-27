@@ -129,27 +129,23 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 }
 
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, list_double_entry* global_memory_im_list_storage) {
-	int block_size = blockDim.x*blockDim.y;
+	int block_size = blockDim.x * blockDim.y;
 	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
 
-	int id_block = blockIdx.x + blockIdx.y * gridDim.x;
-	int original_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int original_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int original_id = threadIdx.x + id_block * block_size + threadIdx.y * blockDim.x;
+	int id_block = blockIdx.x + (blockIdx.y * gridDim.x);
+	int original_x = threadIdx.x + (blockIdx.x * blockDim.x);
+	int original_y = threadIdx.y + (blockIdx.y * blockDim.y);
+	int original_id = threadIdx.x + (id_block * block_size) + (threadIdx.y * blockDim.x);
 
 	//thread spreading
-	//int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
-	//int x = (start_id % MAP_X_R);
-	//int y = (start_id / (float)MAP_X_R);
+	int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
+	int x = (start_id % MAP_X_R);
+	int y = (start_id / (float)MAP_X_R);
 
 	//original
-	int start_id = original_id;
-	int x = original_x;
-	int y = original_y;
-
-	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
-		return;
-	}
+	//int start_id = original_id;
+	//int x = original_x;
+	//int y = original_y;
 
 	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
@@ -163,10 +159,16 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		return;
 	}
 
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
+
 	if (GetBoolMapValue(dynamic_map, x, y) == 0) {	//return if start tex is in terrain
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -2;
 		return;
 	}
+
+	bool active = true;
 
 	node* open_list = (node*)malloc(3000 * sizeof(node));
 	node* closed_list = (node*)malloc(3000 * sizeof(node));

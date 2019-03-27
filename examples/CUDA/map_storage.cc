@@ -85,6 +85,21 @@ void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::strin
     out.close();
 }
 
+void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
+    for (auto& d : destinations_ground_IM) {
+        if (d.destination == pos) {
+            PrintMap(d.map, x, y, name);
+            return;
+        }
+    }
+    for (auto& d : destinations_air_IM) {
+        if (d.destination == pos) {
+            PrintMap(d.map, x, y, name);
+            return;
+        }
+    }
+}
+
 std::vector<int> MapStorage::GetUnitsID() {
     return cuda->GetUnitsID();
 }
@@ -334,8 +349,9 @@ void MapStorage::TransferPFFromDevice() {
 void MapStorage::TransferIMFromDevice() {
     for (int i = 0; i < requested_IM.size(); ++i) {
         Result res = cuda->TransferMapToHost(requested_IM[i]);
-        if (res == Result::OK)
+        if (res == Result::OK) {
             requested_IM.erase(requested_IM.begin() + i);
+        }
     }
 }
 

@@ -93,6 +93,8 @@ public:
 	void ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int value);
 	void ExecuteDeviceJobs();
 
+	void PrintMap(sc2::Point2D pos, int x, int y, std::string name);
+
 private:
 	//! Craetes the influence map based on the size of the map.
 	void CreateIM();
