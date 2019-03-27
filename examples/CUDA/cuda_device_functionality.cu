@@ -39,9 +39,10 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 			}
 		}
 		else {	//avoid friendlies
-			if (dist < (unit.radius /** 1.2*/)) {
-				ground_charge += (1 / dist) * !(unit.is_flying);
-				air_charge += (1 / dist) * unit.is_flying;
+			int res = 1 - (int)dist + 1 - (int)(unit.radius + 0.5);
+			if (res > 0) {
+				ground_charge += (res/2) * !(unit.is_flying);
+				air_charge += (res/2) * unit.is_flying;
 			}
 		}
 	}

@@ -316,6 +316,9 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 
 	//start PF-repelling job
 	if (cudaEventQuery(repelling_PF_event_done) == cudaSuccess) {
+
+
+
 		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
 		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");
 
@@ -405,8 +408,9 @@ __host__ Result CUDA::TransferMapToHost(int id){
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
-	cudaError_t err = cudaMemcpy3DAsync(&par);	//transfer
-	Check(err, "Transfer queued map to host");
+	cudaError_t err;
+	//Check(err = cudaMemcpy3DAsync(&par), "Transfer queued map to host");	//transfer
+	Check(err = cudaMemcpy3D(&par), "Transfer queued map to host");	//transfer (OBS! TEMPORARY)
 	if (err != cudaSuccess) {
 		*status = DeviceMemoryStatus::EMPTY;
 		return Result::BAD_RES;

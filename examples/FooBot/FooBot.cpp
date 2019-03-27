@@ -288,7 +288,7 @@ void FooBot::UpdateUnitsPaths() {
 			if (player_units[i].behavior == behaviors::DEFENCE)
 				pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x + 1);
 			else if (player_units[i].behavior == behaviors::ATTACK)
-				pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x + 1);
+				pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x);
 			new_value += pf_value;
 
 			//if (new_value < 0) continue;	//Unpathable terrain
@@ -756,7 +756,7 @@ void FooBot::CommandsOnSpiral50() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(42, 18), 2);
 		}
 		else if (player_units.size() == spawned_player_units) {
-			SetDestination(player_units, sc2::Point2D(27), behaviors::ATTACK, false);
+			SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, false);
 			spawned_player_units = 0;
 		}
 		if (enemy_units.size() == spawned_enemy_units) {

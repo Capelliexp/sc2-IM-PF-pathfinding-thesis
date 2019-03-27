@@ -304,6 +304,8 @@ void MapStorage::UpdateEntityVector(std::vector<Entity>& host_unit_list) {
 }
 
 float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
+    if (ground_repelling_PF[x][y][0] < 0)
+        return 0;
     return ground_repelling_PF[x][y][0];
 }
 
@@ -321,8 +323,10 @@ void MapStorage::ExecuteDeviceJobs() {
 void MapStorage::TransferPFFromDevice() {
     for (int i = 0; i < requested_PF.size(); ++i) {
         Result res = cuda->TransferMapToHost(requested_PF[i]);
-        if (res == Result::OK)
+        if (res == Result::OK) {
             requested_PF.erase(requested_PF.begin() + i);
+            PrintMap(attracting_PFs.back().map, MAP_X_R, MAP_Y_R, "attarctingPF");
+        }
     }
 }
 
