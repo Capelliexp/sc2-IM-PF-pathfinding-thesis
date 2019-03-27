@@ -180,6 +180,7 @@ public:
 	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
 	__host__ void AllocateDeviceMemory();
+	__host__ void BindRepellingMapsToTransferParams();
 	__host__ void TransferUnitLookupToDevice();
 	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);
 	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
@@ -259,6 +260,8 @@ private:
 	std::queue<int> IM_queue;
 	int next_id;
 	cudaEvent_t repelling_PF_event_done;
+	cudaMemcpy3DParms repelling_PF_memcpy_params_ground;
+	cudaMemcpy3DParms repelling_PF_memcpy_params_air;
 
 	//host data (holders for host->device transfers)
 	float* ground_PF;
