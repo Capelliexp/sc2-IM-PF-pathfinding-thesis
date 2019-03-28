@@ -118,7 +118,7 @@ __host__ void CUDA::Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avo
 	//Test3DArrayUsage();
 	Check(cudaPeekAtLastError(), "init check 6b");
 
-	RepellingPFGeneration(ground_avoidance_PF, air_avoidance_PF);
+	RepellingPFGeneration();
 	Check(cudaPeekAtLastError(), "init check 6c");
 }
 
@@ -350,7 +350,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
 		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");
 
-		RepellingPFGeneration((float(*)[MAP_Y_R][1])ground_PF, (float(*)[MAP_Y_R][1])air_PF);
+		RepellingPFGeneration();
 
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_ground), "repelling PF ground memcpy");
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_air), "repelling PF air memcpy");

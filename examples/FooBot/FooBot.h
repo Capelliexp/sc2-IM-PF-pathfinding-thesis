@@ -27,12 +27,16 @@ struct Unit {
     const sc2::Unit* unit;
     behaviors behavior;
     Destination_IM* destination;
+    float dist_traveled;
+    sc2::Point2D last_pos;
 };
 
 //! Struct holding unit and the path to its destination. Used for A*
 struct AstarUnit {
     const sc2::Unit* unit;
     std::vector<Node> path;
+    float dist_traveled;
+    sc2::Point2D last_pos;
 };
 
 inline bool operator < (const Node& lhs, const Node& rhs) {

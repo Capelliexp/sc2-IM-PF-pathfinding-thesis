@@ -6,7 +6,7 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	this->command = 0;
 	this->spawned_player_units = 0;
 	this->spawned_enemy_units = 0;
-	this->astar = false;
+	this->astar = true;
 	this->new_buildings = false;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -147,6 +147,8 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 			Unit new_unit;
 			new_unit.unit = unit;
 			new_unit.behavior = behaviors::DEFENCE;
+			new_unit.dist_traveled = 0;
+			new_unit.last_pos = sc2::Point2D(-1, -1);
 			this->player_units.push_back(new_unit);
 		}
 		else {
@@ -158,6 +160,8 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 		if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Self) {
 			AstarUnit new_unit;
 			new_unit.unit = unit;
+			new_unit.last_pos = sc2::Point2D(-1, -1);
+			new_unit.dist_traveled = 0;
 			this->astar_units.push_back(new_unit);
 		}
 		else if (IsStructure(unit))
@@ -312,6 +316,15 @@ void FooBot::UpdateUnitsPaths() {
 			player_units[i].destination = nullptr;
 			continue;
 		}
+
+		if (player_units[i].last_pos.x == -1)
+			player_units[i].last_pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y);
+		else {
+			sc2::Point2D pos = sc2::Point2D(player_units[i].unit->pos.y, MAP_Y_R - 1 - player_units[i].unit->pos.y);
+			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, pos);
+			player_units[i].last_pos = pos;
+		}
+
 		//Get the value from the IM and PF to determine the total value of the tile.
 		float current_value = player_units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
 		float current_pf = 0;
@@ -376,11 +389,23 @@ void FooBot::UpdateAstarPath() {
 		if (astar_units[i].path.size() > 0) {
 			sc2::Point2DI p1 = sc2::Point2DI(astar_units[i].unit->pos.x, MAP_Y_R - 1 - (int)astar_units[i].unit->pos.y);
 			sc2::Point2DI p2 = sc2::Point2DI(astar_units[i].path.back().x, astar_units[i].path.back().y);
+			
+			if (astar_units[i].last_pos.x == -1)
+				astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
+			else {
+				sc2::Point2D pos = sc2::Point2D(astar_units[i].unit->pos.y, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
+				astar_units[i].dist_traveled += CalculateEuclideanDistance(astar_units[i].last_pos, pos);
+				astar_units[i].last_pos = pos;
+			}
+
 			if (p1.x + 1 >= p2.x && p1.x - 1 <= p2.x && p1.y + 1 >= p2.y && p1.y - 1 <= p2.y) {
 				astar_units[i].path.pop_back();
 				if (astar_units[i].path.size() > 0) {
 					sc2::Point2D new_pos = sc2::Point2D(astar_units[i].path.back().x, MAP_Y_R - 1 - astar_units[i].path.back().y);
 					Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
+				}
+				else {
+					std::cout << "Done: " << astar_units[i].dist_traveled;
 				}
 			}
 		}
