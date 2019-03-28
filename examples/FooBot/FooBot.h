@@ -75,7 +75,7 @@ private:
     //! Function to update all units.
     void UpdateUnitsPaths();
     void UpdateAstarPath();
-
+    void RecreateAstarPaths();
 
     std::vector<Node> Astar(Node agent, sc2::Point2D destination);
     float CalculateEuclideanDistance(sc2::Point2D pos, sc2::Point2D dest);

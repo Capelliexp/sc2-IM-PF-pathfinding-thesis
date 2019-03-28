@@ -385,6 +385,20 @@ void FooBot::UpdateAstarPath() {
 	}
 }
 
+void FooBot::RecreateAstarPaths() {
+	for (int i = 0; i < astar_units.size(); ++i) {
+		Node agent;
+		agent.euc_dist = 0;
+		agent.parentX = -1;
+		agent.parentY = -1;
+		agent.walk_dist = 0;
+		agent.x = astar_units[i].unit->pos.x;
+		agent.y = MAP_Y_R - 1 - astar_units[i].unit->pos.y;
+		sc2::Point2D dest = sc2::Point2D(astar_units[i].path.front().x, astar_units[i].path.front().y);
+		astar_units[i].path = Astar(agent, dest);
+	}
+}
+
 std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 	std::vector<Node> empty;
 	if (!map_storage->GetDynamicMap(agent.x, agent.y))
