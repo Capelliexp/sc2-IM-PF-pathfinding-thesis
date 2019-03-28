@@ -90,9 +90,20 @@ __device__ int PosToID(IntPoint2D pos) {
 	return (pos.x) + ((pos.y) * MAP_X_R);
 }
 
+//__device__ int PosToID(IntPoint2D pos) {
+//	return (pos.x) + ((pos.y) * (gridDim.x * blockDim.x));
+//}
+
 __device__ IntPoint2D IDToPos(int ID) {
 	IntPoint2D res;
 	res.x = (ID % MAP_X_R);
 	res.y = (ID / (float)MAP_X_R);
 	return res;
 }
+
+//__device__ IntPoint2D IDToPos(int ID) {
+//	IntPoint2D res;
+//	res.x = (ID % (gridDim.x * blockDim.x));
+//	res.y = (ID / (float)(gridDim.x * blockDim.x));
+//	return res;
+//}

@@ -138,14 +138,14 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int original_id = threadIdx.x + (id_block * block_size) + (threadIdx.y * blockDim.x);
 
 	//thread spreading
-	int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
-	int x = (start_id % MAP_X_R);
-	int y = (start_id / (float)MAP_X_R);
+	//int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
+	//int x = (start_id % MAP_X_R);
+	//int y = (start_id / (float)MAP_X_R);
 
 	//original
-	//int start_id = original_id;
-	//int x = original_x;
-	//int y = original_y;
+	int start_id = original_id;
+	int x = (start_id % MAP_X_R);
+	int y = (start_id / (float)MAP_X_R);
 
 	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
@@ -167,8 +167,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -2;
 		return;
 	}
-
-	bool active = true;
 
 	node* open_list = (node*)malloc(3000 * sizeof(node));
 	node* closed_list = (node*)malloc(3000 * sizeof(node));
