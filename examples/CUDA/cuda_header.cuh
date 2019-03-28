@@ -130,7 +130,7 @@ typedef enum {
 
 typedef struct {
 	int owner_id;	//how map_storage identifies the map
-	int queue_id;	//how the queue identifies the map
+	int queue_id;	//how the queue identifies the map (MUST BE SECOND VARIABLE)
 	DeviceMemoryStatus status;
 	bool initialized;
 	cudaEvent_t begin, done;
@@ -138,16 +138,22 @@ typedef struct {
 	cudaPitchedPtr device_map_ptr;
 } AttractingFieldMemory;
 
+bool operator==(const AttractingFieldMemory& first, const AttractingFieldMemory& second);
+bool operator!=(const AttractingFieldMemory& first, const AttractingFieldMemory& second);
+
 typedef struct {
 	IntPoint2D destination;	//how map_storage identifies the map
+	int queue_id;	//how the queue identifies the map  (MUST BE SECOND VARIABLE)
 	bool air_path;
-	int queue_id;	//how the queue identifies the map
 	DeviceMemoryStatus status;
 	bool initialized;
 	cudaEvent_t begin, done;
 	float* map;
 	cudaPitchedPtr device_map_ptr;
 } InfluenceMapMemory;
+
+bool operator==(const InfluenceMapMemory& first, const InfluenceMapMemory& second);
+bool operator!=(const InfluenceMapMemory& first, const InfluenceMapMemory& second);
 
 //DEVICE FUNCTION
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
@@ -174,6 +180,7 @@ public:
 	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
 	__host__ void AllocateDeviceMemory();
+	__host__ void BindRepellingMapsToTransferParams();
 	__host__ void TransferUnitLookupToDevice();
 	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);
 	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
@@ -252,6 +259,9 @@ private:
 	std::queue<int> PF_queue;
 	std::queue<int> IM_queue;
 	int next_id;
+	cudaEvent_t repelling_PF_event_done;
+	cudaMemcpy3DParms repelling_PF_memcpy_params_ground;
+	cudaMemcpy3DParms repelling_PF_memcpy_params_air;
 
 	//host data (holders for host->device transfers)
 	float* ground_PF;

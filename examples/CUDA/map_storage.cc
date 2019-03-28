@@ -22,13 +22,15 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     this->actions_feature_layer = actions_feature_layer;
     this->max_value = 0;
     CreateIM();
-    if (!astar) {
-        cuda = new CUDA();
-        cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
-        CreateUnitLookUpTable();
-        cuda->AllocateDeviceMemory();
-        cuda->DeviceTransfer(dynamic_terrain);
-        cuda->Tests(ground_repelling_PF, air_repelling_PF);
+
+	if (!astar) {
+		cuda = new CUDA();
+		cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
+		CreateUnitLookUpTable();
+		cuda->AllocateDeviceMemory();
+		cuda->DeviceTransfer(dynamic_terrain);
+		cuda->BindRepellingMapsToTransferParams();
+		cuda->Tests(ground_repelling_PF, air_repelling_PF);
 
         cuda->UpdateDynamicMap({ 10, 10 }, 4, false);
 
@@ -83,6 +85,21 @@ void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::strin
         out << std::endl;
     }
     out.close();
+}
+
+void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
+    for (auto& d : destinations_ground_IM) {
+        if (d.destination == pos) {
+            PrintMap(d.map, x, y, name);
+            return;
+        }
+    }
+    for (auto& d : destinations_air_IM) {
+        if (d.destination == pos) {
+            PrintMap(d.map, x, y, name);
+            return;
+        }
+    }
 }
 
 std::vector<int> MapStorage::GetUnitsID() {
@@ -305,6 +322,8 @@ void MapStorage::UpdateEntityVector(std::vector<Entity>& host_unit_list) {
 }
 
 float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
+    if (ground_repelling_PF[x][y][0] < 0)
+        return 0;
     return ground_repelling_PF[x][y][0];
 }
 
@@ -326,16 +345,19 @@ void MapStorage::UpdateIMAtsar() {
 void MapStorage::TransferPFFromDevice() {
     for (int i = 0; i < requested_PF.size(); ++i) {
         Result res = cuda->TransferMapToHost(requested_PF[i]);
-        if (res == Result::OK)
+        if (res == Result::OK) {
             requested_PF.erase(requested_PF.begin() + i);
+            PrintMap(attracting_PFs.back().map, MAP_X_R, MAP_Y_R, "attarctingPF");
+        }
     }
 }
 
 void MapStorage::TransferIMFromDevice() {
     for (int i = 0; i < requested_IM.size(); ++i) {
         Result res = cuda->TransferMapToHost(requested_IM[i]);
-        if (res == Result::OK)
+        if (res == Result::OK) {
             requested_IM.erase(requested_IM.begin() + i);
+        }
     }
 }
 

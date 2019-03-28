@@ -76,6 +76,12 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 
 	this->ground_PF = (float*)ground_PF;
 	this->air_PF = (float*)air_PF;
+	
+	repelling_PF_memcpy_params_ground = { 0 };
+	repelling_PF_memcpy_params_air = { 0 };
+
+	Check(cudaEventCreate(&repelling_PF_event_done), "init event done create");
+	Check(cudaEventRecord(repelling_PF_event_done), "init event done record");
 
 	PopErrorsCheck("CUDA Initialization base");
 
@@ -223,6 +229,34 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	Check(cudaPeekAtLastError(), "cuda allocation peek");
 }
 
+__host__ void CUDA::BindRepellingMapsToTransferParams(){
+	repelling_PF_memcpy_params_ground.srcPtr.ptr = repelling_pf_ground_map_pointer.ptr;
+	repelling_PF_memcpy_params_ground.srcPtr.pitch = repelling_pf_ground_map_pointer.pitch;
+	repelling_PF_memcpy_params_ground.srcPtr.xsize = MAP_X_R;
+	repelling_PF_memcpy_params_ground.srcPtr.ysize = MAP_Y_R;
+	repelling_PF_memcpy_params_ground.dstPtr.ptr = ground_PF;
+	repelling_PF_memcpy_params_ground.dstPtr.pitch = MAP_X_R * sizeof(float);
+	repelling_PF_memcpy_params_ground.dstPtr.xsize = MAP_X_R;
+	repelling_PF_memcpy_params_ground.dstPtr.ysize = MAP_Y_R;
+	repelling_PF_memcpy_params_ground.extent.width = MAP_X_R * sizeof(float);
+	repelling_PF_memcpy_params_ground.extent.height = MAP_Y_R;
+	repelling_PF_memcpy_params_ground.extent.depth = 1;
+	repelling_PF_memcpy_params_ground.kind = cudaMemcpyDeviceToHost;
+
+	repelling_PF_memcpy_params_air.srcPtr.ptr = repelling_pf_air_map_pointer.ptr;
+	repelling_PF_memcpy_params_air.srcPtr.pitch = repelling_pf_air_map_pointer.pitch;
+	repelling_PF_memcpy_params_air.srcPtr.xsize = MAP_X_R;
+	repelling_PF_memcpy_params_air.srcPtr.ysize = MAP_Y_R;
+	repelling_PF_memcpy_params_air.dstPtr.ptr = air_PF;
+	repelling_PF_memcpy_params_air.dstPtr.pitch = MAP_X_R * sizeof(float);
+	repelling_PF_memcpy_params_air.dstPtr.xsize = MAP_X_R;
+	repelling_PF_memcpy_params_air.dstPtr.ysize = MAP_Y_R;
+	repelling_PF_memcpy_params_air.extent.width = MAP_X_R * sizeof(float);
+	repelling_PF_memcpy_params_air.extent.height = MAP_Y_R;
+	repelling_PF_memcpy_params_air.extent.depth = 1;
+	repelling_PF_memcpy_params_air.kind = cudaMemcpyDeviceToHost;
+}
+
 __host__ void CUDA::TransferUnitsToDevice() {
 
 	if (host_unit_list.size() > unit_list_max_length) {
@@ -256,8 +290,8 @@ __host__ int CUDA::QueueDeviceJob(int owner_id, float* map){
 	for (int i = 0; i < PF_mem.size(); ++i) {
 		if (PF_mem.at(i).status == DeviceMemoryStatus::EMPTY) {
 			storage_found = i;
-			cudaEventDestroy(PF_mem.at(i).begin);	//destroy previous events
-			cudaEventDestroy(PF_mem.at(i).done);
+			Check(cudaEventDestroy(PF_mem.at(i).begin), "event begin reset");	//destroy previous events
+			Check(cudaEventDestroy(PF_mem.at(i).done), "event done reset");
 			break; 
 		}
 	}
@@ -268,8 +302,8 @@ __host__ int CUDA::QueueDeviceJob(int owner_id, float* map){
 		PF_mem.push_back(mem);
 	}
 
-	Check(cudaEventCreateWithFlags(&PF_mem.at(storage_found).begin, cudaEventDisableTiming), "PF event begin create");
-	Check(cudaEventCreateWithFlags(&PF_mem.at(storage_found).done, cudaEventDisableTiming), "PF event done create");
+	Check(cudaEventCreate(&PF_mem.at(storage_found).begin), "PF event begin create");
+	Check(cudaEventCreate(&PF_mem.at(storage_found).done), "PF event done create");
 	PF_mem.at(storage_found) = { owner_id, next_id, DeviceMemoryStatus::OCCUPIED, false, PF_mem.at(storage_found).begin, PF_mem.at(storage_found).done, map, PF_mem.at(storage_found).device_map_ptr };
 	PF_queue.push(next_id);
 	next_id++;
@@ -297,9 +331,9 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 		IM_mem.push_back(mem);
 	}
 
-	Check(cudaEventCreateWithFlags(&IM_mem.at(storage_found).begin, cudaEventDisableTiming), "IM event begin create");
-	Check(cudaEventCreateWithFlags(&IM_mem.at(storage_found).done, cudaEventDisableTiming), "IM event done create");
-	IM_mem.at(storage_found) = { destination, air_path, next_id, DeviceMemoryStatus::OCCUPIED, false, IM_mem.at(storage_found).begin, IM_mem.at(storage_found).done, map, IM_mem.at(storage_found).device_map_ptr };
+	Check(cudaEventCreate(&IM_mem.at(storage_found).begin), "IM event begin create");
+	Check(cudaEventCreate(&IM_mem.at(storage_found).done), "IM event done create");
+	IM_mem.at(storage_found) = { destination, next_id, air_path, DeviceMemoryStatus::OCCUPIED, false, IM_mem.at(storage_found).begin, IM_mem.at(storage_found).done, map, IM_mem.at(storage_found).device_map_ptr };
 	IM_queue.push(next_id);
 	next_id++;
 
@@ -312,22 +346,23 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	//cudaDeviceSynchronize();
 
 	//start PF-repelling job
-	RepellingPFGeneration((float(*)[MAP_Y_R][1])ground_PF, (float(*)[MAP_Y_R][1])air_PF);
+	if (cudaEventQuery(repelling_PF_event_done) == cudaSuccess) {
+		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
+		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");
 
-	//start PF-attracting jobs
-	for (int i = 0; i < std::min((int)PF_queue.size(), 5); ++i) {
-		AttractingFieldMemory* mem = &PF_mem.at(PF_queue.front());
-		cudaEventRecord(mem->begin, 0);
-		AttractingPFGeneration(mem->owner_id, (float(*)[MAP_Y_R][1])mem->map, mem->device_map_ptr);
-		mem->initialized = true;
-		//mem->status = DeviceMemoryStatus::BUSY;
-		cudaEventRecord(mem->done, 0);
-		PF_queue.pop();
+		RepellingPFGeneration((float(*)[MAP_Y_R][1])ground_PF, (float(*)[MAP_Y_R][1])air_PF);
+
+		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_ground), "repelling PF ground memcpy");
+		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_air), "repelling PF air memcpy");
+
+		cudaEventRecord(repelling_PF_event_done);
 	}
 
 	//start IM job
 	if (IM_queue.size() > 0) {
-		InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
+		//InfluenceMapMemory* mem = &IM_mem.at(IM_queue.front());
+		std::vector<InfluenceMapMemory>::iterator it = std::find(IM_mem.begin(), IM_mem.end(), InfluenceMapMemory{ { 0, 0 }, IM_queue.front() });
+		InfluenceMapMemory* mem = &(*it);
 		cudaEventRecord(mem->begin, 0);
 		IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
 		mem->initialized = true;
@@ -336,7 +371,22 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 		IM_queue.pop();
 	}
 
+	//start PF-attracting jobs
+	int max_loop_iterations = std::min((int)PF_queue.size(), 5);
+	for (int i = 0; i < max_loop_iterations; ++i) {
+		//AttractingFieldMemory* mem = &PF_mem.at(PF_queue.front());
+		std::vector<AttractingFieldMemory>::iterator it = std::find(PF_mem.begin(), PF_mem.end(), AttractingFieldMemory{ 0, PF_queue.front() });
+		AttractingFieldMemory* mem = &(*it);
+		cudaEventRecord(mem->begin, 0);
+		AttractingPFGeneration(mem->owner_id, (float(*)[MAP_Y_R][1])mem->map, mem->device_map_ptr);
+		mem->initialized = true;
+		//mem->status = DeviceMemoryStatus::BUSY;
+		cudaEventRecord(mem->done, 0);
+		PF_queue.pop();
+	}
+
 	PopErrorsCheck();
+	cudaDeviceSynchronize();
 	return Result::OK;
 }
 
@@ -391,8 +441,9 @@ __host__ Result CUDA::TransferMapToHost(int id){
 	par.extent.depth = 1;
 	par.kind = cudaMemcpyDeviceToHost;
 
-	cudaError_t err = cudaMemcpy3DAsync(&par);	//transfer
-	Check(err, "Transfer queued map to host");
+	cudaError_t err;
+	//Check(err = cudaMemcpy3DAsync(&par), "Transfer queued map to host");	//transfer
+	Check(err = cudaMemcpy3D(&par), "Transfer queued map to host");	//transfer (OBS! TEMPORARY)
 	if (err != cudaSuccess) {
 		*status = DeviceMemoryStatus::EMPTY;
 		return Result::BAD_RES;
@@ -425,7 +476,7 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(AttractingFieldMemory* mem){
 		if (mem->status == DeviceMemoryStatus::EMPTY) {
 			return DeviceMemoryStatus::EMPTY;
 		}
-		if (cudaEventQuery(mem->done) == cudaSuccess) {
+		if ((cudaEventQuery(mem->begin) == cudaSuccess) && (cudaEventQuery(mem->done) == cudaSuccess)) {
 			mem->status == DeviceMemoryStatus::DONE;
 			return DeviceMemoryStatus::DONE;
 		}
@@ -443,7 +494,7 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 		if (mem->status == DeviceMemoryStatus::EMPTY) {
 			return DeviceMemoryStatus::EMPTY;
 		}
-		if (cudaEventQuery(mem->done) == cudaSuccess) {
+		if ((cudaEventQuery(mem->begin) == cudaSuccess) && (cudaEventQuery(mem->done) == cudaSuccess)) {
 			mem->status == DeviceMemoryStatus::DONE;
 			return DeviceMemoryStatus::DONE;
 		}
@@ -774,4 +825,26 @@ __host__ int CUDA::TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id) {
 
 __host__ void CUDA::SetHostUnitList(std::vector<Entity>& host_unit_list) {
 	this->host_unit_list = host_unit_list;
+}
+
+//operator overloads
+
+bool operator==(const AttractingFieldMemory& first, const AttractingFieldMemory& second) {
+	if (first.queue_id == second.queue_id) return true;
+	return false;
+}
+
+bool operator!=(const AttractingFieldMemory& first, const AttractingFieldMemory& second) {
+	if (first.queue_id != second.queue_id) return true;
+	return false;
+}
+
+bool operator==(const InfluenceMapMemory& first, const InfluenceMapMemory& second) {
+	if (first.queue_id == second.queue_id) return true;
+	return false;
+}
+
+bool operator!=(const InfluenceMapMemory& first, const InfluenceMapMemory& second) {
+	if (first.queue_id != second.queue_id) return true;
+	return false;
 }

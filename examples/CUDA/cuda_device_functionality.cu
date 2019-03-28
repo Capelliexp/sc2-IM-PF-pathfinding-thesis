@@ -11,9 +11,6 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
 	int id_global = x + y * blockDim.x;
 
-	//x = MAP_X_R - x;
-	//y = MAP_Y_R - y;
-
 	//move unit list to shared memory
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
 
@@ -29,19 +26,20 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	float dist = 0;
 	for (int i = 0; i < nr_of_units; ++i) {
 		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
-		float range_sub = unit.range + 1;
-		dist = (FloatDistance(unit_list_s[i].pos.x, unit_list_s[i].pos.y, x, y) + 0.0001);
+		float range_sub = unit.range + 2;
+		dist = (FloatDistance((int)unit_list_s[i].pos.x, (int)unit_list_s[i].pos.y, x, y) + 0.0001);
 
 		if (unit_list_s[i].enemy) {	//avoid enemies
 			if (dist < range_sub) {
-				ground_charge += ((range_sub / dist) * unit.can_attack_ground) + 5;
-				air_charge += ((range_sub / dist) * unit.can_attack_air) + 5;
+				ground_charge += ((range_sub / dist) * unit.can_attack_ground) + 50;
+				air_charge += ((range_sub / dist) * unit.can_attack_air) + 50;
 			}
 		}
 		else {	//avoid friendlies
-			if (dist < (unit.radius /** 1.2*/)) {
-				ground_charge += (1 / dist) * !(unit.is_flying);
-				air_charge += (1 / dist) * unit.is_flying;
+			int res = 3 - (int)dist - (int)(unit.radius + 0.5);
+			if (res > 0) {
+				ground_charge += (res/2.f) * !(unit.is_flying);
+				air_charge += (res/2.f) * unit.is_flying;
 			}
 		}
 	}
@@ -61,9 +59,6 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
 	int id_global = x + y * blockDim.x;
 
-	//x = MAP_X_R - x;
-	//y = MAP_Y_R - y;
-
 	//move unit list to shared memory
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
 
@@ -81,30 +76,49 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 		UnitInfoDevice other_info = device_unit_lookup[unit_list_s[i].id];
 		Entity other_entity = unit_list_s[i];
 
-		float dist = (FloatDistance(other_entity.pos.x, other_entity.pos.y, x, y) + 0.0001);
+		float dist = (FloatDistance((int)other_entity.pos.x, (int)other_entity.pos.y, x, y) + 0.0001);
 		bool self_can_attack_other = (other_info.is_flying && self_info.can_attack_air) || (!other_info.is_flying && self_info.can_attack_ground);
 
 		if (other_entity.enemy) {	//attack enemy
 			if (self_can_attack_other) {	//can attack unit
 				if (self_info.range < 1.1) {	//self is melee
 					if (dist < 10) {	//attack enemy
-						tot_charge += 10 / dist;
+						//tot_charge += 10 / dist;
+						tot_charge -= 10 / dist;
 					}
 				}
 				else {	//self is ranged
-					if(dist < (self_info.range - 3)){	//avoid enemy
+					float range_diff = self_info.range - other_info.range;
+					if (range_diff > 0) {	//self more range than other
+						if (dist < (other_info.range + (self_info.radius/* + 1*/))) {	//avoid area close to enemy
+							tot_charge += 10 / dist;
+						}
+						else if (dist < self_info.range * 1.2 || dist < 10) {	//attack enemy
+							tot_charge -= 10 / dist;
+						}
+					}
+					else {	//attack other with larger range than self
 						tot_charge -= 10 / dist;
 					}
-					else if (dist > (self_info.range - 3) && (dist < self_info.range * 1.2 || dist < 10)) {	//attack enemy
-						tot_charge += 10 / dist;
-					}
+					//if(dist < (self_info.range - 3)){	//avoid area close to enemy
+					//	//tot_charge -= 10 / dist;
+					//	tot_charge += 10 / dist;
+					//}
+					//else if (dist > (self_info.range - 3) && (dist < self_info.range * 1.2 || dist < 10)) {	//attack enemy
+					//	//tot_charge += 10 / dist;
+					//	tot_charge -= 10 / dist;
+					//}
 				}
 			}
 		}
 		else {	//avoid friend
 			if (self_info.is_flying == other_info.is_flying) {
-				if (dist < (other_info.radius * 1.2)) {
+				/*if (dist < (other_info.radius * 1.2)) {
 					tot_charge += 10 / dist;
+				}*/
+				int res = 3 - (int)dist - (int)(other_info.radius + 0.5);	//new calc
+				if (res > 0) {
+					tot_charge += (res / 2.f);
 				}
 			}
 		}
@@ -115,13 +129,13 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 }
 
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, list_double_entry* global_memory_im_list_storage) {
-	int block_size = blockDim.x*blockDim.y;
+	int block_size = blockDim.x * blockDim.y;
 	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
 
-	int id_block = blockIdx.x + blockIdx.y * gridDim.x;
-	int original_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int original_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int original_id = threadIdx.x + id_block * block_size + threadIdx.y * blockDim.x;
+	int id_block = blockIdx.x + (blockIdx.y * gridDim.x);
+	int original_x = threadIdx.x + (blockIdx.x * blockDim.x);
+	int original_y = threadIdx.y + (blockIdx.y * blockDim.y);
+	int original_id = threadIdx.x + (id_block * block_size) + (threadIdx.y * blockDim.x);
 
 	//thread spreading
 	int start_id = (original_id + (original_id % block_size) * block_size) % grid_size;
@@ -132,10 +146,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//int start_id = original_id;
 	//int x = original_x;
 	//int y = original_y;
-
-	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
-		return;
-	}
 
 	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
@@ -149,10 +159,16 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		return;
 	}
 
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
+
 	if (GetBoolMapValue(dynamic_map, x, y) == 0) {	//return if start tex is in terrain
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -2;
 		return;
 	}
+
+	bool active = true;
 
 	node* open_list = (node*)malloc(3000 * sizeof(node));
 	node* closed_list = (node*)malloc(3000 * sizeof(node));
@@ -177,7 +193,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		for (int i = 0; i < open_list_it; ++i) {
 			entry = open_list[i];
 			if (entry.pos != -1) {
-				if (entry.est_dist_start_to_dest_via_pos <= closest_distance_found) {
+				if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {
 					closest_distance_found = entry.est_dist_start_to_dest_via_pos;
 					closest_coord_found = i;
 					closest_entry = entry;
@@ -239,8 +255,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 						node new_list_entry = {
 							coord_global,
 							closed_list_it - 1,
-							closest_entry.steps_from_start + 0.8,
-							closest_entry.steps_from_start + 0.8 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
+							closest_entry.steps_from_start + /*0.8*/ 1,
+							closest_entry.steps_from_start + /*0.8*/ 1 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
 						};
 						open_list[open_list_it + new_open_list_entries] = new_list_entry;
 						++new_open_list_entries;
