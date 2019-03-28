@@ -22,18 +22,24 @@ struct Node {
     float walk_dist;
 };
 
+//! struct holding a unit and info about its destination and the behavior
+struct Unit {
+    const sc2::Unit* unit;
+    behaviors behavior;
+    Destination_IM* destination;
+};
+
+//! Struct holding unit and the path to its destination. Used for A*
+struct AstarUnit {
+    const sc2::Unit* unit;
+    std::vector<Node> path;
+};
+
 inline bool operator < (const Node& lhs, const Node& rhs) {
     return lhs.euc_dist < rhs.euc_dist;
 }
 
 class FooBot : public sc2::Agent {
-    //! struct holding a unit and info about its destination and the behavior
-    struct Unit {
-        const sc2::Unit* unit;
-        behaviors behavior;
-        Destination_IM* destination;
-    };
-
 public:
     FooBot(std::string map, bool spaw_alla_units = false);
 
@@ -61,16 +67,19 @@ private:
     //! Function to set destination for the given units and the behavior.
     void SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
     //! Function to set destination for the given units and the behavior.
-    void SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
+    void SetDestination(std::vector<Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
+    void SetDestination(std::vector<AstarUnit>& units_vec, sc2::Point2D pos, bool air_unit, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
     void SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior);
-    void SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID behavior);
+    void SetBehavior(std::vector<Unit>& units_vec, sc2::ABILITY_ID behavior);
 
     //! Function to update all units.
     void UpdateUnitsPaths();
+    void UpdateAstarPath();
+
 
     std::vector<Node> Astar(Node agent, sc2::Point2D destination);
     float CalculateEuclideanDistance(sc2::Point2D pos, sc2::Point2D dest);
-    bool NodeExistsInOpenList(sc2::Point2D pos, std::vector<Node> open_list);
+    bool NodeExistsInList(sc2::Point2D pos, std::vector<Node> list);
 
     void CreateAttractingPFs();
     void UpdateHostUnitList();
@@ -98,8 +107,12 @@ private:
     ChatCommands* chat_commands;
     std::vector<Entity> host_unit_list;
     //! A vector of units
-    std::vector<FooBot::Unit> player_units;
-    std::vector<FooBot::Unit> enemy_units;
+    std::vector<Unit> player_units;
+    std::vector<Unit> enemy_units;
+
+    //! A* Units
+    std::vector<AstarUnit> astar_units;
+
     //! Integer that represents the map.
     int map;
     //! Integer that represents the current command.
@@ -110,5 +123,6 @@ private:
     int spawned_player_units;
     int spawned_enemy_units;
     bool get_radius = true;
+    bool astar;
     uint32_t restarts_;
 };

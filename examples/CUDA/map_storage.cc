@@ -15,27 +15,28 @@ MapStorage::~MapStorage() {
 }
 
 void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
-    sc2::ActionFeatureLayerInterface* actions_feature_layer) {
+    sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar) {
     this->observation = observations;
     this->debug = debug;
     this->actions = actions;
     this->actions_feature_layer = actions_feature_layer;
     this->max_value = 0;
     CreateIM();
+    if (!astar) {
+        cuda = new CUDA();
+        cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
+        CreateUnitLookUpTable();
+        cuda->AllocateDeviceMemory();
+        cuda->DeviceTransfer(dynamic_terrain);
+        cuda->Tests(ground_repelling_PF, air_repelling_PF);
 
-    cuda = new CUDA();
-    cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
-    CreateUnitLookUpTable();
-    cuda->AllocateDeviceMemory();
-    cuda->DeviceTransfer(dynamic_terrain);
-    cuda->Tests(ground_repelling_PF, air_repelling_PF);
+        cuda->UpdateDynamicMap({ 10, 10 }, 4, false);
 
-    cuda->UpdateDynamicMap({ 10, 10 }, 4, false);
+        PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
+        PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
 
-    PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
-    PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
-
-    PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
+        PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
+    }
 }
 
 void MapStorage::Test() {
@@ -347,7 +348,8 @@ float MapStorage::GetAttractingPF(sc2::UnitTypeID unit_id, int x, int y) {
 }
 
 bool MapStorage::GetDynamicMap(int x, int y) {
-    return dynamic_terrain[x][y][0];
+    bool ret = dynamic_terrain[y][x][0];
+    return ret;
 }
 
 //! Craetes the influence map based on the size of the map.

@@ -59,7 +59,7 @@ public:
 	~MapStorage();
 
 	void Initialize(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
-		sc2::ActionFeatureLayerInterface* actions_feature_layer);
+		sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar);
 
 	void Test();
 

@@ -6,6 +6,7 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	this->command = 0;
 	this->spawned_player_units = 0;
 	this->spawned_enemy_units = 0;
+	this->astar = true;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
 	else if (map == "height")		this->map = 3;
@@ -22,7 +23,7 @@ void FooBot::OnGameStart() {
 	map_storage = new MapStorage();
 	chat_commands = new ChatCommands(map);
 	
-	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer());
+	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer(), astar);
 	map_storage->Test();
 
 	step_clock = clock();
@@ -43,27 +44,36 @@ void FooBot::OnStep() {
 	if (in_messages.size() > 0 && command == 0)
 		command = chat_commands->ParseCommands(in_messages[0].message);
 
-
-	//Map transfer PF a/r
-	map_storage->TransferPFFromDevice();
+	if (!astar) {
+		//Map transfer PF a/r
+		map_storage->TransferPFFromDevice();
+	}
 
 	//Set destination
 	ExecuteCommand();
 
-	//Unit transfer
-	UpdateHostUnitList();
+	if (!astar) {
+		//Unit transfer
+		UpdateHostUnitList();
+	}
 
-	//Pathfinding
-	UpdateUnitsPaths();
+	if (!astar) {
+		//Pathfinding
+		UpdateUnitsPaths();
+	}
+	else {
+		UpdateAstarPath();
+	}
 
-	//Map transfer IM
-	map_storage->TransferIMFromDevice();
+	if (!astar) {
+		//Map transfer IM
+		map_storage->TransferIMFromDevice();
 
-	//Start IM
-	//Start PF a/r
-	CreateAttractingPFs();
-	map_storage->ExecuteDeviceJobs();
-
+		//Start IM
+		//Start PF a/r
+		CreateAttractingPFs();
+		map_storage->ExecuteDeviceJobs();
+	}
 
 
 	Actions()->SendActions();
@@ -85,7 +95,7 @@ void FooBot::OnGameEnd() {
 
 void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
 	if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Enemy) {
-		FooBot::Unit new_unit;
+		Unit new_unit;
 		new_unit.unit = unit;
 		new_unit.behavior = behaviors::PASSIVE;
 		this->enemy_units.push_back(new_unit);
@@ -121,10 +131,17 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 
 void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 	if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Self) {
-		FooBot::Unit new_unit;
-		new_unit.unit = unit;
-		new_unit.behavior = behaviors::DEFENCE;
-		this->player_units.push_back(new_unit);
+		if (!astar) {
+			Unit new_unit;
+			new_unit.unit = unit;
+			new_unit.behavior = behaviors::DEFENCE;
+			this->player_units.push_back(new_unit);
+		}
+		else {
+			AstarUnit new_unit;
+			new_unit.unit = unit;
+			this->astar_units.push_back(new_unit);
+		}
 	}
 	else {
 		//kernel launch
@@ -199,7 +216,7 @@ void FooBot::SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID 
 	}
 }
 
-void FooBot::SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start, sc2::Point2D end) {
+void FooBot::SetDestination(std::vector<Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start, sc2::Point2D end) {
 	pos.y = MAP_Y_R - 1 - pos.y;
 	if (air_unit) {
 		for (int i = 0; i < units_vec.size(); ++i) {
@@ -225,14 +242,36 @@ void FooBot::SetDestination(std::vector<FooBot::Unit>& units_vec, sc2::Point2D p
 			}
 		}
 	}
-	
+}
+
+void FooBot::SetDestination(std::vector<AstarUnit>& units_vec, sc2::Point2D pos, bool air_unit, sc2::Point2D start, sc2::Point2D end) {
+	pos.y = MAP_Y_R - 1 - pos.y;
+	Node agent;
+	agent.euc_dist = 0;
+	agent.parentX = -1;
+	agent.parentY = -1;
+	agent.walk_dist = 0;
+	if (air_unit) {
+	}
+	else {
+		for (int i = 0; i < units_vec.size(); ++i) {
+			agent.x = units_vec[i].unit->pos.x;
+			agent.y = MAP_Y_R - 1 - units_vec[i].unit->pos.y;
+			if (start.x == -1) {
+				units_vec[i].path = Astar(agent, pos);
+			}
+			else if (sc2::Point2D(units_vec[i].unit->pos) >= start && sc2::Point2D(units_vec[i].unit->pos) <= end) {
+				units_vec[i].path = Astar(agent, pos);
+			}
+		}
+	}
 }
 
 void FooBot::SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior) {
 	Actions()->UnitCommand(units, behavior);
 }
 
-void FooBot::SetBehavior(std::vector<FooBot::Unit>& units_vec, sc2::ABILITY_ID behavior) {
+void FooBot::SetBehavior(std::vector<Unit>& units_vec, sc2::ABILITY_ID behavior) {
 	for (int i = 0; i < units_vec.size(); ++i) {
 		Actions()->UnitCommand(units_vec[i].unit, behavior);
 	}
@@ -314,6 +353,22 @@ void FooBot::UpdateUnitsPaths() {
 	Debug()->SendDebug();
 }
 
+void FooBot::UpdateAstarPath() {
+	for (int i = 0; i < astar_units.size(); ++i) {
+		if (astar_units[i].path.size() > 0) {
+			sc2::Point2DI p1 = sc2::Point2DI(astar_units[i].unit->pos.x, MAP_Y_R - 1 - (int)astar_units[i].unit->pos.y);
+			sc2::Point2DI p2 = sc2::Point2DI(astar_units[i].path.back().x, astar_units[i].path.back().y);
+			if (p1.x + 1 >= p2.x && p1.x - 1 <= p2.x && p1.y + 1 >= p2.y && p1.y - 1 <= p2.y) {
+				astar_units[i].path.pop_back();
+				if (astar_units[i].path.size() > 0) {
+					sc2::Point2D new_pos = sc2::Point2D(astar_units[i].path.back().x, MAP_Y_R - 1 - astar_units[i].path.back().y);
+					Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
+				}
+			}
+		}
+	}
+}
+
 std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 	std::vector<Node> empty;
 	if (!map_storage->GetDynamicMap(agent.x, agent.y))
@@ -330,8 +385,7 @@ std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 	start.parentY = -1;
 	start.x = agent.x;
 	start.y = agent.y;
-	open_list.emplace_back(start);
-	float shortest_distance = open_list[0].euc_dist + open_list[0].walk_dist;
+	/*open_list.emplace_back(start);*/
 
 	bool destination_found = false;
 	Node node = start;
@@ -344,34 +398,35 @@ std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 		}
 
 		Node a;
-		if (map_storage->GetDynamicMap(node.x, node.y + 1) && !NodeExistsInOpenList(sc2::Point2D(node.x, node.y + 1), open_list)) {
-			a.x = node.x;
-			a.y = node.y + 1;
-			a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
-			open_list.push_back(a);
+		a.parentX = node.x;
+		a.parentY = node.y;
+		a.walk_dist = node.walk_dist + 1;
+
+		std::vector<sc2::Point2D> adjacadjacent_nodes;
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 0, node.y + 1));
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 1, node.y + 0));
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 0, node.y - 1));
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 1, node.y - 0));
+
+		for (int i = 0; i < adjacadjacent_nodes.size(); ++i) {
+			bool dynamic = map_storage->GetDynamicMap(adjacadjacent_nodes[i].x, adjacadjacent_nodes[i].y);
+			bool open = NodeExistsInList(adjacadjacent_nodes[i], open_list);
+			bool close = NodeExistsInList(adjacadjacent_nodes[i], closed_list);
+			if (dynamic && !open && !close) {
+				a.x = adjacadjacent_nodes[i].x;
+				a.y = adjacadjacent_nodes[i].y;
+				a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
+				open_list.push_back(a);
+			}
 		}
-		if (map_storage->GetDynamicMap(node.x + 1, node.y) && !NodeExistsInOpenList(sc2::Point2D(node.x + 1, node.y), open_list)) {
-			a.x = node.x + 1;
-			a.y = node.y;
-			a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
-			open_list.push_back(a);
-		}
-		if (map_storage->GetDynamicMap(node.x, node.y - 1) && !NodeExistsInOpenList(sc2::Point2D(node.x, node.y - 1), open_list)) {
-			a.x = node.x;
-			a.y = node.y - 1;
-			a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
-			open_list.push_back(a);
-		}
-		if (map_storage->GetDynamicMap(node.x - 1, node.y) && !NodeExistsInOpenList(sc2::Point2D(node.x - 1, node.y), open_list)) {
-			a.x = node.x - 1;
-			a.y = node.y;
-			a.euc_dist = CalculateEuclideanDistance(sc2::Point2D(a.x, a.y), destination);
-			open_list.push_back(a);
-		}
-		int nearest_node;
+
+		int nearest_node = -1;
+		float shortest_distance = FLT_MAX;
 		for (int i = 0; i < open_list.size(); ++i) {
-			if (shortest_distance < (open_list[i].euc_dist + open_list[i].walk_dist))
+			if ((open_list[i].euc_dist + open_list[i].walk_dist) < shortest_distance) {
+				shortest_distance = open_list[i].euc_dist + open_list[i].walk_dist;
 				nearest_node = i;
+			}
 		}
 		closed_list.push_back(open_list[nearest_node]);
 		open_list.erase(open_list.begin() + nearest_node);
@@ -397,12 +452,12 @@ std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 }
 
 float FooBot::CalculateEuclideanDistance(sc2::Point2D pos, sc2::Point2D dest) {
-	double H = (sqrt((pos.x - pos.x)*(pos.x - pos.x) + (pos.y - dest.y)*(pos.y - dest.y)));
+	float H = (sqrt((pos.x - dest.x)*(pos.x - dest.x) + (pos.y - dest.y)*(pos.y - dest.y)));
 	return H;
 }
 
-bool FooBot::NodeExistsInOpenList(sc2::Point2D pos, std::vector<Node> open_list) {
-	for (Node n : open_list) {
+bool FooBot::NodeExistsInList(sc2::Point2D pos, std::vector<Node> list) {
+	for (Node n : list) {
 		if (n.x == pos.x && n.y == pos.y)
 			return true;
 	}
@@ -850,9 +905,17 @@ void FooBot::CommandsOnSpiral50() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_SIEGETANK, spawned_player_units, sc2::Point2D(45));
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(42, 18), 2);
 		}
-		else if (player_units.size() == spawned_player_units) {
-			SetDestination(player_units, sc2::Point2D(27), behaviors::ATTACK, false);
-			spawned_player_units = 0;
+		else if (!astar) {
+			if (player_units.size() == spawned_player_units) {
+				SetDestination(player_units, sc2::Point2D(27), behaviors::ATTACK, false);
+				spawned_player_units = 0;
+			}
+		}
+		else if (astar) {
+			if (astar_units.size() == spawned_player_units) {
+				SetDestination(astar_units, sc2::Point2D(27), false);
+				spawned_player_units = 0;
+			}
 		}
 		if (enemy_units.size() == spawned_enemy_units) {
 			SetBehavior(enemy_units, sc2::ABILITY_ID::HOLDPOSITION);
