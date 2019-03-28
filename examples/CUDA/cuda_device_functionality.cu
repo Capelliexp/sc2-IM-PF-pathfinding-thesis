@@ -131,6 +131,7 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, list_double_entry* global_memory_im_list_storage) {
 	int block_size = blockDim.x * blockDim.y;
 	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
+	int grid_thread_width = gridDim.x * blockDim.x;
 
 	int id_block = blockIdx.x + (blockIdx.y * gridDim.x);
 	int original_x = threadIdx.x + (blockIdx.x * blockDim.x);
@@ -144,8 +145,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 	//original
 	int start_id = original_id;
-	int x = (start_id % MAP_X_R);
-	int y = (start_id / (float)MAP_X_R);
+	int x = (start_id % grid_thread_width);
+	int y = (start_id / (float)grid_thread_width);
 
 	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
@@ -208,10 +209,10 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		closed_list[closed_list_it] = closest_entry;
 		++closed_list_it;
 
-		IntPoint2D pos = IDToPos(closest_entry.pos);
+		IntPoint2D pos = IDToPos(closest_entry.pos, grid_thread_width);
 
 		if ((pos.x == destination.x) && (pos.y == destination.y)) {	//destination has been found! HYPE
-			Backtrack(device_map, closed_list, closed_list_it - 1);
+			Backtrack(device_map, closed_list, closed_list_it - 1, grid_thread_width);
 			free(open_list);
 			free(closed_list);
 			return;
@@ -238,14 +239,14 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//add the expanded nodes neighbours to the open list
 		short_coord neighbour_coords[4];
-		neighbour_coords[0] = { pos.x, pos.y - 1 };
-		neighbour_coords[1] = { pos.x - 1, pos.y };
-		neighbour_coords[2] = { pos.x + 1, pos.y };
-		neighbour_coords[3] = { pos.x, pos.y + 1 };
+		neighbour_coords[0] = { pos.x, pos.y - 1 };	//up
+		neighbour_coords[1] = { pos.x - 1, pos.y };	//left
+		neighbour_coords[2] = { pos.x + 1, pos.y };	//right
+		neighbour_coords[3] = { pos.x, pos.y + 1 };	//down
 
 		int new_open_list_entries = 0;
 		for (int i = 0; i < 4; ++i) {
-			int coord_global = PosToID({ neighbour_coords[i].x, neighbour_coords[i].y });
+			int coord_global = PosToID({ neighbour_coords[i].x, neighbour_coords[i].y }, grid_thread_width);
 
 			if (neighbour_coords[i].x <= MAP_X_R && neighbour_coords[i].y <= MAP_Y_R && neighbour_coords[i].x > 0 && neighbour_coords[i].y > 0) {	//coord in map
 				if (GetBoolMapValue(dynamic_map, neighbour_coords[i].x, neighbour_coords[i].y) != 0) {	//coord not in terrain
@@ -269,14 +270,16 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	}
 }
 
-__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it) {
+__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it, int width) {
 	node curr = closed_list[start_it];
 
+	IntPoint2D pos;
 	for (int loop_count = 1; loop_count < MAP_SIZE_R + 1; ++loop_count) {
-		int x = curr.pos % MAP_X_R;
-		int y = curr.pos / (float)(MAP_X_R);
+		pos = IDToPos(curr.pos, width);
+		//int x = curr.pos % MAP_X_R;
+		//int y = curr.pos / (float)(MAP_X_R);
 
-		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = loop_count;
+		((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
 
 		if (curr.backtrack_it == -1) return;
 		curr = closed_list[curr.backtrack_it];

@@ -791,7 +791,7 @@ void FooBot::CommandsOnHeight() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5));
 		}
 		else if (player_units.size() == spawned_player_units) {
-			SetDestination(player_units, sc2::Point2D(50, 60), behaviors::PASSIVE, false);
+			SetDestination(player_units, sc2::Point2D(53, 40), behaviors::PASSIVE, false);
 			spawned_player_units = 0;
 			command = 0;
 		}

@@ -91,12 +91,16 @@ void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
     for (auto& d : destinations_ground_IM) {
         if (d.destination == pos) {
             PrintMap(d.map, x, y, name);
+            CreateImage(d.map, x, y, colors::GREEN);
+            PrintImage(name + ".png", x, y);
             return;
         }
     }
     for (auto& d : destinations_air_IM) {
         if (d.destination == pos) {
             PrintMap(d.map, x, y, name);
+            CreateImage(d.map, x, y, colors::GREEN);
+            PrintImage(name + ".png", x, y);
             return;
         }
     }
