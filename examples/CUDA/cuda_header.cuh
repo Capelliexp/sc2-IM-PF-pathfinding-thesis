@@ -215,7 +215,7 @@ public:
 	__host__ void SetHostUnitList(std::vector<Entity>& host_unit_list);
 	
 	//Kernel launches
-	__host__ void RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
+	__host__ void RepellingPFGeneration();
 	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map);
 	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path, cudaPitchedPtr device_map);
 	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);

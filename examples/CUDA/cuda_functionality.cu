@@ -513,7 +513,7 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 
 /*KERNAL LAUNCHES START*/
 
-__host__ void CUDA::RepellingPFGeneration(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
+__host__ void CUDA::RepellingPFGeneration() {
 	if (host_unit_list.size() > 0) 
 		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
 			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
