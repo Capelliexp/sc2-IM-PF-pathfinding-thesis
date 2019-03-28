@@ -112,6 +112,7 @@ private:
 
     //! A* Units
     std::vector<AstarUnit> astar_units;
+    bool new_buildings;
 
     //! Integer that represents the map.
     int map;

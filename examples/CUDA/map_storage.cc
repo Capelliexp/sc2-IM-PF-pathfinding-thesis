@@ -319,6 +319,10 @@ void MapStorage::ExecuteDeviceJobs() {
     cuda->ExecuteDeviceJobs();
 }
 
+void MapStorage::UpdateIMAtsar() {
+    CreateIM();
+}
+
 void MapStorage::TransferPFFromDevice() {
     for (int i = 0; i < requested_PF.size(); ++i) {
         Result res = cuda->TransferMapToHost(requested_PF[i]);

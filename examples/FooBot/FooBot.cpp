@@ -7,6 +7,7 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	this->spawned_player_units = 0;
 	this->spawned_enemy_units = 0;
 	this->astar = true;
+	this->new_buildings = false;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
 	else if (map == "height")		this->map = 3;
@@ -43,6 +44,11 @@ void FooBot::OnStep() {
 	std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
 	if (in_messages.size() > 0 && command == 0)
 		command = chat_commands->ParseCommands(in_messages[0].message);
+
+	if (new_buildings) {
+		new_buildings = false;
+		map_storage->UpdateIMAtsar();
+	}
 
 	if (!astar) {
 		//Map transfer PF a/r
@@ -94,58 +100,68 @@ void FooBot::OnGameEnd() {
 }
 
 void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
-	if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Enemy) {
-		Unit new_unit;
-		new_unit.unit = unit;
-		new_unit.behavior = behaviors::PASSIVE;
-		this->enemy_units.push_back(new_unit);
+	if (!astar) {
+		if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Enemy) {
+			Unit new_unit;
+			new_unit.unit = unit;
+			new_unit.behavior = behaviors::PASSIVE;
+			this->enemy_units.push_back(new_unit);
+		}
+		else {
+			//kernel launch
+			map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
+		}
 	}
 	else {
-		//kernel launch
-		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
+		if (IsStructure(unit))
+			new_buildings = true;
 	}
 }
 
 void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
-	if (!IsStructure(unit)) {
-		for (int i = 0; i < player_units.size(); ++i) {
-			if (player_units[i].unit == unit) {
-				player_units.erase(player_units.begin() + i);
+	if (!astar) {
+		if (!IsStructure(unit)) {
+			for (int i = 0; i < player_units.size(); ++i) {
+				if (player_units[i].unit == unit) {
+					player_units.erase(player_units.begin() + i);
+					return;
+				}
+			}
+		}
+		else {
+			//kernel launch
+			map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, 0);
+		}
+		for (int i = 0; i < enemy_units.size(); ++i) {
+			if (enemy_units[i].unit == unit) {
+				enemy_units.erase(enemy_units.begin() + i);
 				return;
 			}
 		}
 	}
-	else {
-		//kernel launch
-		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, 0);
-	}
-	for (int i = 0; i < enemy_units.size(); ++i) {
-		if (enemy_units[i].unit == unit) {
-			enemy_units.erase(enemy_units.begin() + i);
-			return;
-		}
-	}
-	//Remove structure if destroyed
-	//Remove structure from IMs
 }
 
 void FooBot::OnUnitCreated(const sc2::Unit * unit) {
-	if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Self) {
-		if (!astar) {
+	if (!astar) {
+		if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Self) {
 			Unit new_unit;
 			new_unit.unit = unit;
 			new_unit.behavior = behaviors::DEFENCE;
 			this->player_units.push_back(new_unit);
 		}
 		else {
+			//kernel launch
+			map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
+		}
+	}
+	else {
+		if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Self) {
 			AstarUnit new_unit;
 			new_unit.unit = unit;
 			this->astar_units.push_back(new_unit);
 		}
-	}
-	else {
-		//kernel launch
-		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
+		else if (IsStructure(unit))
+			new_buildings = true;
 	}
 }
 
