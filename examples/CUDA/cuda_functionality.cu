@@ -387,7 +387,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 
 	PopErrorsCheck();
 	
-	//cudaDeviceSynchronize();
+	cudaDeviceSynchronize();
 	PopErrorsCheck();
 
 	return Result::OK;

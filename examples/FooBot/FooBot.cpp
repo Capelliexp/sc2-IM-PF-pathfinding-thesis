@@ -6,7 +6,7 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	this->command = 0;
 	this->spawned_player_units = 0;
 	this->spawned_enemy_units = 0;
-	this->astar = true;
+	this->astar = false;
 	this->new_buildings = false;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -40,10 +40,15 @@ void FooBot::OnGameStart() {
 
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
+
+	if (GetKeyState('1') & 0x8000) {
+		command = 1;
+	}
+
 	//Messages from chat
-	std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
+	/*std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
 	if (in_messages.size() > 0 && command == 0)
-		command = chat_commands->ParseCommands(in_messages[0].message);
+		command = chat_commands->ParseCommands(in_messages[0].message);*/
 
 	if (new_buildings) {
 		new_buildings = false;
@@ -304,7 +309,7 @@ void FooBot::UpdateUnitsPaths() {
 		if (player_units[i].destination->map[0][0][0] == -107374176) continue;	//No destination ready to be used
 		//if (is not transfered... ) continue (new cuda event)
 
-		map_storage->PrintMap(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
+		//map_storage->PrintMap(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;
@@ -313,13 +318,13 @@ void FooBot::UpdateUnitsPaths() {
 		translated_pos.y = MAP_Y_R - 1 - translated_pos.y;
 
 		if (player_units[i].destination->destination == sc2::Point2D((int)translated_pos.x, (int)translated_pos.y)) {	//Found destination.
-			sc2::Point2D pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y);
-			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, pos);
-			player_units[i].last_pos = pos;
-			std::cout << "Done: " << player_units[i].dist_traveled;
 			sc2::Point2D new_pos = player_units[i].destination->destination;
 			new_pos.y = MAP_Y_R - 1 - new_pos.y;
 			Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
+			sc2::Point2D pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y);
+			player_units[i].dist_traveled += CalculateEuclideanDistance(new_pos, pos);
+			player_units[i].last_pos = pos;
+			std::cout << "Done: " << player_units[i].dist_traveled;
 			player_units[i].destination = nullptr;
 			continue;
 		}
@@ -399,7 +404,7 @@ void FooBot::UpdateAstarPath() {
 			
 			if (astar_units[i].last_pos.x == -1)
 				astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
-			else {
+			else if (astar_units[i].path.size() > 1) {
 				sc2::Point2D pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
 				astar_units[i].dist_traveled += CalculateEuclideanDistance(astar_units[i].last_pos, pos);
 				astar_units[i].last_pos = pos;
@@ -413,7 +418,9 @@ void FooBot::UpdateAstarPath() {
 					Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 				}
 				else {
-					astar_units[i].dist_traveled += CalculateEuclideanDistance(astar_units[i].last_pos, last_path_pos);
+					sc2::Point2D current_pos = astar_units[i].unit->pos;
+					current_pos.y = MAP_Y_R - 1 - current_pos.y;
+					astar_units[i].dist_traveled += CalculateEuclideanDistance(current_pos, last_path_pos);
 					std::cout << "Done: " << astar_units[i].dist_traveled;
 				}
 			}

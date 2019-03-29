@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
         CreateParticipant(sc2::Race::Terran, &bot),
         CreateComputer(sc2::Race::Terran)
     });
-    coordinator.SetRealtime(true);
+    coordinator.SetRealtime(false);
     // Start the game.
     coordinator.LaunchStarcraft();
 
@@ -39,10 +39,7 @@ int main(int argc, char* argv[]) {
     while (!do_break) {
         //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
         coordinator.StartGame(str);
-        while (coordinator.Update() && !do_break) {
-            if (sc2::PollKeyPress()) {
-                do_break = true;
-            }
+        while (coordinator.Update()) {
         }
     }
 
