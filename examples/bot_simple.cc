@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
     coordinator.SetStepSize(1);
 
     //! Om du �ndrar denna variable. Gl�m inte att �ndra #define MAP_X och #define MAP_Y i map_storage.hpp.
-    std::string map = "spiral50";
+    std::string map = "empty50";
     // Add the custom bot, it will control the players.
     FooBot bot(map);
 
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
         CreateParticipant(sc2::Race::Terran, &bot),
         CreateComputer(sc2::Race::Terran)
     });
-    coordinator.SetRealtime(false);
+    coordinator.SetRealtime(true);
     // Start the game.
     coordinator.LaunchStarcraft();
 

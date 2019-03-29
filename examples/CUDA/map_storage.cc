@@ -347,7 +347,7 @@ void MapStorage::TransferPFFromDevice() {
         Result res = cuda->TransferMapToHost(requested_PF[i]);
         if (res == Result::OK) {
             requested_PF.erase(requested_PF.begin() + i);
-            PrintMap(attracting_PFs.back().map, MAP_X_R, MAP_Y_R, "attarctingPF");
+            //PrintMap(attracting_PFs.back().map, MAP_X_R, MAP_Y_R, "attarctingPF");
         }
     }
 }
