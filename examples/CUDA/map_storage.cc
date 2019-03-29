@@ -374,7 +374,7 @@ float MapStorage::GetAttractingPF(sc2::UnitTypeID unit_id, int x, int y) {
 }
 
 bool MapStorage::GetDynamicMap(int x, int y) {
-    bool ret = dynamic_terrain[y][x][0];
+    bool ret = dynamic_terrain[x][y][0];
     return ret;
 }
 

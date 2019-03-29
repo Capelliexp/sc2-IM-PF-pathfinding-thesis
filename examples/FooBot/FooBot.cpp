@@ -437,7 +437,7 @@ void FooBot::RecreateAstarPaths() {
 
 std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 	std::vector<Node> empty;
-	if (!map_storage->GetDynamicMap(agent.x, agent.y))
+	if (!map_storage->GetDynamicMap(agent.y, agent.x))
 		return empty;
 	if (sc2::Point2D(agent.x, agent.y) == destination)
 		return empty;
@@ -469,13 +469,14 @@ std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 		a.walk_dist = node.walk_dist + 1;
 
 		std::vector<sc2::Point2D> adjacadjacent_nodes;
-		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 0, node.y + 1));
-		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 1, node.y + 0));
-		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 0, node.y - 1));
-		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 1, node.y - 0));
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 0, node.y + 1));	//Up
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 1, node.y + 0));	//Right
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 0, node.y - 1));	//Down
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 1, node.y - 0));	//Left
+		
 
 		for (int i = 0; i < adjacadjacent_nodes.size(); ++i) {
-			bool dynamic = map_storage->GetDynamicMap(adjacadjacent_nodes[i].x, adjacadjacent_nodes[i].y);
+			bool dynamic = map_storage->GetDynamicMap(adjacadjacent_nodes[i].y, adjacadjacent_nodes[i].x);
 			bool open = NodeExistsInList(adjacadjacent_nodes[i], open_list);
 			bool close = NodeExistsInList(adjacadjacent_nodes[i], closed_list);
 			if (dynamic && !open && !close) {
@@ -507,6 +508,23 @@ std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 	while (generating_shortest_path) {
 		for (int i = 0; i < closed_list.size(); ++i) {
 			if (path.back().parentX == closed_list[i].x && path.back().parentY == closed_list[i].y) {
+				int closer_node = -1;
+				for (int j = 0; j < closed_list.size(); ++j) {
+					float dist = 2;
+					if (closed_list[i].parentX == closed_list[j].x && closed_list[i].parentY == closed_list[j].y) {
+						float new_dist = CalculateEuclideanDistance(sc2::Point2D(path.back().x, path.back().y), sc2::Point2D(closed_list[j].x, closed_list[j].y));
+						if (new_dist < dist) {
+							closer_node = j;
+							dist = new_dist;
+							/*path.push_back(closed_list[j]);
+							break;*/
+						}
+					}
+				}
+				if (closer_node != -1) {
+					path.push_back(closed_list[closer_node]);
+					break;
+				}
 				path.push_back(closed_list[i]);
 				break;
 			}
