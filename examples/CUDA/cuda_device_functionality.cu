@@ -169,12 +169,12 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		return;
 	}
 
-	node* open_list = (node*)malloc(3000 * sizeof(node));
-	node* closed_list = (node*)malloc(3000 * sizeof(node));
-	int open_list_it = 0, closed_list_it = 0, open_list_size = 3000, closed_list_size = 3000;
+	node* open_list = (node*)malloc(1000 * sizeof(node));
+	node* closed_list = (node*)malloc(1000 * sizeof(node));
+	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
 
 	if (open_list == NULL || closed_list == NULL) {
-		printf("Device heap limit to low for lists\n");
+		printf("Device heap limit to low for lists (init)\n");
 		return;
 	}
 
@@ -220,20 +220,31 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//expand the size of the open and closed list if necessary
 		if (size_check_counter == 30) {
+
 			size_check_counter = 0;
 			if ((open_list_size - open_list_it) < 200) {
 				node* open_list_new = (node*)malloc(open_list_size * 2 * sizeof(node));
-				memcpy(open_list_new, open_list, open_list_size);
+				memcpy(&open_list_new[0], &open_list[0], open_list_size * sizeof(node));
 				open_list_size *= 2;
 				free(open_list);
 				open_list = open_list_new;
+
+				if (open_list == NULL) {
+					printf("Device heap limit to low for lists (expand)\n");
+					return;
+				}
 			}
 			if ((closed_list_size - closed_list_it) < 200) {
 				node* closed_list_new = (node*)malloc(closed_list_size * 2 * sizeof(node));
-				memcpy(closed_list_new, closed_list, closed_list_size);
+				memcpy(&closed_list_new[0], &closed_list[0], closed_list_size * sizeof(node));
 				closed_list_size *= 2;
 				free(closed_list);
 				closed_list = closed_list_new;
+
+				if (closed_list == NULL) {
+					printf("Device heap limit to low for lists (expand)\n");
+					return;
+				}
 			}
 		}
 
@@ -263,8 +274,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 				}
 			}
 		}
-		open_list_it += new_open_list_entries;
 
+		open_list_it += new_open_list_entries;
 		open_list[closest_coord_found].pos = -1;	//mark expanded node as invalid in the open list
 		++size_check_counter;
 	}
@@ -276,8 +287,6 @@ __device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int star
 	IntPoint2D pos;
 	for (int loop_count = 1; loop_count < MAP_SIZE_R + 1; ++loop_count) {
 		pos = IDToPos(curr.pos, width);
-		//int x = curr.pos % MAP_X_R;
-		//int y = curr.pos / (float)(MAP_X_R);
 
 		((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
 
