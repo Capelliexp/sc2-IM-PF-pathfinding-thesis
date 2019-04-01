@@ -29,6 +29,7 @@ struct Unit {
     Destination_IM* destination;
     float dist_traveled;
     sc2::Point2D last_pos;
+    sc2::Point2D next_pos;
 };
 
 //! Struct holding unit and the path to its destination. Used for A*

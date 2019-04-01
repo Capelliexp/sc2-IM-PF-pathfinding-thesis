@@ -165,7 +165,7 @@ __global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_ri
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
 __global__ void TestDeviceLookupUsage(float* result);
 
-__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it);
+__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it, int width);
 
 class CUDA {
 	//friend class MapStorage;

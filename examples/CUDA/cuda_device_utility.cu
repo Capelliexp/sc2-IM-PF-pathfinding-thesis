@@ -86,20 +86,31 @@ __device__ int BlockDistance(int posX1, int posY1, int posX2, int posY2) {
 //	return a + b;
 //}
 
-__device__ int PosToID(IntPoint2D pos) {
-	return (pos.x) + ((pos.y) * MAP_X_R);
+__device__ int PosToID(IntPoint2D pos, int width) {
+	return (pos.x) + ((pos.y) * width);
 }
+
+//__device__ int PosToID(IntPoint2D pos) {
+//	return (pos.x) + ((pos.y) * MAP_X_R);
+//}
 
 //__device__ int PosToID(IntPoint2D pos) {
 //	return (pos.x) + ((pos.y) * (gridDim.x * blockDim.x));
 //}
 
-__device__ IntPoint2D IDToPos(int ID) {
+__device__ IntPoint2D IDToPos(int ID, int width) {
 	IntPoint2D res;
-	res.x = (ID % MAP_X_R);
-	res.y = (ID / (float)MAP_X_R);
+	res.x = (ID % width);
+	res.y = (ID / (float)width);
 	return res;
 }
+
+//__device__ IntPoint2D IDToPos(int ID) {
+//	IntPoint2D res;
+//	res.x = (ID % MAP_X_R);
+//	res.y = (ID / (float)MAP_X_R);
+//	return res;
+//}
 
 //__device__ IntPoint2D IDToPos(int ID) {
 //	IntPoint2D res;

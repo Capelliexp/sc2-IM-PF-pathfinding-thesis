@@ -34,10 +34,10 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 
         cuda->UpdateDynamicMap({ 10, 10 }, 4, false);
 
-        PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
-        PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
+        //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
+        //PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
 
-        PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
+        //PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
     }
 }
 
@@ -91,12 +91,16 @@ void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
     for (auto& d : destinations_ground_IM) {
         if (d.destination == pos) {
             PrintMap(d.map, x, y, name);
+            CreateImage(d.map, x, y, colors::GREEN);
+            PrintImage(name + ".png", x, y);
             return;
         }
     }
     for (auto& d : destinations_air_IM) {
         if (d.destination == pos) {
             PrintMap(d.map, x, y, name);
+            CreateImage(d.map, x, y, colors::GREEN);
+            PrintImage(name + ".png", x, y);
             return;
         }
     }
@@ -336,7 +340,7 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
 
 void MapStorage::ExecuteDeviceJobs() {
     cuda->ExecuteDeviceJobs();
-    //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "repelling");
+    //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "PF");
 }
 
 void MapStorage::UpdateIMAtsar() {
