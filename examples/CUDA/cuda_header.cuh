@@ -43,12 +43,12 @@
 //#define MAP_Y 32
 
 //! Maps: empty50, spiral50
-//#define MAP_X 56
-//#define MAP_Y 56
+#define MAP_X 56
+#define MAP_Y 56
 
 //! Maps: labyrinth, height (53,60), wall
-#define MAP_X 104
-#define MAP_Y 104
+//#define MAP_X 104
+//#define MAP_Y 104
 
 //! Maps: empty200
 //#define MAP_X 200
@@ -179,7 +179,7 @@ public:
 	__host__ void PrintGenInfo();
 	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
-	__host__ void AllocateDeviceMemory();
+	__host__ void AllocateDeviceMemory(); 
 	__host__ void BindRepellingMapsToTransferParams();
 	__host__ void TransferUnitLookupToDevice();
 	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);
@@ -213,6 +213,8 @@ public:
 	__host__ int GetSizeOfUnitInfoList();
 	__host__ int TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id);
 	__host__ void SetHostUnitList(std::vector<Entity>& host_unit_list);
+	__host__ void PrintDeviceMemoryUsage(std::string location = "");
+	__host__ void SyncDevice();
 	
 	//Kernel launches
 	__host__ void RepellingPFGeneration();
