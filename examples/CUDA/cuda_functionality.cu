@@ -12,6 +12,7 @@
 
 #include "../examples/CUDA/cuda_device_functionality.cu"
 #include "../examples/CUDA/cuda_device_tests.cu"
+#include "../tools.h"
 
 __host__ CUDA::CUDA() {
 }
@@ -225,7 +226,7 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	cudaMalloc3D(&repelling_pf_ground_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling on ground
 	cudaMalloc3D(&repelling_pf_air_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling in air
 	Check(cudaMalloc((void**)&global_memory_im_list_storage, 256000000 * sizeof(list_double_entry)), "big AF allocation");	//big AF list for A* open/closed list
-
+	
 	Check(cudaPeekAtLastError(), "cuda allocation peek");
 }
 
@@ -738,6 +739,34 @@ __host__ int CUDA::TranslateSC2IDToDeviceID(sc2::UnitTypeID sc2_id) {
 
 __host__ void CUDA::SetHostUnitList(std::vector<Entity>& host_unit_list) {
 	this->host_unit_list = host_unit_list;
+}
+
+__host__ void CUDA::PrintDeviceMemoryUsage(std::string location){
+	int VRAM_global_bytes_allocated = 0;
+
+	//device memory single map pointers:
+	//dynamic_map_device_pointer, repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer
+	VRAM_global_bytes_allocated += dynamic_map_device_pointer.pitch * MAP_Y_R;
+	VRAM_global_bytes_allocated += repelling_pf_ground_map_pointer.pitch * MAP_Y_R;
+	VRAM_global_bytes_allocated += repelling_pf_air_map_pointer.pitch * MAP_Y_R;
+
+	//device memory array pointers:
+	//unit_lookup_device_pointer, device_unit_list_pointer, global_memory_im_list_storage
+	VRAM_global_bytes_allocated += device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice);
+	VRAM_global_bytes_allocated += unit_list_max_length * sizeof(Entity);
+	VRAM_global_bytes_allocated += 256000000 * sizeof(list_double_entry);
+	
+	//device memory map lists & queues:
+	//PF_mem, IM_mem
+	VRAM_global_bytes_allocated += PF_mem.size() * repelling_pf_ground_map_pointer.pitch * MAP_Y_R;	//using PF tex size for simplicity
+	VRAM_global_bytes_allocated += IM_mem.size() * repelling_pf_ground_map_pointer.pitch * MAP_Y_R;	//using PF tex size for simplicity
+
+	std::cout << "Device memory usage: " << 
+		"   global: " << VRAM_global_bytes_allocated << " bytes" << std::endl;
+}
+
+__host__ void CUDA::SyncDevice(){
+	cudaDeviceSynchronize();
 }
 
 //operator overloads

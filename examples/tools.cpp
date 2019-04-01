@@ -26,11 +26,11 @@ void PrintMemoryUsage(std::string location) {
 	DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
 	SIZE_T physMemUsedByMe = pmc.WorkingSetSize;
 
-	std::cout << "Memory usage" << location << ":" << std::endl <<
-		//"   Virtual memory size (swap file + RAM): " << totalVirtualMem << std::endl <<
-		//"   Virtual memory currently used: " << virtualMemUsed << std::endl <<
-		"   Virtual memory currently used by process: " << virtualMemUsedByMe << std::endl <<
-		//"   Physical memory size: " << totalPhysMem << std::endl <<
-		//"   Physical memory currently used: " << physMemUsed << std::endl <<
-		"   Physical memory currently used by process: " << physMemUsedByMe << std::endl;
+	std::cout << "Host memory usage" << location << ":" << std::endl <<
+		//"   Virtual memory size (swap file + RAM): " << totalVirtualMem << " bytes" << std::endl <<
+		//"   Virtual memory currently used: " << virtualMemUsed << " bytes" << std::endl <<
+		"   Virtual memory currently used by process: " << virtualMemUsedByMe << " bytes" << std::endl <<
+		//"   Physical memory size: " << totalPhysMem << " bytes" << std::endl <<
+		//"   Physical memory currently used: " << physMemUsed << " bytes" << std::endl <<
+		"   Physical memory currently used by process: " << physMemUsedByMe << " bytes" << std::endl;
 }
