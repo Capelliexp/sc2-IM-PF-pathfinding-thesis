@@ -35,14 +35,19 @@ void FooBot::OnGameStart() {
 	Debug()->SendDebug();*/
 
 	if (spawn_all_units) SpawnAllUnits();
+
+	PrintMemoryUsage("OnGameStart");
 }
 
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 	//Messages from chat
-	std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
+	/*std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
 	if (in_messages.size() > 0 && command == 0)
-		command = chat_commands->ParseCommands(in_messages[0].message);
+		command = chat_commands->ParseCommands(in_messages[0].message);*/
+
+	if (GetKeyState('1') & 0x8000) command = 1;
+	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
 
 	if (new_buildings) {
 		new_buildings = false;
@@ -88,8 +93,6 @@ void FooBot::OnStep() {
 			GatherRadius();
 			get_radius = false;
 		}
-
-	PrintMemoryUsage("runtime");
 }
 
 void FooBot::OnGameEnd() {

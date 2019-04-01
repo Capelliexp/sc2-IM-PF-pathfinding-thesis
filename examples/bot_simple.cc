@@ -46,17 +46,13 @@ int main(int argc, char* argv[]) {
     PrintMemoryUsage("SC2 launch");
 
     // Step forward the game simulation.
-    bool do_break = false;
     map = std::string("Test/" + map + ".SC2Map");
     char* str = new char[map.size()];
     std::strcpy(str, map.c_str());
-    while (!do_break) {
+    while (true) {
         //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
         coordinator.StartGame(str);
-        while (coordinator.Update() && !do_break) {
-            if (sc2::PollKeyPress()) {
-                do_break = true;
-            }
+        while (coordinator.Update()) {
         }
     }
 
