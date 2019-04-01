@@ -103,7 +103,6 @@ private:
 
 private:
     MapStorage* map_storage;
-    clock_t step_clock;
     ChatCommands* chat_commands;
     std::vector<Entity> host_unit_list;
     //! A vector of units

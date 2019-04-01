@@ -1,4 +1,5 @@
 #include "FooBot.h"
+#include "../tools.h"
 
 FooBot::FooBot(std::string map, bool spaw_alla_units) : 
 	restarts_(0), 
@@ -26,8 +27,6 @@ void FooBot::OnGameStart() {
 	
 	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer(), astar);
 	map_storage->Test();
-
-	step_clock = clock();
 
 	Debug()->DebugFastBuild();
 	Debug()->DebugGiveAllResources();
@@ -89,6 +88,8 @@ void FooBot::OnStep() {
 			GatherRadius();
 			get_radius = false;
 		}
+
+	PrintMemoryUsage("runtime");
 }
 
 void FooBot::OnGameEnd() {
