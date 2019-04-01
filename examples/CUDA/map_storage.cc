@@ -88,6 +88,10 @@ void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::strin
     out.close();
 }
 
+void MapStorage::PrintCUDAMemoryUsage(std::string location){
+    cuda->PrintDeviceMemoryUsage(location);
+}
+
 void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
     for (auto& d : destinations_ground_IM) {
         if (d.destination == pos) {

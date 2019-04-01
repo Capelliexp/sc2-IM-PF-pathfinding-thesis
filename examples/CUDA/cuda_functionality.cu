@@ -742,6 +742,10 @@ __host__ void CUDA::SetHostUnitList(std::vector<Entity>& host_unit_list) {
 }
 
 __host__ void CUDA::PrintDeviceMemoryUsage(std::string location){
+	if (location != "") {
+		location = " at " + location;
+	}
+
 	int VRAM_global_bytes_allocated = 0;
 
 	//device memory single map pointers:
@@ -761,7 +765,7 @@ __host__ void CUDA::PrintDeviceMemoryUsage(std::string location){
 	VRAM_global_bytes_allocated += PF_mem.size() * repelling_pf_ground_map_pointer.pitch * MAP_Y_R;	//using PF tex size for simplicity
 	VRAM_global_bytes_allocated += IM_mem.size() * repelling_pf_ground_map_pointer.pitch * MAP_Y_R;	//using PF tex size for simplicity
 
-	std::cout << "Device memory usage: " << 
+	std::cout << "Device memory usage" << location << ": " << std::endl <<
 		"   global: " << VRAM_global_bytes_allocated << " bytes" << std::endl;
 }
 

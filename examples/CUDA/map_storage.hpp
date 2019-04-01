@@ -97,6 +97,8 @@ public:
 
 	void PrintMap(sc2::Point2D pos, int x, int y, std::string name);
 
+	void PrintCUDAMemoryUsage(std::string location = "");
+
 	void UpdateIMAtsar();
 
 private:
@@ -144,7 +146,6 @@ private:
 	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 	void PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
 	void PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
-
 private:
 	CUDA* cuda;
 	const sc2::ObservationInterface* observation;
