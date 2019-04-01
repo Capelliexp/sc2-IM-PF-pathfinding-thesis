@@ -46,9 +46,12 @@ void FooBot::OnStep() {
 	if (in_messages.size() > 0 && command == 0)
 		command = chat_commands->ParseCommands(in_messages[0].message);*/
 
-	if (GetKeyState('1') & 0x8000) command = 1;
+	//RAM & VRAM stat prints
 	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
 	if (GetKeyState('L') & 0x8000) map_storage->PrintCUDAMemoryUsage("runtime");
+
+	//commands
+	if (GetKeyState('1') & 0x8000) command = 1;
 
 	if (new_buildings) {
 		new_buildings = false;
