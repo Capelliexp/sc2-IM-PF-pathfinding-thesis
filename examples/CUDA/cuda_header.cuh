@@ -179,7 +179,8 @@ public:
 	__host__ void PrintGenInfo();
 	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
-	__host__ void AllocateDeviceMemory(); 
+	__host__ void AllocateDeviceMemory();
+	__host__ void SpecifyDeviceFunctionAttributes();
 	__host__ void BindRepellingMapsToTransferParams();
 	__host__ void TransferUnitLookupToDevice();
 	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);

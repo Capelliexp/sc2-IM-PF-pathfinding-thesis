@@ -229,6 +229,12 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	Check(cudaPeekAtLastError(), "cuda allocation peek");
 }
 
+__host__ void CUDA::SpecifyDeviceFunctionAttributes(){
+	if (cudaFuncSetAttribute(DeviceGroundIMGeneration, cudaFuncAttributePreferredSharedMemoryCarveout, 100) != cudaSuccess) {
+		std::cout << "WARNING: increase of dynamic shared memory size for DeviceGroundIMGeneration FAILED" << std::endl;
+	}
+}
+
 __host__ void CUDA::BindRepellingMapsToTransferParams(){
 	repelling_PF_memcpy_params_ground.srcPtr.ptr = repelling_pf_ground_map_pointer.ptr;
 	repelling_PF_memcpy_params_ground.srcPtr.pitch = repelling_pf_ground_map_pointer.pitch;

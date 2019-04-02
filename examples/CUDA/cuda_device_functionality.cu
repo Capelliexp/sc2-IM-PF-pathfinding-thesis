@@ -130,8 +130,8 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 
 //Maximum number of 32-bit registers per thread block: 64k
 //Maximum number of 32-bit registers per thread: 255
-//Maximum amount of shared memory per multiprocessor: 64kB
-//Maximum amount of shared memory per thread block: 64kB
+//Maximum amount of shared memory per multiprocessor: 48kB (49152B)
+//Maximum amount of shared memory per thread block: 48kB (49152B)
 //Number of shared memory banks: 32
 //Amount of local memory per thread: 512KB
 //Constant memory size: 64KB
@@ -141,6 +141,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
 	int grid_thread_width = gridDim.x * blockDim.x;
 
+	int thread_id_in_block = threadIdx.x + (threadIdx.y * blockDim.x);
 	int id_block = blockIdx.x + (blockIdx.y * gridDim.x);
 	int original_x = threadIdx.x + (blockIdx.x * blockDim.x);
 	int original_y = threadIdx.y + (blockIdx.y * blockDim.y);
@@ -177,9 +178,28 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		return;
 	}
 
+	//REGISTER ARRAY
+	//we use about 60 of 255 register bytes, 195 bytes allocated to thread register array
+	//sizeof(integer) = 2
+	//sizeof(node) = 8 + 2 * sizeof(integer) = 12
+	//195 / 12 = 16
+	const int register_list_size = 16;
+	node register_list[register_list_size];
+
+	//SHARED ARRAY
+	//sizeof(integer) = 2
+	//sizeof(node) = 8 + 2 * sizeof(integer) = 12
+	//49152 / 12 = 4096
+	//5461 / 32 = 128
+	int open_list_shared_it = 0;
+	const int open_list_shared_size = 128;
+	__shared__ node open_list_shared[open_list_shared_size * 32];
+	node* open_list_shared_pointer = &open_list_shared[open_list_shared_size * thread_id_in_block];
+
+	//GLOBAL ARRAY
+	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
 	node* open_list = (node*)malloc(1000 * sizeof(node));
 	node* closed_list = (node*)malloc(1000 * sizeof(node));
-	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
 
 	if (open_list == NULL || closed_list == NULL) {
 		printf("Device heap limit to low for lists (init)\n");
