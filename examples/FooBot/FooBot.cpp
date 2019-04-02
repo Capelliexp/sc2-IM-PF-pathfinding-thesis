@@ -51,7 +51,9 @@ void FooBot::OnStep() {
 	if (GetKeyState('L') & 0x8000) map_storage->PrintCUDAMemoryUsage("runtime");
 
 	//commands
-	if (GetKeyState('1') & 0x8000) command = 1;
+	if (command == 0) {
+		if (GetKeyState('1') & 0x8000) command = 1;
+	}
 
 	if (new_buildings) {
 		new_buildings = false;
