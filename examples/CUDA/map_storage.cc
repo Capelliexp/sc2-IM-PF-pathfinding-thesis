@@ -6,6 +6,7 @@
 #include <string>
 #include <iostream>
 #include <filesystem>
+#include "../tools.h"
 
 MapStorage::MapStorage() {
 }
@@ -24,6 +25,7 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     CreateIM();
 
 	if (!astar) {
+        PrintMemoryUsage("CudaInit pre");
 		cuda = new CUDA();
 		cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
 		CreateUnitLookUpTable();
@@ -32,12 +34,11 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 		cuda->BindRepellingMapsToTransferParams();
 		cuda->Tests(ground_repelling_PF, air_repelling_PF);
 
-        cuda->UpdateDynamicMap({ 10, 10 }, 4, false);
-
         //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
         //PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
-
         //PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
+
+        PrintMemoryUsage("CudaInit post");
     }
 }
 
@@ -85,6 +86,10 @@ void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::strin
         out << std::endl;
     }
     out.close();
+}
+
+void MapStorage::PrintCUDAMemoryUsage(std::string location){
+    cuda->PrintDeviceMemoryUsage(location);
 }
 
 void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {

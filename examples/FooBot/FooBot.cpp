@@ -1,4 +1,5 @@
 #include "FooBot.h"
+#include "../tools.h"
 
 FooBot::FooBot(std::string map, bool spaw_alla_units) : 
 	restarts_(0), 
@@ -27,8 +28,6 @@ void FooBot::OnGameStart() {
 	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer(), astar);
 	map_storage->Test();
 
-	step_clock = clock();
-
 	Debug()->DebugFastBuild();
 	Debug()->DebugGiveAllResources();
 
@@ -36,19 +35,23 @@ void FooBot::OnGameStart() {
 	Debug()->SendDebug();*/
 
 	if (spawn_all_units) SpawnAllUnits();
+
+	PrintMemoryUsage("OnGameStart");
 }
 
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
-
-	if (GetKeyState('1') & 0x8000) {
-		command = 1;
-	}
-
 	//Messages from chat
 	/*std::vector<sc2::ChatMessage> in_messages = Observation()->GetChatMessages();
 	if (in_messages.size() > 0 && command == 0)
 		command = chat_commands->ParseCommands(in_messages[0].message);*/
+
+	//RAM & VRAM stat prints
+	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
+	if (GetKeyState('L') & 0x8000) map_storage->PrintCUDAMemoryUsage("runtime");
+
+	//commands
+	if (GetKeyState('1') & 0x8000) command = 1;
 
 	if (new_buildings) {
 		new_buildings = false;
