@@ -6,7 +6,7 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	this->command = 0;
 	this->spawned_player_units = 0;
 	this->spawned_enemy_units = 0;
-	this->astar = false;
+	this->astar = true;
 	this->new_buildings = false;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -355,7 +355,7 @@ void FooBot::UpdateUnitsPaths() {
 		if (p2.x == -1)
 			p2 = p1;
 
-		if (p1.x + 0.5 >= p2.x && p1.x - 0.5 <= p2.x && p1.y + 0.5 >= p2.y && p1.y - 0.5 <= p2.y) {
+		if (p1.x + 1 >= p2.x && p1.x - 1 <= p2.x && p1.y + 1 >= p2.y && p1.y - 1 <= p2.y) {
 			std::vector<sc2::Point2DI> udlrI;
 			udlrI.push_back(sc2::Point2DI(p2.x + 0, p2.y + 1));
 			udlrI.push_back(sc2::Point2DI(p2.x + 1, p2.y + 1));
