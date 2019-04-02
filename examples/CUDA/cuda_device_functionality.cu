@@ -128,7 +128,15 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 	((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = tot_charge;
 }
 
-__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map, list_double_entry* global_memory_im_list_storage) {
+//Maximum number of 32-bit registers per thread block: 64k
+//Maximum number of 32-bit registers per thread: 255
+//Maximum amount of shared memory per multiprocessor: 64kB
+//Maximum amount of shared memory per thread block: 64kB
+//Number of shared memory banks: 32
+//Amount of local memory per thread: 512KB
+//Constant memory size: 64KB
+
+__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map) {
 	int block_size = blockDim.x * blockDim.y;
 	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
 	int grid_thread_width = gridDim.x * blockDim.x;

@@ -158,7 +158,7 @@ bool operator!=(const InfluenceMapMemory& first, const InfluenceMapMemory& secon
 //DEVICE FUNCTION
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
-__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer, list_double_entry* global_memory_im_list_storage);
+__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer);
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map);
 __global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_right, IntPoint2D center, float radius, int new_value, cudaPitchedPtr dynamic_map_device_pointer);
 
@@ -253,8 +253,7 @@ private:
 	//device memory array pointers
 	UnitInfoDevice* unit_lookup_device_pointer;
 	Entity* device_unit_list_pointer;
-	list_double_entry* global_memory_im_list_storage;
-
+	
 	//device memory map lists & queues
 	std::vector<AttractingFieldMemory> PF_mem;
 	std::vector<InfluenceMapMemory> IM_mem;
