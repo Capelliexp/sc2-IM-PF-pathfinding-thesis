@@ -217,16 +217,40 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		int closest_coord_found = -1;
 		node entry;
 
-		for (int i = 0; i < open_list_it; ++i) {
-			entry = open_list[i];
-			if (entry.pos != -1) {
-				if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {
-					closest_distance_found = entry.est_dist_start_to_dest_via_pos;
-					closest_coord_found = i;
-					closest_entry = entry;
+		int it = 0;
+		bool run_loop = true;
+		while (run_loop) {
+			memset(&register_list[0], 0, register_list_size * sizeof(node));	//clear register array
+			memcpy(&register_list[0], &open_list[it], register_list_size * sizeof(node));	//copy 16 entries to register array
+
+			for (int i = 0; i < register_list_size; ++i) {
+				entry = register_list[i];
+
+				if (entry.pos == 0) {	//if end of open list
+					run_loop = false;
+					break;
+				}
+				else if (entry.pos != -1) {	//if valid node
+					if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
+						closest_distance_found = entry.est_dist_start_to_dest_via_pos;
+						closest_coord_found = it + i;
+						closest_entry = entry;
+					}
 				}
 			}
+			it += 16;
 		}
+
+		//for (int i = 0; i < open_list_it; ++i) {
+		//	entry = open_list[i];
+		//	if (entry.pos != -1) {
+		//		if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {
+		//			closest_distance_found = entry.est_dist_start_to_dest_via_pos;
+		//			closest_coord_found = i;
+		//			closest_entry = entry;
+		//		}
+		//	}
+		//}
 
 		if (closest_coord_found == -1) {	//open list is empty and no path to the destination is found, RIP
 			((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -3;
