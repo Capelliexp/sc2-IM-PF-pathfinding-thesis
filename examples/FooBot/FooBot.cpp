@@ -48,6 +48,13 @@ void FooBot::OnStep() {
 	//commands
 	if (command == 0) {
 		if (GetKeyState('1') & 0x8000) command = 1;
+		if (GetKeyState('2') & 0x8000) command = 2;
+		if (GetKeyState('3') & 0x8000) command = 3;
+		if (GetKeyState('4') & 0x8000) command = 4;
+		if (GetKeyState('5') & 0x8000) command = 5;
+		if (GetKeyState('6') & 0x8000) command = 6;
+		if (GetKeyState('7') & 0x8000) command = 7;
+		if (GetKeyState('8') & 0x8000) command = 8;
 	}
 
 	if (new_buildings) {
@@ -1098,8 +1105,10 @@ void FooBot::CommandsOnLabyrinth() {
 
 void FooBot::CommandsOnWall() {
 }
+
 void FooBot::CommandsOnEmpty20() {
 }
+
 void FooBot::CommandsOnSpiral50() {
 	switch (command) {
 	case 1: {
