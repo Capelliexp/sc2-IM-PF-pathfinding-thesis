@@ -133,5 +133,6 @@ private:
     bool get_radius = true;
     bool astar;
     bool astarPF;
+    bool destination_set;
     uint32_t restarts_;
 };
