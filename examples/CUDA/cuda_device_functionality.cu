@@ -157,6 +157,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int x = (start_id % grid_thread_width);
 	int y = (start_id / (float)grid_thread_width);
 
+	//int print_x = 5, print_y = 50;
+	//if (x == print_x && y == print_y) printf("<x,y> start\n");
+
 	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
 		if (x == 0 && y == 0) printf("CUDA PRINT: destination out of bounds\n");
@@ -184,17 +187,18 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//sizeof(node) = 8 + 2 * sizeof(integer) = 12
 	//195 / 12 = 16
 	const int register_list_size = 16;
-	node register_list[register_list_size];
+	node register_list[16];
+	memset(register_list, -1, register_list_size * sizeof(node));
 
 	//SHARED ARRAY
 	//sizeof(integer) = 2
 	//sizeof(node) = 8 + 2 * sizeof(integer) = 12
 	//49152 / 12 = 4096
 	//5461 / 32 = 128
-	int open_list_shared_it = 0;
-	const int open_list_shared_size = 128;
-	__shared__ node open_list_shared[open_list_shared_size * 32];
-	node* open_list_shared_pointer = &open_list_shared[open_list_shared_size * thread_id_in_block];
+	//int open_list_shared_it = 0;
+	//const int open_list_shared_size = 128;
+	//__shared__ node open_list_shared[open_list_shared_size * 32];
+	//node* open_list_shared_pointer = &open_list_shared[open_list_shared_size * thread_id_in_block];
 
 	//GLOBAL ARRAY
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
@@ -216,21 +220,21 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		node closest_entry;
 		int closest_coord_found = -1;
 		node entry;
+		int copy_amount = min(register_list_size, open_list_it);
 
 		int it = 0;
 		bool run_loop = true;
-		while (run_loop) {
-			memset(&register_list[0], 0, register_list_size * sizeof(node));	//clear register array
-			memcpy(&register_list[0], &open_list[it], register_list_size * sizeof(node));	//copy 16 entries to register array
+		while (it < open_list_it) {
+			memcpy(register_list, &open_list[it], copy_amount * sizeof(node));	//copy 16 entries to register array
 
 			for (int i = 0; i < register_list_size; ++i) {
 				entry = register_list[i];
 
-				if (entry.pos == 0) {	//if end of open list
-					run_loop = false;
-					break;
-				}
-				else if (entry.pos != -1) {	//if valid node
+				//if (entry.pos == 0) {	//if end of open list
+				//	run_loop = false;
+				//	break;
+				//}
+				if (entry.pos != -1) {	//if valid node
 					if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
 						closest_distance_found = entry.est_dist_start_to_dest_via_pos;
 						closest_coord_found = it + i;
@@ -238,6 +242,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					}
 				}
 			}
+			//memset(register_list, -1, register_list_size * sizeof(node));	//clear register array
 			it += 16;
 		}
 
@@ -263,8 +268,15 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		IntPoint2D pos = IDToPos(closest_entry.pos, grid_thread_width);
 
+		//if (x == print_x && y == print_y) printf("<x,y> expanded (%d,%d)\n", pos.x, pos.y);
+
 		if ((pos.x == destination.x) && (pos.y == destination.y)) {	//destination has been found! HYPE
-			Backtrack(device_map, closed_list, closed_list_it - 1, grid_thread_width);
+			bool print = false;
+			//if (x == print_x && y == print_y) {
+			//	printf("<x,y> DESTINATION FOUND!\n");
+			//	print = true;
+			//}
+			Backtrack(device_map, closed_list, closed_list_it - 1, grid_thread_width, print);
 			free(open_list);
 			free(closed_list);
 			return;
@@ -285,6 +297,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					printf("Device heap limit to low for lists (expand)\n");
 					return;
 				}
+
+				//if (x == print_x && y == print_y) printf("<x,y> EXPANDED size of open list, new max_size: %d\n", open_list_size);
+
 			}
 			if ((closed_list_size - closed_list_it) < 200) {
 				node* closed_list_new = (node*)malloc(closed_list_size * 2 * sizeof(node));
@@ -297,6 +312,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					printf("Device heap limit to low for lists (expand)\n");
 					return;
 				}
+
+				//if (x == print_x && y == print_y) printf("<x,y> EXPANDED size of closed list, new max_size: %d\n", closed_list_size);
+
 			}
 		}
 
@@ -314,6 +332,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			if (neighbour_coords[i].x <= MAP_X_R && neighbour_coords[i].y <= MAP_Y_R && neighbour_coords[i].x > 0 && neighbour_coords[i].y > 0) {	//coord in map
 				if (GetBoolMapValue(dynamic_map, neighbour_coords[i].x, neighbour_coords[i].y) != 0) {	//coord not in terrain
 					if (IDInList(coord_global, open_list, open_list_it) == -1 && IDInList(coord_global, closed_list, closed_list_it) == -1) {	//coord not already in open or closed list
+						//if (x == print_x && y == print_y) printf("<x,y> added neighbour (%d) to open list\n", i);
 						node new_list_entry = {
 							coord_global,
 							closed_list_it - 1,
@@ -333,12 +352,14 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	}
 }
 
-__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it, int width) {
+__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it, int width, bool print) {
 	node curr = closed_list[start_it];
 
 	IntPoint2D pos;
 	for (int loop_count = 1; loop_count < MAP_SIZE_R + 1; ++loop_count) {
 		pos = IDToPos(curr.pos, width);
+
+		//if (print) printf("<backtrack> drawing %d to <%d,%d>\n", loop_count, pos.x, pos.y);
 
 		((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
 

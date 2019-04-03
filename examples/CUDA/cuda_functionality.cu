@@ -230,9 +230,12 @@ __host__ void CUDA::AllocateDeviceMemory(){
 }
 
 __host__ void CUDA::SpecifyDeviceFunctionAttributes(){
-	if (cudaFuncSetAttribute(DeviceGroundIMGeneration, cudaFuncAttributePreferredSharedMemoryCarveout, 100) != cudaSuccess) {
-		std::cout << "WARNING: increase of dynamic shared memory size for DeviceGroundIMGeneration FAILED" << std::endl;
-	}
+	//if (cudaFuncSetAttribute(DeviceGroundIMGeneration, cudaFuncAttributePreferredSharedMemoryCarveout, 100) != cudaSuccess) {
+	//	std::cout << "WARNING: increase of dynamic shared memory carveout for DeviceGroundIMGeneration FAILED" << std::endl;
+	//}
+	//if (cudaFuncSetAttribute(DeviceGroundIMGeneration, cudaFuncAttributeMaxDynamicSharedMemorySize, 65536) != cudaSuccess) {
+	//	std::cout << "WARNING: increase of dynamic shared memory size for DeviceGroundIMGeneration FAILED" << std::endl;
+	//}
 }
 
 __host__ void CUDA::BindRepellingMapsToTransferParams(){
