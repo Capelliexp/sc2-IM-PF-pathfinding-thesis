@@ -7,7 +7,7 @@ FooBot::FooBot(std::string map, bool spaw_alla_units) :
 	this->command = 0;
 	this->spawned_player_units = 0;
 	this->spawned_enemy_units = 0;
-	this->astar = true;
+	this->astar = false;
 	this->new_buildings = false;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
