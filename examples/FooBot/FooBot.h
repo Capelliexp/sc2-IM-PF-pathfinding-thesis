@@ -35,10 +35,10 @@ struct Unit {
 //! Struct holding unit and the path to its destination. Used for A*
 struct AstarUnit {
     const sc2::Unit* unit;
+    behaviors behavior;
     std::vector<Node> path;
     float dist_traveled;
     sc2::Point2D last_pos;
-    behaviors behavior;
 };
 
 inline bool operator < (const Node& lhs, const Node& rhs) {
@@ -74,13 +74,14 @@ private:
     void SetDestination(sc2::Units units, sc2::Point2D pos, sc2::ABILITY_ID type_of_movement, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
     //! Function to set destination for the given units and the behavior.
     void SetDestination(std::vector<Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
-    void SetDestination(std::vector<AstarUnit>& units_vec, sc2::Point2D pos, bool air_unit, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
+    void SetDestination(std::vector<AstarUnit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
     void SetBehavior(sc2::Units units, sc2::ABILITY_ID behavior);
     void SetBehavior(std::vector<Unit>& units_vec, sc2::ABILITY_ID behavior);
 
     //! Function to update all units.
     void UpdateUnitsPaths();
     void UpdateAstarPath();
+    void UpdateAstarPFPath();
     void RecreateAstarPaths();
 
     std::vector<Node> Astar(Node agent, sc2::Point2D destination);
@@ -89,6 +90,7 @@ private:
 
     void CreateAttractingPFs();
     void UpdateHostUnitList();
+
 
     void CommandsOnEmpty50();
     void CommandsOnEmpty200();
@@ -130,5 +132,6 @@ private:
     int spawned_enemy_units;
     bool get_radius = true;
     bool astar;
+    bool astarPF;
     uint32_t restarts_;
 };
