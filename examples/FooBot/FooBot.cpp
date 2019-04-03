@@ -26,7 +26,7 @@ void FooBot::OnGameStart() {
 
 	map_storage = new MapStorage();
 	
-	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer(), astar);
+	map_storage->Initialize(Observation(), Debug(), Actions(), ActionsFeatureLayer(), astar, astarPF);
 	map_storage->Test();
 
 	Debug()->DebugFastBuild();

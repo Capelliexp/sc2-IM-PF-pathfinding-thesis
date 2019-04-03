@@ -16,7 +16,7 @@ MapStorage::~MapStorage() {
 }
 
 void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
-    sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar) {
+    sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar, bool astarPF) {
     this->observation = observations;
     this->debug = debug;
     this->actions = actions;
@@ -30,7 +30,8 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 		cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
 		CreateUnitLookUpTable();
 		cuda->AllocateDeviceMemory();
-		cuda->DeviceTransfer(dynamic_terrain);
+        if (!astarPF)
+		    cuda->DeviceTransfer(dynamic_terrain);
 		cuda->BindRepellingMapsToTransferParams();
 		cuda->Tests(ground_repelling_PF, air_repelling_PF);
 
