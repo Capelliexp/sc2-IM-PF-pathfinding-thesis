@@ -434,8 +434,14 @@ void FooBot::UpdateAstarPFPath() {
 					break;
 				}
 			}
-			if (PF_mode) {
-				//Do stuff with PF
+			// If unit is passive, it ignores enemies
+			if (PF_mode && astar_units[i].behavior != behaviors::PASSIVE) {
+				if (astar_units[i].behavior == behaviors::DEFENCE) {
+					//Use repelling PFs
+				}
+				else {
+					//Use attarcting PFs
+				}
 			}
 			else {
 				if (astar_units[i].last_pos.x == -1)
