@@ -157,9 +157,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int x = (start_id % grid_thread_width);
 	int y = (start_id / (float)grid_thread_width);
 
-	//int print_x = 5, print_y = 50;
-	//if (x == print_x && y == print_y) printf("<x,y> start\n");
-
 	if (destination.x >= MAP_X_R || destination.y >= MAP_Y_R) {	//return if destination is out of bounds
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -1;
 		if (x == 0 && y == 0) printf("CUDA PRINT: destination out of bounds\n");
@@ -197,8 +194,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//5461 / 32 = 128
 	int open_list_shared_it = 0;
 	const int open_list_shared_size = 128;
-	__shared__ node open_list_shared[128 * 32];
-	//node* open_list_shared_pointer = &open_list_shared[open_list_shared_size * thread_id_in_block];
+	__shared__ node open_list_shared[open_list_shared_size * 32];
+	int thread_array_start_index = open_list_shared_size * thread_id_in_block;
+	node* open_list_shared_pointer = &open_list_shared[open_list_shared_size * thread_id_in_block];
 
 	//GLOBAL ARRAY
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
