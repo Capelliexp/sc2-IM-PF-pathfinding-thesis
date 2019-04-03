@@ -99,8 +99,6 @@ private:
     void CommandsOnEmpty20();
     void CommandsOnSpiral50();
 
-    bool CheckIfUnitsSpawned(int amount, std::vector<sc2::UnitTypeID> types);
-
     //! Function that is used to check if a given unit is a structure.
     //!< \param unit The unit to be checked.
     //!< \return Returns true if the unit is a structure, false otherwise.

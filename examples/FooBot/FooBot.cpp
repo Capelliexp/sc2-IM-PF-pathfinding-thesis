@@ -1159,12 +1159,3 @@ bool FooBot::IsStructure(const sc2::Unit * unit) {
 	return is_structure;
 }
 
-bool FooBot::CheckIfUnitsSpawned(int amount, std::vector<sc2::UnitTypeID> types) {
-	int counter = 0;
-	for (sc2::UnitTypeID type : types)
-		counter += Observation()->GetUnits(sc2::IsUnit(type)).size();
-	if (counter == amount)
-		return true;
-	return false;
-}
-
