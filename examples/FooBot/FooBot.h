@@ -38,6 +38,7 @@ struct AstarUnit {
     std::vector<Node> path;
     float dist_traveled;
     sc2::Point2D last_pos;
+    behaviors behavior;
 };
 
 inline bool operator < (const Node& lhs, const Node& rhs) {

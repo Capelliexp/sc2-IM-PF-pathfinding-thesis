@@ -357,10 +357,8 @@ void FooBot::UpdateUnitsPaths() {
 
 		sc2::Point2D p1 = sc2::Point2D(translated_pos.x, translated_pos.y);
 		sc2::Point2D p2 = sc2::Point2D(player_units[i].next_pos.x, player_units[i].next_pos.y); 
-		/*if (p2.x == -1)
-			p2 = p1;*/
-		int unit_radius = player_units[i].unit->radius + 0.5;
-		if ((p1.x >= p2.x - 0.5 && p1.x <= p2.x + 0.5 && p1.y >= p2.y - 0.5 && p1.y <= p2.y + 0.5) || p2.x == -1) {
+		float unit_radius = player_units[i].unit->radius < 0.5 ? 0.5 : 1.5;
+		if ((p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) || p2.x == -1) {
 			std::vector<sc2::Point2D> udlr;
 			udlr.push_back(sc2::Point2D(p1.x + 0, p1.y + 1));
 			udlr.push_back(sc2::Point2D(p1.x + 1, p1.y + 1));
@@ -437,8 +435,9 @@ void FooBot::UpdateAstarPath() {
 				astar_units[i].dist_traveled += CalculateEuclideanDistance(astar_units[i].last_pos, pos);
 				astar_units[i].last_pos = pos;
 			}
-
-			if (p1.x + 1 >= p2.x && p1.x - 1 <= p2.x && p1.y + 1 >= p2.y && p1.y - 1 <= p2.y) {
+			//Gör som med IM+PF
+			float unit_radius = astar_units[i].unit->radius < 0.5 ? 0.5 : 1.5;
+			if (p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) {
 				sc2::Point2D last_path_pos = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 				astar_units[i].path.pop_back();
 				//Detta känns inte helt rätt. Speciellt vid sista steget av pathen.
@@ -1005,7 +1004,8 @@ void FooBot::CommandsOnSpiral50() {
 	case 1: {
 		if (spawned_player_units == 0) {
 			spawned_player_units = 1;
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_SIEGETANK, spawned_player_units, sc2::Point2D(45));
+			//SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
 		}
 		else if (!astar) {
 			if (player_units.size() == spawned_player_units) {
