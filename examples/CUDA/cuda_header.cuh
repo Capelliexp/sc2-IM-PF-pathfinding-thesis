@@ -81,7 +81,7 @@ typedef struct {
 typedef struct {
 	integer pos;
 	integer backtrack_it;
-	float steps_from_start;
+	integer steps_from_start;
 	float est_dist_start_to_dest_via_pos;
 } node;
 
