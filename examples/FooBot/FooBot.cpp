@@ -615,13 +615,26 @@ void FooBot::printValues(int unit, sc2::Point2D pos) {
 
 void FooBot::CreateAttractingPFs() {
 	std::map<sc2::UnitTypeID, int> player_unit_types;
-	for (int i = 0; i < player_units.size(); ++i) {
-		if (player_units[i].behavior == behaviors::ATTACK) {
-			auto& searche = player_unit_types.find(player_units[i].unit->unit_type);
-			if (searche == player_unit_types.end())
-				player_unit_types[player_units[i].unit->unit_type] = 1;
-			else
-				searche->second += 1;
+	if (!astarPF) {
+		for (int i = 0; i < player_units.size(); ++i) {
+			if (player_units[i].behavior == behaviors::ATTACK) {
+				auto& searche = player_unit_types.find(player_units[i].unit->unit_type);
+				if (searche == player_unit_types.end())
+					player_unit_types[player_units[i].unit->unit_type] = 1;
+				else
+					searche->second += 1;
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < astar_units.size(); ++i) {
+			if (astar_units[i].behavior == behaviors::ATTACK) {
+				auto& searche = player_unit_types.find(astar_units[i].unit->unit_type);
+				if (searche == player_unit_types.end())
+					player_unit_types[astar_units[i].unit->unit_type] = 1;
+				else
+					searche->second += 1;
+			}
 		}
 	}
 	//s�g till map_storage att ett specifikt antal PFs ska g�ras. Anv�nd player_unit_types f�r detta.
