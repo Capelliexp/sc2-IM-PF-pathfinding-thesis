@@ -409,4 +409,5 @@ void MapStorage::CreateIM() {
 
 bool MapStorage::CheckIfFileExists(std::string filename) {
     return std::filesystem::exists(filename);
+    //return false;
 }

@@ -185,7 +185,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//195 / 12 = 16
 	const int register_list_size = 16;
 	node register_list[16];
-	memset(register_list, -1, register_list_size * sizeof(node));
 
 	//SHARED ARRAY
 	//sizeof(integer) = 2
@@ -193,7 +192,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//49152 / 12 = 4096
 	//5461 / 32 = 128
 	int open_list_shared_it = 0;
-	const int open_list_shared_size = 128;
+	const int open_list_shared_size = 64/*128*/;
 	__shared__ node open_list_shared[open_list_shared_size * 32];
 	int thread_array_start_index = open_list_shared_size * thread_id_in_block;
 	node* open_list_shared_pointer = &open_list_shared[open_list_shared_size * thread_id_in_block];
@@ -223,6 +222,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		int it = 0;
 		bool run_loop = true;
 		while (it < open_list_it) {
+			memset(register_list, -1, register_list_size * sizeof(node));
 			memcpy(register_list, &open_list[it], copy_amount * sizeof(node));	//copy 16 entries to register array
 
 			for (int i = 0; i < register_list_size; ++i) {
