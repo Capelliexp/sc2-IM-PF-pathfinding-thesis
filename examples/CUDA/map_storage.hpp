@@ -101,6 +101,8 @@ public:
 
 	void UpdateIMAtsar();
 
+	float GetUnitGroundWeaponRange(sc2::UnitTypeID sc2_unit_id);
+
 private:
 	//! Craetes the influence map based on the size of the map.
 	void CreateIM();

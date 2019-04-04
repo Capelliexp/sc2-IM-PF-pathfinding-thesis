@@ -354,6 +354,10 @@ void MapStorage::UpdateIMAtsar() {
     CreateIM();
 }
 
+float MapStorage::GetUnitGroundWeaponRange(sc2::UnitTypeID sc2_unit_id) {
+    return cuda->GetUnitGroundWeaponRange(sc2_unit_id);
+}
+
 void MapStorage::TransferPFFromDevice() {
     for (int i = 0; i < requested_PF.size(); ++i) {
         Result res = cuda->TransferMapToHost(requested_PF[i]);

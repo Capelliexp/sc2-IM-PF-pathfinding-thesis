@@ -36,6 +36,8 @@ struct AstarUnit {
     const sc2::Unit* unit;
     behaviors behavior;
     std::vector<Node> path;
+    float sight_range;
+    bool PF_mode;
     float dist_traveled;
     sc2::Point2D last_pos;
 };

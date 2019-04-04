@@ -216,6 +216,7 @@ public:
 	__host__ void SetHostUnitList(std::vector<Entity>& host_unit_list);
 	__host__ void PrintDeviceMemoryUsage(std::string location = "");
 	__host__ void SyncDevice();
+	__host__ float GetUnitGroundWeaponRange(sc2::UnitTypeID sc2_unit_id);
 	
 	//Kernel launches
 	__host__ void RepellingPFGeneration();

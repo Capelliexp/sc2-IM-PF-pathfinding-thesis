@@ -177,7 +177,14 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 			this->player_units.push_back(new_unit);
 		}
 		else {
+			sc2::UnitTypes types = Observation()->GetUnitTypeData();
 			AstarUnit new_unit;
+			for (auto& type : types)
+				if (type.unit_type_id == unit->unit_type) {
+					new_unit.sight_range = type.sight_range;
+					break;
+				}
+			new_unit.PF_mode = false;
 			new_unit.unit = unit;
 			new_unit.behavior = behaviors::DEFENCE;
 			new_unit.last_pos = sc2::Point2D(-1, -1);
@@ -427,17 +434,27 @@ void FooBot::UpdateAstarPFPath() {
 		if (astar_units[i].path.size() > 0) {
 			sc2::Point2D p1 = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
 			sc2::Point2D p2 = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
-			bool PF_mode = false;
+			bool see_enemy = false;
 			for (int j = 0; j < enemy_units.size(); ++j) {
+				enemy_units[i].unit.
 				float dist = CalculateEuclideanDistance(astar_units[i].unit->pos, enemy_units[j].unit->pos);
-				if (dist < astar_units[i].unit->radar_range) {	//Unit inside of range
-					PF_mode = true;
-					break;
+				float enemy_weapon_range = map_storage->GetUnitGroundWeaponRange(enemy_units[i].unit->unit_type);
+				enemy_weapon_range = max(enemy_weapon_range, 6.0);
+				if (dist < astar_units[i].sight_range && dist > enemy_weapon_range && astar_units[i].behavior != behaviors::PASSIVE) { //Enemy inside of sight_range
+					see_enemy = true;
+					//break;
+				}
+				else if (dist < enemy_weapon_range) {
+					see_enemy = true;
+					astar_units[i].PF_mode = true;
+				}
+				else {
+					astar_units[i].PF_mode = false;
 				}
 			}
 			//PF
 			// If unit is passive, it ignores enemies
-			if (PF_mode && astar_units[i].behavior != behaviors::PASSIVE) {
+			if (see_enemy && astar_units[i].PF_mode) {
 				float current_pf = 0;
 				if (astar_units[i].behavior == behaviors::DEFENCE)
 					current_pf = map_storage->GetGroundAvoidancePFValue((int)p1.y, (int)p1.x);
@@ -482,7 +499,7 @@ void FooBot::UpdateAstarPFPath() {
 				}
 			}
 			//A*
-			else {
+			else if (!astar_units[i].PF_mode /*&& !see_enemy*/) {
 				if (astar_units[i].last_pos.x == -1)
 					astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
 				else if (astar_units[i].path.size() > 0) {	//Calculate dist until it's one node left.
@@ -492,7 +509,9 @@ void FooBot::UpdateAstarPFPath() {
 				}
 				//if (/*Enemy units in range*/)
 				float unit_radius = astar_units[i].unit->radius < 0.5 ? 0.5 : 1.5;
-				if (p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) {
+				if ((p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && 
+					p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) ||
+					astar_units[i].unit->orders.size() == 0) {
 					sc2::Point2D last_path_pos = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 					astar_units[i].path.pop_back();
 					if (astar_units[i].path.size() > 0) {
@@ -506,6 +525,19 @@ void FooBot::UpdateAstarPFPath() {
 						std::cout << "Done: " << astar_units[i].dist_traveled;
 					}
 				}
+			}
+			//Redo A* path
+			else {
+				Node agent;
+				agent.euc_dist = 0;
+				agent.parentX = -1;
+				agent.parentY = -1;
+				agent.walk_dist = 0;
+				agent.x = astar_units[i].unit->pos.x;
+				agent.y = MAP_Y_R - 1 - astar_units[i].unit->pos.y;
+				sc2::Point2D dest = sc2::Point2D(astar_units[i].path.front().x, astar_units[i].path.front().y);
+				astar_units[i].path = Astar(agent, dest);
+				astar_units[i].PF_mode = false;
 			}
 		}
 	}
@@ -735,11 +767,11 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_player_units = 1;
 			spawned_enemy_units = 1;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5, 5));
-			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(25, 25), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(25, 23), 2);
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
-			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(45), behaviors::PASSIVE, false);
-			else SetDestination(astar_units, sc2::Point2D(45), behaviors::PASSIVE, false);
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(45), behaviors::DEFENCE, false);
+			else SetDestination(astar_units, sc2::Point2D(45), behaviors::DEFENCE, false);
 			spawned_player_units = -1;
 		}
 		if (enemy_units.size() == spawned_enemy_units) {

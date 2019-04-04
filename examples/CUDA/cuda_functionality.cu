@@ -779,6 +779,10 @@ __host__ void CUDA::SyncDevice(){
 	cudaDeviceSynchronize();
 }
 
+__host__ float CUDA::GetUnitGroundWeaponRange(sc2::UnitTypeID sc2_unit_id) {
+	return host_unit_info.at(host_unit_transform[sc2_unit_id]).range;
+}
+
 //operator overloads
 
 bool operator==(const AttractingFieldMemory& first, const AttractingFieldMemory& second) {
