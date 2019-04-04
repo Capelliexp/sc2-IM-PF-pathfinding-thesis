@@ -31,7 +31,8 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 		CreateUnitLookUpTable();
 		cuda->AllocateDeviceMemory();
         if (!astarPF)
-		    cuda->DeviceTransfer(dynamic_terrain);
+		    cuda->DeviceTransferDynamicMap(dynamic_terrain);
+        cuda->DeviceTransferUnitLookup();
 		cuda->BindRepellingMapsToTransferParams();
 		cuda->Tests(ground_repelling_PF, air_repelling_PF);
 

@@ -182,7 +182,8 @@ public:
 	__host__ void AllocateDeviceMemory(); 
 	__host__ void BindRepellingMapsToTransferParams();
 	__host__ void TransferUnitLookupToDevice();
-	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);
+	__host__ void DeviceTransferDynamicMap(bool dynamic_terrain[][MAP_Y_R][1]);
+	__host__ void DeviceTransferUnitLookup();
 	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
 
 	//Runtime functionality

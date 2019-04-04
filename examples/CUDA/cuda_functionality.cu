@@ -102,25 +102,31 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	//Check(cudaPeekAtLastError(), "init check 7", true);
 }
 
-__host__ void CUDA::DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]) {
+__host__ void CUDA::DeviceTransferDynamicMap(bool dynamic_terrain[][MAP_Y_R][1]) {
 	//device_transfer
 	TransferDynamicMapToDevice(dynamic_terrain);
+
+	Check(cudaPeekAtLastError(), "init check 5");
+}
+
+__host__ void CUDA::DeviceTransferUnitLookup() {
+	//device_transfer
 	TransferUnitLookupToDevice();
 	TransferUnitsToDevice();
 
-	Check(cudaPeekAtLastError(), "init check 5");
+	Check(cudaPeekAtLastError(), "init check 6");
 }
 
 __host__ void CUDA::Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
 	//tests
 	//TestLookupTable();
-	Check(cudaPeekAtLastError(), "init check 6a");
+	Check(cudaPeekAtLastError(), "init check 7a");
 
 	//Test3DArrayUsage();
-	Check(cudaPeekAtLastError(), "init check 6b");
+	Check(cudaPeekAtLastError(), "init check 7b");
 
 	RepellingPFGeneration();
-	Check(cudaPeekAtLastError(), "init check 6c");
+	Check(cudaPeekAtLastError(), "init check 7c");
 }
 
 __host__ const sc2::ObservationInterface* CUDA::GetObservation(){

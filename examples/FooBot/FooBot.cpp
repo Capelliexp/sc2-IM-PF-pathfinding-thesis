@@ -9,7 +9,7 @@ FooBot::FooBot(std::string map,  bool spawn_all_units) {
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
 	this->astar = false;
-	this->astarPF = false;
+	this->astarPF = true;
 	this->new_buildings = false;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -160,7 +160,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 }
 
 void FooBot::OnUnitCreated(const sc2::Unit * unit) {
-	if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Self) {
+	if (IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Self) {
 		if (!astar && !astarPF)
 			map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, -2);
 		else
@@ -372,6 +372,7 @@ void FooBot::UpdateUnitsPaths() {
 					min_value = min(new_value, min_value);
 					next_tile = j;
 				}
+				//Add check for min_value is better than current_value
 			}
 
 			sc2::Point2D new_pos = sc2::Point2D(udlr[next_tile].x, udlr[next_tile].y);
@@ -434,15 +435,53 @@ void FooBot::UpdateAstarPFPath() {
 					break;
 				}
 			}
+			//PF
 			// If unit is passive, it ignores enemies
 			if (PF_mode && astar_units[i].behavior != behaviors::PASSIVE) {
-				if (astar_units[i].behavior == behaviors::DEFENCE) {
-					//Use repelling PFs
+				float current_pf = 0;
+				if (astar_units[i].behavior == behaviors::DEFENCE)
+					current_pf = map_storage->GetGroundAvoidancePFValue((int)p1.y, (int)p1.x);
+				else if (astar_units[i].behavior == behaviors::ATTACK)
+					current_pf = map_storage->GetAttractingPF(astar_units[i].unit->unit_type, (int)p1.y, (int)p1.x);
+
+
+				std::vector<sc2::Point2D> udlr;
+				udlr.push_back(sc2::Point2D(p1.x + 0, p1.y + 1));
+				udlr.push_back(sc2::Point2D(p1.x + 1, p1.y + 1));
+				udlr.push_back(sc2::Point2D(p1.x + 1, p1.y + 0));
+				udlr.push_back(sc2::Point2D(p1.x + 1, p1.y - 1));
+				udlr.push_back(sc2::Point2D(p1.x + 0, p1.y - 1));
+				udlr.push_back(sc2::Point2D(p1.x - 1, p1.y - 1));
+				udlr.push_back(sc2::Point2D(p1.x - 1, p1.y + 0));
+				udlr.push_back(sc2::Point2D(p1.x - 1, p1.y + 1));
+
+				float min_value = 5000;
+				int next_tile = 0;
+				for (int j = 0; j < udlr.size(); ++j) {
+					float new_pf = 0;
+					if (astar_units[i].behavior == behaviors::DEFENCE)
+						new_pf = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
+					else if (astar_units[i].behavior == behaviors::ATTACK)
+						new_pf = map_storage->GetAttractingPF(astar_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x);
+
+					if (min_value > new_pf) {
+						min_value = min(new_pf, min_value);
+						next_tile = j;
+					}
 				}
-				else {
-					//Use attarcting PFs
+				if (min_value < current_pf) {
+					sc2::Point2D new_pos = sc2::Point2D(udlr[next_tile].x, MAP_Y_R - 1 - udlr[next_tile].y);
+					if (astar_units[i].behavior == behaviors::DEFENCE)
+						Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
+					else if (astar_units[i].behavior == behaviors::ATTACK) {
+						if (astar_units[i].unit->weapon_cooldown == 0)
+							Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::ATTACK, new_pos);
+						else
+							Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
+					}
 				}
 			}
+			//A*
 			else {
 				if (astar_units[i].last_pos.x == -1)
 					astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
