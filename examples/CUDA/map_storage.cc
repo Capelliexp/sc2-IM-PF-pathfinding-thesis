@@ -345,7 +345,7 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
 
 void MapStorage::ExecuteDeviceJobs() {
     cuda->ExecuteDeviceJobs();
-    //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "PF");
+    PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "PF");
 }
 
 void MapStorage::UpdateIMAtsar() {
