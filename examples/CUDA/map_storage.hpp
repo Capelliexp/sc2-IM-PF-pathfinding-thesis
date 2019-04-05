@@ -93,7 +93,7 @@ public:
 	void TransferPFFromDevice();
 	void TransferIMFromDevice();
 	void ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int value);
-	void ExecuteDeviceJobs();
+	void ExecuteDeviceJobs(bool astarPF);
 
 	void PrintMap(sc2::Point2D pos, int x, int y, std::string name);
 

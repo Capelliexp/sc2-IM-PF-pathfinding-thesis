@@ -345,8 +345,11 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
     requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));
 }
 
-void MapStorage::ExecuteDeviceJobs() {
-    cuda->ExecuteDeviceJobs();
+void MapStorage::ExecuteDeviceJobs(bool astarPF) {
+    if (!astarPF)
+        cuda->ExecuteDeviceJobs();
+    else
+        cuda->ExecuteDeviceJobs(PFType::Large);
     //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "PF");
 }
 

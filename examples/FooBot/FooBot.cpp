@@ -9,7 +9,7 @@ FooBot::FooBot(std::string map,  bool spawn_all_units) {
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
 	this->astar = false;
-	this->astarPF = false;
+	this->astarPF = true;
 	this->new_buildings = false;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -94,7 +94,7 @@ void FooBot::OnStep() {
 		//Start IM
 		//Start PF a/r
 		CreateAttractingPFs();
-		map_storage->ExecuteDeviceJobs();
+		map_storage->ExecuteDeviceJobs(astarPF);
 	}
 
 	Actions()->SendActions();
@@ -788,7 +788,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_player_units = 1;
 			spawned_enemy_units = 1;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5, 5));
-			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(25, 25), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(26, 21), 2);
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(45), behaviors::DEFENCE, false);

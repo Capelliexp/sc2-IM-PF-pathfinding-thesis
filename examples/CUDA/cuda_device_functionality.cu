@@ -26,7 +26,7 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	float dist = 0;
 	for (int i = 0; i < nr_of_units; ++i) {
 		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
-		float range_sub = unit.range + 2;
+		float range_sub = fmaxf(unit.range, 3) + 2;
 		dist = (FloatDistance((int)unit_list_s[i].pos.x, (int)unit_list_s[i].pos.y, x, y) + 0.0001);
 
 		if (unit_list_s[i].enemy) {	//avoid enemies
@@ -46,6 +46,57 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 
 	//__syncthreads();
 	
+	//write ground_charge and air_charge to global memory in owned coord
+	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge;
+	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge;
+}
+
+__global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
+	extern __shared__ Entity unit_list_s[];
+
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	int y = threadIdx.y + blockIdx.y * blockDim.y;
+	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
+	int id_global = x + y * blockDim.x;
+
+	//move unit list to shared memory
+	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
+
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
+		return;
+	}
+
+	__syncthreads();
+
+	//add upp all fields affecting the owned coord to ground_charge and air_charge
+	
+	float max_value = 100;
+	float falloff = 2;
+	float ground_charge = 0;
+	float air_charge = 0;
+	float dist = 0;
+	for (int i = 0; i < nr_of_units; ++i) {
+		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
+		float range_sub = 14;
+		dist = (FloatDistance((int)unit_list_s[i].pos.x, (int)unit_list_s[i].pos.y, x, y) + 0.0001);
+
+		if (unit_list_s[i].enemy) {	//avoid enemies
+			if (dist < range_sub) {
+				ground_charge += ((max_value - (falloff * dist)) * unit.can_attack_ground);
+				air_charge += ((max_value - (falloff * dist)) * unit.can_attack_air);
+			}
+		}
+		else {	//avoid friendlies
+			int res = 1 - (int)dist + (int)(unit.radius + 0.5);
+			if (res > 0) {
+				ground_charge += (res / 2.f) * !(unit.is_flying);
+				air_charge += (res / 2.f) * unit.is_flying;
+			}
+		}
+	}
+
+	//__syncthreads();
+
 	//write ground_charge and air_charge to global memory in owned coord
 	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge;
 	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge;

@@ -128,6 +128,11 @@ typedef enum {
 	BAD_RES
 } Result;
 
+typedef enum {
+	Normal,
+	Large
+} PFType;
+
 typedef struct {
 	int owner_id;	//how map_storage identifies the map
 	int queue_id;	//how the queue identifies the map (MUST BE SECOND VARIABLE)
@@ -193,7 +198,7 @@ public:
 	//Runtime jobs
 	__host__ int QueueDeviceJob(int owner_id, float* map = nullptr);	//start PF generation job
 	__host__ int QueueDeviceJob(IntPoint2D destination, bool air_path, float* map = nullptr);	//start IM generation job
-	__host__ Result ExecuteDeviceJobs();
+	__host__ Result ExecuteDeviceJobs(PFType pf_type = PFType::Normal);
 	__host__ Result TransferMapToHost(int id);	//start transfer from device to pre-defined host array
 	__host__ DeviceMemoryStatus CheckJobStatus(int id);
 	__host__ DeviceMemoryStatus CheckJobStatus(AttractingFieldMemory* mem);
@@ -220,6 +225,7 @@ public:
 	
 	//Kernel launches
 	__host__ void RepellingPFGeneration();
+	__host__ void LargeRepellingPFGeneration();
 	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map);
 	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path, cudaPitchedPtr device_map);
 	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);

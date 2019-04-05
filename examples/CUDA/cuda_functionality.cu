@@ -349,7 +349,7 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 	return next_id - 1;
 }
 
-__host__ Result CUDA::ExecuteDeviceJobs(){
+__host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 	//cudaDeviceSynchronize();
 
 	//start PF-repelling job
@@ -357,7 +357,8 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
 		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");
 
-		RepellingPFGeneration();
+		if (pf_type == PFType::Normal) RepellingPFGeneration();
+		else if (pf_type == PFType::Large) LargeRepellingPFGeneration();
 
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_ground), "repelling PF ground memcpy");
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_air), "repelling PF air memcpy");
@@ -521,9 +522,15 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 /*KERNAL LAUNCHES START*/
 
 __host__ void CUDA::RepellingPFGeneration() {
-	if (host_unit_list.size() > 0) 
+	if (host_unit_list.size() > 0)
 		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
-			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+}
+
+__host__ void CUDA::LargeRepellingPFGeneration() {
+	if (host_unit_list.size() > 0)
+		DeviceLargeRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
+		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
 }
 
 __host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map){
