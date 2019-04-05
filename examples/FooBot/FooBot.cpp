@@ -9,7 +9,7 @@ FooBot::FooBot(std::string map,  bool spawn_all_units) {
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
 	this->astar = false;
-	this->astarPF = true;
+	this->astarPF = false;
 	this->new_buildings = false;
 	if (map == "empty50")			this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -434,27 +434,48 @@ void FooBot::UpdateAstarPFPath() {
 		if (astar_units[i].path.size() > 0) {
 			sc2::Point2D p1 = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
 			sc2::Point2D p2 = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
-			bool see_enemy = false;
+			bool astar = true;
+			bool new_path = false;
 			for (int j = 0; j < enemy_units.size(); ++j) {
-				enemy_units[i].unit.
 				float dist = CalculateEuclideanDistance(astar_units[i].unit->pos, enemy_units[j].unit->pos);
 				float enemy_weapon_range = map_storage->GetUnitGroundWeaponRange(enemy_units[i].unit->unit_type);
 				enemy_weapon_range = max(enemy_weapon_range, 6.0);
-				if (dist < astar_units[i].sight_range && dist > enemy_weapon_range && astar_units[i].behavior != behaviors::PASSIVE) { //Enemy inside of sight_range
-					see_enemy = true;
-					//break;
-				}
-				else if (dist < enemy_weapon_range) {
-					see_enemy = true;
+
+				if (dist < enemy_weapon_range || (dist > enemy_weapon_range && astar_units[i].PF_mode) && dist < astar_units[i].sight_range) {
 					astar_units[i].PF_mode = true;
+					astar = false;
 				}
-				else {
-					astar_units[i].PF_mode = false;
+				else if ((enemy_units[i].unit->display_type == sc2::Unit::Snapshot || enemy_units[i].unit->display_type == sc2::Unit::Visible) && !astar_units[i].PF_mode) {
+					astar = true;
 				}
+				else if (dist > astar_units[i].sight_range && astar_units[i].PF_mode) {
+					new_path = true;
+				}
+				//if (enemy_units[i].unit->display_type == sc2::Unit::Visible && !astar_units[i].PF_mode) {
+				//	//astar = true;
+				//	//if (dist < astar_units[i].sight_range && dist > enemy_weapon_range && astar_units[i].behavior != behaviors::PASSIVE) { //Enemy inside of sight_range
+				//	//	see_enemy = true;
+				//	//	//break;
+				//	//}
+				//	//else
+				//	if (dist < enemy_weapon_range) {
+				//		//see_enemy = true;
+				//		astar = false;
+				//		astar_units[i].PF_mode = true;
+				//	}
+				//	else {
+				//		astar_units[i].PF_mode = false;
+				//	}
+				//}
+				//else if (enemy_units[i].unit->display_type == sc2::Unit::Snapshot) {
+				//	astar = false;
+				//	astar_units[i].PF_mode = false;
+				//	new_path = true;
+				//}
 			}
 			//PF
 			// If unit is passive, it ignores enemies
-			if (see_enemy && astar_units[i].PF_mode) {
+			if (astar_units[i].PF_mode && !astar) {
 				float current_pf = 0;
 				if (astar_units[i].behavior == behaviors::DEFENCE)
 					current_pf = map_storage->GetGroundAvoidancePFValue((int)p1.y, (int)p1.x);
@@ -499,7 +520,7 @@ void FooBot::UpdateAstarPFPath() {
 				}
 			}
 			//A*
-			else if (!astar_units[i].PF_mode /*&& !see_enemy*/) {
+			else if (astar && !new_path) {
 				if (astar_units[i].last_pos.x == -1)
 					astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
 				else if (astar_units[i].path.size() > 0) {	//Calculate dist until it's one node left.
@@ -527,7 +548,7 @@ void FooBot::UpdateAstarPFPath() {
 				}
 			}
 			//Redo A* path
-			else {
+			else if (new_path) {
 				Node agent;
 				agent.euc_dist = 0;
 				agent.parentX = -1;
@@ -767,7 +788,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_player_units = 1;
 			spawned_enemy_units = 1;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5, 5));
-			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(25, 23), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(25, 25), 2);
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(45), behaviors::DEFENCE, false);
