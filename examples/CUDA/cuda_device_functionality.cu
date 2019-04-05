@@ -157,8 +157,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int x = (start_id % grid_thread_width);
 	int y = (start_id / (float)grid_thread_width);
 
-	short_coord debug_coord = {10, 10};
-	bool debug;
+	short_coord debug_coord = {16, 16};
+	bool debug = true;
 
 	//if (debug && debug_coord.x == x && debug_coord.y == y) printf(" \n");
 
@@ -188,7 +188,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//sizeof(integer) = 2
 	//sizeof(node) = 8 + 2 * sizeof(integer) = 12
 	//195 / 12 = 16
-	const int register_list_size = 16;
+	const int register_list_size = 16;	//must be const for loop unwinding
 	node register_list[16];
 
 	//SHARED ARRAY
@@ -215,7 +215,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	open_list[0] = { start_id, -1, 0, FloatDistance(x, y, destination.x, destination.y) };
 	open_list_it = 1;
 
-	if (debug && debug_coord.x == x && debug_coord.y == y) printf("start \n");
+	if (debug && debug_coord.x == x && debug_coord.y == y) {
+		printf("start \n");
+	}
 
 	int size_check_counter = 0;
 	for (int step_iterator = 0; step_iterator < MAP_SIZE_R; ++step_iterator) {
@@ -230,6 +232,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		int it = 0;
 		while (it < open_list_it) {
+			//GLOBAL READ/WRITE
 			memcpy(register_list, &open_list[it], copy_amount * sizeof(node));	//copy 16 entries to register array
 
 			for (int i = 0; i < register_list_size; ++i) {
@@ -285,6 +288,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 			size_check_counter = 0;
 			if ((open_list_size - open_list_it) < 200) {
+				//GLOBAL READ/WRITE
 				node* open_list_new = (node*)malloc(open_list_size * 2 * sizeof(node));
 				memcpy(&open_list_new[0], &open_list[0], open_list_size * sizeof(node));
 				open_list_size *= 2;
@@ -300,6 +304,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 			}
 			if ((closed_list_size - closed_list_it) < 200) {
+				//GLOBAL READ/WRITE
 				node* closed_list_new = (node*)malloc(closed_list_size * 2 * sizeof(node));
 				memcpy(&closed_list_new[0], &closed_list[0], closed_list_size * sizeof(node));
 				closed_list_size *= 2;
@@ -323,79 +328,128 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		neighbour_coords[2] = { pos.x + 1, pos.y };	//right
 		neighbour_coords[3] = { pos.x, pos.y + 1 };	//down
 
-		int new_open_list_entries = 0;
+		integer neighbour_coord_global[4];
+		neighbour_coord_global[0] = PosToID({ neighbour_coords[0].x, neighbour_coords[0].y }, grid_thread_width);
+		neighbour_coord_global[1] = PosToID({ neighbour_coords[1].x, neighbour_coords[1].y }, grid_thread_width);
+		neighbour_coord_global[2] = PosToID({ neighbour_coords[2].x, neighbour_coords[2].y }, grid_thread_width);
+		neighbour_coord_global[3] = PosToID({ neighbour_coords[3].x, neighbour_coords[3].y }, grid_thread_width);
+
+		bool neighbour_coord_validity[4];
+		neighbour_coord_validity[0] = true;
+		neighbour_coord_validity[1] = true;
+		neighbour_coord_validity[2] = true;
+		neighbour_coord_validity[3] = true;
+
+		if (debug && debug_coord.x == x && debug_coord.y == y) printf("checking neighbours to (%d,%d)<%d>:\n   (%d,%d)<%d>\n   (%d,%d)<%d>\n   (%d,%d)<%d>\n   (%d,%d)<%d> \n",
+			pos.x, pos.y, closest_entry.pos, 
+			neighbour_coords[0].x, neighbour_coords[0].y, neighbour_coord_global[0], 
+			neighbour_coords[1].x, neighbour_coords[1].y, neighbour_coord_global[1],
+			neighbour_coords[2].x, neighbour_coords[2].y, neighbour_coord_global[2],
+			neighbour_coords[3].x, neighbour_coords[3].y, neighbour_coord_global[3]);
+
+		//-----------------------------
+
+		//Check the neighbours for invalid positions
 		for (int i = 0; i < 4; ++i) {
-			int coord_global = PosToID({ neighbour_coords[i].x, neighbour_coords[i].y }, grid_thread_width);
+			if (!(neighbour_coords[i].x <= MAP_X_R) || !(neighbour_coords[i].y <= MAP_Y_R) || !(neighbour_coords[i].x > 0) || !(neighbour_coords[i].y > 0)) {	//coord not in map (FIX UGLINESS!)
+				if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed map bound check \n", i);
+				neighbour_coord_validity[i] = false;
+			}
 
-			if (neighbour_coords[i].x <= MAP_X_R && neighbour_coords[i].y <= MAP_Y_R && neighbour_coords[i].x > 0 && neighbour_coords[i].y > 0) {	//coord in map
-				if (GetBoolMapValue(dynamic_map, neighbour_coords[i].x, neighbour_coords[i].y) != 0) {	//coord not in terrain
-					
-					//-----------------------------
-
-					//Check if id in closed_list
-					memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
-					copy_amount = min(register_list_size, closed_list_it);
-					bool valid = true;
-					int it = 0;
-					while (it < open_list_it && valid) {
-						memcpy(register_list, &closed_list[it], copy_amount * sizeof(node));	//copy 16 entries to register array
-
-						for (int i = 0; i < register_list_size; ++i) {
-							entry = register_list[i];
-
-							if (entry.pos != -1) {	//if valid node
-								if (coord_global == entry.pos) {	//node already in closed list
-									valid = false;
-									break;
-								}
-							}
-						}
-						it += register_list_size;
-					}
-
-					//-----------------------------
-
-					if (valid) {
-						//Check if id in open_list
-						memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
-						copy_amount = min(register_list_size, open_list_it);
-						int it = 0;
-						while (it < open_list_it && valid) {
-							memcpy(register_list, &open_list[it], copy_amount * sizeof(node));	//copy 16 entries to register array
-
-							for (int i = 0; i < register_list_size; ++i) {
-								entry = register_list[i];
-
-								if (entry.pos != -1) {	//if valid node
-									if (coord_global == entry.pos) {	//node already in open list
-										valid = false;
-										break;
-									}
-								}
-							}
-							it += register_list_size;
-						}
-					}
-
-					//-----------------------------
-
-					if (valid) {	//coord not already in open or closed list
-						node new_list_entry = {
-							coord_global,
-							closed_list_it - 1,
-							closest_entry.steps_from_start + 1,
-							closest_entry.steps_from_start + 1 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
-						};
-						open_list[open_list_it + new_open_list_entries] = new_list_entry;
-						++new_open_list_entries;
-					}
-				}
+			//GLOBAL READ/WRITE
+			if (neighbour_coord_validity[i] && !(GetBoolMapValue(dynamic_map, neighbour_coords[i].x, neighbour_coords[i].y) != 0)) {	//coord in terrain
+				if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed terrain check \n", i);
+				neighbour_coord_validity[i] = false;
 			}
 		}
 
+		//-----------------------------
+
+		//Search for id in closed_list
+		memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
+		copy_amount = min(register_list_size, closed_list_it);
+		it = 0;
+		while (it < open_list_it && (neighbour_coord_validity[0] + neighbour_coord_validity[1] + neighbour_coord_validity[2] + neighbour_coord_validity[3]) > 0) {	//CANT BE USED, CANT BE UNWOUND
+			//GLOBAL READ/WRITE
+			memcpy(register_list, &closed_list[it], copy_amount * sizeof(node));	//copy 16 entries to register array
+
+			for (int i = 0; i < register_list_size; ++i) {	//loop over register array
+				entry = register_list[i];	//unnecessary
+
+				if (entry.pos != -1) {	//if valid list node
+					for (int i = 0; i < 4; ++i) {	//loop over the 4 neighbours
+						if (neighbour_coord_validity[i]) {	//if neighbour is valid	(remove?)
+							if (neighbour_coord_global[i] == entry.pos) {	//node already in closed list
+								if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed closed list check \n", i);
+								neighbour_coord_validity[i] = false;
+							}
+						}
+					}
+				}
+			}
+			it += register_list_size;
+		}
+
+		//-----------------------------
+
+		//Search for id in open_list
+		memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
+		copy_amount = min(register_list_size, open_list_it);
+		it = 0;
+		while (it < open_list_it && (neighbour_coord_validity[0] + neighbour_coord_validity[1] + neighbour_coord_validity[2] + neighbour_coord_validity[3]) > 0) {	//CANT BE USED, CANT BE UNWOUND
+			//GLOBAL READ/WRITE
+			memcpy(register_list, &open_list[it], copy_amount * sizeof(node));	//copy 16 entries to register array
+
+			for (int i = 0; i < register_list_size; ++i) {	//loop over register array
+				entry = register_list[i];	//unnecessary
+
+				if (entry.pos != -1) {	//if valid list node
+					for (int i = 0; i < 4; ++i) {	//loop over the 4 neighbours
+						if (neighbour_coord_validity[i]) {	//if neighbour is valid	(remove?)
+							if (neighbour_coord_global[i] == entry.pos) {	//node already in closed list
+								if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed open list check \n", i);
+								neighbour_coord_validity[i] = false;
+							}
+						}
+					}
+				}
+			}
+
+			it += register_list_size;
+		}
+
+		//-----------------------------
+
+		//Add the valid neighbours to the open list
+		int new_open_list_entries = 0;
+		node nodes_to_add[4];
+		for (int i = 0; i < 4; ++i) {	//loop over the 4 neighbours
+			if (neighbour_coord_validity[i]) {	//the neighbour is valid
+				node new_list_entry = {
+					neighbour_coord_global[i],
+					closed_list_it - 1,
+					closest_entry.steps_from_start + 1,
+					closest_entry.steps_from_start + 1 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
+				};
+				nodes_to_add[new_open_list_entries] = new_list_entry;
+				open_list[open_list_it + new_open_list_entries] = new_list_entry;	//OLD
+				++new_open_list_entries;
+			}
+		}
+
+		if (debug && debug_coord.x == x && debug_coord.y == y) printf("   %d valid neighbours to (%d,%d) \n", new_open_list_entries, pos.x, pos.y);
+
+		//-----------------------------
+
+		//GLOBAL READ/WRITE
+		//memcpy(&open_list[open_list_it], nodes_to_add, new_open_list_entries * sizeof(node));	//add valid neighbours to the open list
+
 		open_list_it += new_open_list_entries;
+		//GLOBAL READ/WRITE
 		open_list[closest_coord_found].pos = -1;	//mark expanded node as invalid in the open list
 		++size_check_counter;
+
+		if (debug && debug_coord.x == x && debug_coord.y == y) printf("open_list_it: %d\nsize_check_counter: %d", open_list_it, size_check_counter);
 	}
 }
 

@@ -63,7 +63,7 @@
 
 typedef short integer;
 
-typedef struct {
+typedef struct {	//same as short_coord
 	integer x;
 	integer y;
 } IntPoint2D;
@@ -85,7 +85,7 @@ typedef struct {
 	float est_dist_start_to_dest_via_pos;
 } node;
 
-typedef struct {
+typedef struct {	//same as IntPoint2D
 	integer x;
 	integer y;
 } short_coord;
