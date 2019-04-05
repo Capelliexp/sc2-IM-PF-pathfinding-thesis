@@ -53,6 +53,7 @@ void FooBot::OnStep() {
 	//commands
 	if (command == 0) {
 		if (GetKeyState('1') & 0x8000) command = 1;
+		if (GetKeyState('2') & 0x8000) command = 2;
 	}
 
 	if (new_buildings) {
@@ -667,7 +668,7 @@ void FooBot::CommandsOnEmpty50() {
 			spawned_player_units = 1;
 		}
 		else if (player_units.size() == spawned_player_units) {
-			SetDestination(player_units, sc2::Point2D(45), behaviors::PASSIVE, false);
+			SetDestination(player_units, sc2::Point2D(45), behaviors::DEFENCE, false);
 		}
 		if (CheckIfUnitsSpawned(1, { sc2::UNIT_TYPEID::PROTOSS_ZEALOT })) {
 			SetBehavior(Observation()->GetUnits(sc2::IsUnit(sc2::UNIT_TYPEID::PROTOSS_ZEALOT)), sc2::ABILITY_ID::HOLDPOSITION);
