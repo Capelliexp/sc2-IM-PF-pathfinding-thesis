@@ -26,7 +26,7 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	float dist = 0;
 	for (int i = 0; i < nr_of_units; ++i) {
 		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
-		float range_sub = unit.range + 2;
+		float range_sub = fmaxf(unit.range, 3) + 2;
 		dist = (FloatDistance((int)unit_list_s[i].pos.x, (int)unit_list_s[i].pos.y, x, y) + 0.0001);
 
 		if (unit_list_s[i].enemy) {	//avoid enemies
