@@ -245,6 +245,10 @@ private:
 	dim3 dim_grid_low;
 	int threads_in_grid_high;
 	int threads_in_grid_low;
+	int available_shared_data_per_block;
+	int available_nodes_in_shared_array_per_block;
+	int available_nodes_in_shared_array_per_block_in_bytes;
+	int available_nodes_in_shared_array_per_thread_in_bytes;
 
 	//device memory single map pointers
 	cudaPitchedPtr dynamic_map_device_pointer;
@@ -254,6 +258,8 @@ private:
 	//device memory array pointers
 	UnitInfoDevice* unit_lookup_device_pointer;
 	Entity* device_unit_list_pointer;
+	int* device_IM_shared_array_size_per_block;
+	int* device_IM_shared_array_size_per_thread;
 	
 	//device memory map lists & queues
 	std::vector<AttractingFieldMemory> PF_mem;

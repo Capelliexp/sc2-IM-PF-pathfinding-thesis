@@ -161,6 +161,12 @@ void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heig
                 image[4 * width * x + 4 * y + 2] = mapP;
                 image[4 * width * x + 4 * y + 3] = 255;
             }
+            else if (mapP == 0) {
+                image[4 * width * x + 4 * y + 0] = 255;
+                image[4 * width * x + 4 * y + 1] = 0;
+                image[4 * width * x + 4 * y + 2] = 0;
+                image[4 * width * x + 4 * y + 3] = 255;
+            }
             else {
                 image[4 * width * x + 4 * y + 0] = selected_color[0] * mapP;
                 image[4 * width * x + 4 * y + 1] = selected_color[1] * mapP;

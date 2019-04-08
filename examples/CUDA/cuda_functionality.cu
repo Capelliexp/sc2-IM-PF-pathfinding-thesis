@@ -72,6 +72,22 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	dim_grid_low = { x2, y2, 1 };
 	threads_in_grid_low = (dim_block_low.x * dim_block_low.y) * (dim_grid_low.x * dim_grid_low.y);
 
+	available_shared_data_per_block = 49152;
+	//available_shared_data_per_block = 12288;
+	available_nodes_in_shared_array_per_block = (int)(available_shared_data_per_block / sizeof(node));
+	available_nodes_in_shared_array_per_block_in_bytes = (int)(available_shared_data_per_block / sizeof(node)) * sizeof(node);
+	available_nodes_in_shared_array_per_thread_in_bytes = (int)(available_nodes_in_shared_array_per_block_in_bytes / 32);
+	available_nodes_in_shared_array_per_block_in_bytes = available_nodes_in_shared_array_per_thread_in_bytes * 32;	//remove "spill"
+
+	Check(cudaMalloc(&device_IM_shared_array_size_per_block, sizeof(int)), "init shared array block size alloc");
+	Check(cudaMalloc(&device_IM_shared_array_size_per_thread, sizeof(int)), "init shared array thread size alloc");
+
+	Check(cudaMemcpy(device_IM_shared_array_size_per_block, &available_nodes_in_shared_array_per_block_in_bytes, sizeof(int), cudaMemcpyHostToDevice), "init shared array block size");
+	Check(cudaMemcpy(device_IM_shared_array_size_per_thread, &available_nodes_in_shared_array_per_thread_in_bytes, sizeof(int), cudaMemcpyHostToDevice), "init shared array thread size");
+
+	Check(cudaMemcpyToSymbol(IM_shared_array_size_per_block, &device_IM_shared_array_size_per_block, sizeof(int*)), "init set constant array block size");
+	Check(cudaMemcpyToSymbol(IM_shared_array_size_per_thread, &device_IM_shared_array_size_per_thread, sizeof(int*)), "init set constant array thread size");
+
 	next_id = 0;
 	unit_list_max_length = 800;
 
@@ -393,7 +409,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 	PopErrorsCheck();
 	
 	cudaDeviceSynchronize();
-	PopErrorsCheck();
+	PopErrorsCheck("Execute Device Jobs End");
 
 	return Result::OK;
 }
@@ -531,7 +547,7 @@ __host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_
 
 __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path, cudaPitchedPtr device_map) {
 	if (!air_path) {
-		DeviceGroundIMGeneration <<<dim_grid_low, dim_block_low>>>
+		DeviceGroundIMGeneration <<< dim_grid_low, dim_block_low, available_nodes_in_shared_array_per_block_in_bytes >>>
 			(destination, device_map, dynamic_map_device_pointer);
 	}
 	else {
