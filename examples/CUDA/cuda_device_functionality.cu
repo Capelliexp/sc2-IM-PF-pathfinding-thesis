@@ -158,7 +158,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int y = (start_id / (float)grid_thread_width);
 
 	short_coord debug_coord = {16, 16};
-	bool debug = true;
+	bool debug = false;
 
 	//if (debug && debug_coord.x == x && debug_coord.y == y) printf(" \n");
 
@@ -238,7 +238,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			for (int i = 0; i < register_list_size; ++i) {
 				entry = register_list[i];
 
-				if (entry.pos != -1) {	//if valid node
+				if (entry.pos > 0 ) {	//if valid node
 					if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
 						closest_distance_found = entry.est_dist_start_to_dest_via_pos;
 						closest_coord_found = it + i;
@@ -449,7 +449,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		open_list[closest_coord_found].pos = -1;	//mark expanded node as invalid in the open list
 		++size_check_counter;
 
-		if (debug && debug_coord.x == x && debug_coord.y == y) printf("open_list_it: %d\nsize_check_counter: %d", open_list_it, size_check_counter);
+		if (debug && debug_coord.x == x && debug_coord.y == y) printf("open_list_it: %d\nsize_check_counter: %d\n", open_list_it, size_check_counter);
 	}
 }
 
