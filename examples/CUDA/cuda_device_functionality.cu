@@ -160,7 +160,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int y = (start_id / (float)grid_thread_width);
 
 	short_coord debug_coord = {16, 16};
-	bool debug = false;
+	bool debug = true;
 
 	//if (debug && debug_coord.x == x && debug_coord.y == y) printf(" \n");
 
@@ -190,15 +190,19 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	node register_list[register_list_size];
 
 	//SHARED ARRAY
-	const int mem_per_SM = 49152;
+	const int mem_per_SM = 47616;	//normal: 49152, 1536 (384 per block) reserved for block intra-communication
 	const int mem_per_block = mem_per_SM / 4;
 	const int nodes_per_block = mem_per_block / sizeof(node);	// = 1024
-	const int nodes_per_thread = nodes_per_block / 32;	// = 32
+	const int nodes_per_thread = nodes_per_block / 32;	// = 31 (should be 32)
 	int thread_array_start_index = nodes_per_thread * thread_id_in_block;
 	__shared__ node shared_list[nodes_per_block];
-	node* open_list_shared_pointer = &shared_list[thread_array_start_index];
-	int shared_open_it = 0, shared_closed_it = nodes_per_thread-1, shared_expanded_start = nodes_per_thread/2,
-		shared_expanded_end = shared_expanded_start;
+	node* shared_list_thread_pointer = &shared_list[thread_array_start_index];
+	int /*open*/   shared_open_it = 0,
+		/*closed*/ shared_closed_it = nodes_per_thread - 1;
+
+	__shared__ bool block_check_1;
+	__shared__ bool block_check_2;
+	__shared__ bool block_check_3;
 
 	//GLOBAL ARRAY
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
@@ -206,28 +210,65 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	node* closed_list = (node*)malloc(1000 * sizeof(node));
 
 	if (open_list == NULL || closed_list == NULL) {
-		printf("Device heap limit to low for lists (init)\n");
+		printf("Device heap limit to low for lists\n");
 		return;
 	}
 
 	open_list[0] = { start_id, -1, 0, FloatDistance(x, y, destination.x, destination.y) };
 	open_list_it = 1;
 
-	if (debug && debug_coord.x == x && debug_coord.y == y) {
-		printf("start \n");
-	}
+	if (debug && debug_coord.x == x && debug_coord.y == y) printf("start \n");
 
 	int size_check_counter = 0;
 	for (int step_iterator = 0; step_iterator < MAP_SIZE_R; ++step_iterator) {
+		
+		block_check_1 = false;
+		if (shared_closed_it - shared_open_it < 5) {	//check if 1 or more threads need to move data from shared to global
+			block_check_1 = true;
+		}
+
+		if (block_check_1) {	//transfer shared data to global memory
+			if (debug && debug_coord.x == x && debug_coord.y == y) printf("transfering data from shared to global mem\n");
+
+			//GLOBAL READ/WRITE
+			memcpy(&open_list[open_list_it], &shared_list_thread_pointer[0], shared_open_it * sizeof(node));
+			open_list_it += shared_open_it;
+			memcpy(&closed_list[closed_list_it], &shared_list_thread_pointer[shared_closed_it], (nodes_per_thread - shared_closed_it) * sizeof(node));
+			closed_list_it += shared_closed_it;
+			memset(&shared_list_thread_pointer[0], 0, nodes_per_thread * sizeof(node));	//reset ENTIRE, not partial...
+			shared_open_it = 0;
+			shared_closed_it = nodes_per_thread - 1;
+		}
+
 		memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
 
 		//find the next cell to expand
+		bool closest_node_in_shared_mem;
 		float closest_distance_found = 99999;
 		node closest_entry;
 		int closest_coord_found = -1;
 		node entry;
 		int copy_amount = min(register_list_size, open_list_it);
 
+		//search in shared open list
+		memcpy(register_list, &shared_list_thread_pointer[0], nodes_per_thread * sizeof(node));
+		for (int i = 0; i < nodes_per_thread; ++i) {
+			if (i > shared_open_it) break;
+			entry = register_list[i];
+
+			if (entry.pos > 0) {	//if valid node
+				if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
+					closest_distance_found = entry.est_dist_start_to_dest_via_pos;
+					closest_node_in_shared_mem = true;
+					closest_coord_found = i;
+					closest_entry = entry;
+				}
+			}
+		}
+
+		memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
+
+		//search in global open list
 		int it = 0;
 		while (it < open_list_it) {
 			//GLOBAL READ/WRITE
@@ -239,6 +280,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 				if (entry.pos > 0 ) {	//if valid node
 					if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
 						closest_distance_found = entry.est_dist_start_to_dest_via_pos;
+						closest_node_in_shared_mem = false;
 						closest_coord_found = it + i;
 						closest_entry = entry;
 					}
@@ -253,8 +295,13 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		}
 
 		//add the expanded coord to the closed list
-		closed_list[closed_list_it] = closest_entry;
-		++closed_list_it;
+		//GLOBAL READ/WRITE
+		//closed_list[closed_list_it] = closest_entry;
+		//++closed_list_it;
+
+		//SHARED READ/WRITE
+		shared_list_thread_pointer[shared_closed_it] = closest_entry;
+		--shared_closed_it;
 
 		IntPoint2D pos = IDToPos(closest_entry.pos, grid_thread_width);
 
@@ -265,16 +312,32 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 			//--------
 
+			if (debug && debug_coord.x == x && debug_coord.y == y) printf("transfering data from shared to global mem\n");
+
+			//GLOBAL READ/WRITE
+			memcpy(&open_list[open_list_it], &shared_list_thread_pointer[0], shared_open_it * sizeof(node));
+			open_list_it += shared_open_it;
+			memcpy(&closed_list[closed_list_it], &shared_list_thread_pointer[shared_closed_it], (nodes_per_thread - shared_closed_it) * sizeof(node));
+			closed_list_it += shared_closed_it;
+			memset(&shared_list_thread_pointer[0], 0, nodes_per_thread * sizeof(node));	//reset ENTIRE, not partial...
+			shared_open_it = 0;
+			shared_closed_it = nodes_per_thread - 1;
+
+			//--------
+
 			node curr = closed_list[closed_list_it - 1];
 			IntPoint2D pos;
 			for (int loop_count = 1; loop_count < MAP_SIZE_R + 1; ++loop_count) {
 				pos = IDToPos(curr.pos, grid_thread_width);
 
+				if (debug && debug_coord.x == x && debug_coord.y == y) printf("backtrack: printing %d to (%d,%d)\n", loop_count, pos.x, pos.y);
 				((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
 
 				if (curr.backtrack_it == -1) return;
 				curr = closed_list[curr.backtrack_it];
 			}
+
+			if (debug && debug_coord.x == x && debug_coord.y == y) printf("backtracking done\n");
 
 			//--------
 
@@ -287,7 +350,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		if (size_check_counter == 30) {
 
 			size_check_counter = 0;
-			if ((open_list_size - open_list_it) < 200) {
+			if ((open_list_size - (open_list_it + shared_open_it)) < 200) {
 				//GLOBAL READ/WRITE
 				node* open_list_new = (node*)malloc(open_list_size * 2 * sizeof(node));
 				memcpy(&open_list_new[0], &open_list[0], open_list_size * sizeof(node));
@@ -303,7 +366,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 				}
 
 			}
-			if ((closed_list_size - closed_list_it) < 200) {
+			if ((closed_list_size - (closed_list_it + (nodes_per_thread - 1 - shared_closed_it))) < 200) {
 				//GLOBAL READ/WRITE
 				node* closed_list_new = (node*)malloc(closed_list_size * 2 * sizeof(node));
 				memcpy(&closed_list_new[0], &closed_list[0], closed_list_size * sizeof(node));
@@ -365,7 +428,29 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//-----------------------------
 
-		//Search for id in closed_list
+		//Search for id in shared closed_list
+		memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
+		
+		//SHARED READ/WRITE
+		memcpy(register_list, &shared_list_thread_pointer[shared_closed_it], (nodes_per_thread - 1 - shared_closed_it) * sizeof(node));
+
+		for (int i = 0; i < (nodes_per_thread - 1); ++i) {	//loop over register array
+			if (i + shared_closed_it > nodes_per_thread - 1) break;
+			entry = register_list[i + shared_closed_it];
+
+			if (entry.pos != -1) {	//if valid list node
+				for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
+					if (neighbour_coord_validity[j]) {	//if neighbour is valid	(remove?)
+						if (neighbour_coord_global[j] == entry.pos) {	//node already in closed list
+							if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed (shared) closed list check \n", j);
+							neighbour_coord_validity[j] = false;
+						}
+					}
+				}
+			}
+		}
+
+		//Search for id in global closed_list
 		memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
 		copy_amount = min(register_list_size, closed_list_it);
 		it = 0;
@@ -377,11 +462,11 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 				entry = register_list[i];	//unnecessary
 
 				if (entry.pos != -1) {	//if valid list node
-					for (int i = 0; i < 4; ++i) {	//loop over the 4 neighbours
-						if (neighbour_coord_validity[i]) {	//if neighbour is valid	(remove?)
-							if (neighbour_coord_global[i] == entry.pos) {	//node already in closed list
-								if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed closed list check \n", i);
-								neighbour_coord_validity[i] = false;
+					for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
+						if (neighbour_coord_validity[j]) {	//if neighbour is valid	(remove?)
+							if (neighbour_coord_global[j] == entry.pos) {	//node already in closed list
+								if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed (global) closed list check \n", j);
+								neighbour_coord_validity[j] = false;
 							}
 						}
 					}
@@ -392,7 +477,29 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//-----------------------------
 
-		//Search for id in open_list
+		//Search for id in shared open_list
+		memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
+
+		//SHARED READ/WRITE
+		memcpy(register_list, &shared_list_thread_pointer[0], shared_open_it * sizeof(node));
+
+		for (int i = 0; i < (nodes_per_thread - 1); ++i) {	//loop over register array
+			if (i > shared_open_it - 1) break;
+			entry = register_list[i];
+
+			if (entry.pos != -1) {	//if valid list node
+				for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
+					if (neighbour_coord_validity[j]) {	//if neighbour is valid	(remove?)
+						if (neighbour_coord_global[j] == entry.pos) {	//node already in closed list
+							if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed (shared) closed list check \n", j);
+							neighbour_coord_validity[j] = false;
+						}
+					}
+				}
+			}
+		}
+
+		//Search for id in global open_list
 		memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
 		copy_amount = min(register_list_size, open_list_it);
 		it = 0;
@@ -404,11 +511,11 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 				entry = register_list[i];	//unnecessary
 
 				if (entry.pos != -1) {	//if valid list node
-					for (int i = 0; i < 4; ++i) {	//loop over the 4 neighbours
-						if (neighbour_coord_validity[i]) {	//if neighbour is valid	(remove?)
-							if (neighbour_coord_global[i] == entry.pos) {	//node already in closed list
-								if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed open list check \n", i);
-								neighbour_coord_validity[i] = false;
+					for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
+						if (neighbour_coord_validity[j]) {	//if neighbour is valid	(remove?)
+							if (neighbour_coord_global[j] == entry.pos) {	//node already in closed list
+								if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed (global) open list check \n", j);
+								neighbour_coord_validity[j] = false;
 							}
 						}
 					}
@@ -427,7 +534,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			if (neighbour_coord_validity[i]) {	//the neighbour is valid
 				node new_list_entry = {
 					neighbour_coord_global[i],
-					closed_list_it - 1,
+					closed_list_it - 1 + (nodes_per_thread - 1 - shared_closed_it),
 					closest_entry.steps_from_start + 1,
 					closest_entry.steps_from_start + 1 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
 				};
@@ -442,11 +549,22 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//-----------------------------
 
 		//GLOBAL READ/WRITE
-		memcpy(&open_list[open_list_it], nodes_to_add, new_open_list_entries * sizeof(node));	//add valid neighbours to the open list
+		//memcpy(&open_list[open_list_it], nodes_to_add, new_open_list_entries * sizeof(node));	//add valid neighbours to the open list
+
+		//SHARED READ/WRITE
+		memcpy(&shared_list_thread_pointer[shared_open_it], nodes_to_add, new_open_list_entries * sizeof(node));
+		shared_open_it += new_open_list_entries;
 
 		open_list_it += new_open_list_entries;
-		//GLOBAL READ/WRITE
-		open_list[closest_coord_found].pos = -1;	//mark expanded node as invalid in the open list
+		
+		if (!closest_node_in_shared_mem) {
+			//GLOBAL READ/WRITE
+			open_list[closest_coord_found].pos = -1;	//mark expanded node as invalid in the open list
+		}
+		else {
+			//SHARED READ/WRITE
+			shared_list_thread_pointer[closest_coord_found].pos = -1;	//mark expanded node as invalid in the open list
+		}
 		++size_check_counter;
 
 		if (debug && debug_coord.x == x && debug_coord.y == y) printf("open_list_it: %d\nsize_check_counter: %d\n", open_list_it, size_check_counter);
