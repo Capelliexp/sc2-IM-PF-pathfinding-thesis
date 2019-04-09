@@ -186,11 +186,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	}
 
 	//REGISTER ARRAY
-	//we use about 60 of 255 register bytes, 195 bytes allocated to thread register array
-	//sizeof(integer) = 2
-	//sizeof(node) = 8 + 2 * sizeof(integer) = 12
-	//195 / 12 = 16
-	const int register_list_size = 16;
+	const int register_list_size = 32;
 	node register_list[register_list_size];
 
 	//SHARED ARRAY
@@ -201,6 +197,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	int thread_array_start_index = nodes_per_thread * thread_id_in_block;
 	__shared__ node shared_list[nodes_per_block];
 	node* open_list_shared_pointer = &shared_list[thread_array_start_index];
+	int shared_open_it = 0, shared_closed_it = nodes_per_thread-1, shared_expanded_start = nodes_per_thread/2,
+		shared_expanded_end = shared_expanded_start;
 
 	//GLOBAL ARRAY
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
@@ -249,18 +247,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			it += register_list_size;
 		}
 
-		//for (int i = 0; i < open_list_it; ++i) {	
-		//	   
-		//	entry = open_list[i];
-		//	if (entry.pos != -1) {	
-		//		if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {
-		//			closest_distance_found = entry.est_dist_start_to_dest_via_pos;
-		//			closest_coord_found = i;	
-		//			closest_entry = entry;	
-		//		}	
-		//	}	
-		//}
-
 		if (closest_coord_found == -1) {	//open list is empty and no path to the destination is found, RIP
 			((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -3;
 			return;
@@ -276,8 +262,22 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		if ((pos.x == destination.x) && (pos.y == destination.y)) {	//destination has been found! HYPE
 			if (debug && debug_coord.x == x && debug_coord.y == y) printf("destination found! \n");
-			bool print = false;
-			Backtrack(device_map, closed_list, closed_list_it - 1, grid_thread_width, print);
+
+			//--------
+
+			node curr = closed_list[closed_list_it - 1];
+			IntPoint2D pos;
+			for (int loop_count = 1; loop_count < MAP_SIZE_R + 1; ++loop_count) {
+				pos = IDToPos(curr.pos, grid_thread_width);
+
+				((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
+
+				if (curr.backtrack_it == -1) return;
+				curr = closed_list[curr.backtrack_it];
+			}
+
+			//--------
+
 			free(open_list);
 			free(closed_list);
 			return;
@@ -432,7 +432,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					closest_entry.steps_from_start + 1 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
 				};
 				nodes_to_add[new_open_list_entries] = new_list_entry;
-				open_list[open_list_it + new_open_list_entries] = new_list_entry;	//OLD
+				//open_list[open_list_it + new_open_list_entries] = new_list_entry;	//OLD
 				++new_open_list_entries;
 			}
 		}
@@ -442,7 +442,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//-----------------------------
 
 		//GLOBAL READ/WRITE
-		//memcpy(&open_list[open_list_it], nodes_to_add, new_open_list_entries * sizeof(node));	//add valid neighbours to the open list
+		memcpy(&open_list[open_list_it], nodes_to_add, new_open_list_entries * sizeof(node));	//add valid neighbours to the open list
 
 		open_list_it += new_open_list_entries;
 		//GLOBAL READ/WRITE
@@ -450,22 +450,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		++size_check_counter;
 
 		if (debug && debug_coord.x == x && debug_coord.y == y) printf("open_list_it: %d\nsize_check_counter: %d\n", open_list_it, size_check_counter);
-	}
-}
-
-__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it, int width, bool print) {
-	node curr = closed_list[start_it];
-
-	IntPoint2D pos;
-	for (int loop_count = 1; loop_count < MAP_SIZE_R + 1; ++loop_count) {
-		pos = IDToPos(curr.pos, width);
-
-		//if (print) printf("<backtrack> drawing %d to <%d,%d>\n", loop_count, pos.x, pos.y);
-
-		((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
-
-		if (curr.backtrack_it == -1) return;
-		curr = closed_list[curr.backtrack_it];
 	}
 }
 
