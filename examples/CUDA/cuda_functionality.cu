@@ -360,6 +360,9 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		if (pf_type == PFType::Normal) RepellingPFGeneration();
 		else if (pf_type == PFType::Large) LargeRepellingPFGeneration();
 
+		/*cudaDeviceSynchronize();
+		PopErrorsCheck("1");*/
+
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_ground), "repelling PF ground memcpy");
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_air), "repelling PF air memcpy");
 
@@ -373,6 +376,10 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		InfluenceMapMemory* mem = &(*it);
 		cudaEventRecord(mem->begin, 0);
 		IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
+
+		//cudaDeviceSynchronize();
+		//PopErrorsCheck("2");
+
 		mem->initialized = true;
 		//mem->status = DeviceMemoryStatus::BUSY;
 		cudaEventRecord(mem->done, 0);
@@ -387,6 +394,10 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		AttractingFieldMemory* mem = &(*it);
 		cudaEventRecord(mem->begin, 0);
 		AttractingPFGeneration(mem->owner_id, (float(*)[MAP_Y_R][1])mem->map, mem->device_map_ptr);
+
+		/*cudaDeviceSynchronize();
+		PopErrorsCheck("3." + std::to_string(i));*/
+
 		mem->initialized = true;
 		//mem->status = DeviceMemoryStatus::BUSY;
 		cudaEventRecord(mem->done, 0);
@@ -396,7 +407,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 	PopErrorsCheck();
 	
 	cudaDeviceSynchronize();
-	PopErrorsCheck();
+	PopErrorsCheck("Final");
 
 	return Result::OK;
 }
