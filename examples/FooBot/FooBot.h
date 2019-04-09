@@ -100,6 +100,10 @@ private:
     void CommandsOnWall();
     void CommandsOnEmpty20();
     void CommandsOnSpiral50();
+    void CommandsOnEasy();
+    void CommandsOnMedium();
+    void CommandsOnHardOne();
+    void CommandsOnHardTwo();
 
     //! Function that is used to check if a given unit is a structure.
     //!< \param unit The unit to be checked.
@@ -107,7 +111,8 @@ private:
     bool IsStructure(const sc2::Unit* unit);
 
     //! Function to print values in the game world.
-    void printValues(int unit, sc2::Point2D pos);
+    void PrintValues(int unit, sc2::Point2D pos);
+    void PrintPath(int unit);
 
 private:
     MapStorage* map_storage;

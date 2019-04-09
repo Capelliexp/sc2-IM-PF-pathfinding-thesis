@@ -11,14 +11,15 @@ FooBot::FooBot(std::string map,  bool spawn_all_units) {
 	this->astar = true;
 	this->astarPF = false;
 	this->new_buildings = false;
-	if (map == "empty50")			this->map = 1;
+	if		(map == "empty50")		this->map = 1;
 	else if (map == "empty200")		this->map = 2;
-	else if (map == "height")		this->map = 3;
-	else if (map == "labyrinth")	this->map = 4;
-	else if (map == "wall")			this->map = 5;
-	else if (map == "empty20")		this->map = 6;
-	else if (map == "spiral50")		this->map = 7;
-	else							this->map = 0;	//Not a valid testmap
+	else if (map == "empty20")		this->map = 3;
+	else if (map == "spiral50")		this->map = 4;
+	else if (map == "easy")			this->map = 5;
+	else if (map == "medium")		this->map = 6;
+	else if (map == "hard_one")		this->map = 7;
+	else if (map == "hard_two")		this->map = 8;
+	else							this->map = 0;	//Not a valid test map
 }
 
 void FooBot::OnGameStart() {
@@ -47,8 +48,8 @@ void FooBot::OnStep() {
 	//commands
 	if (command == 0) {
 		if (GetKeyState('1') & 0x8000) command = 1;
-		if (GetKeyState('2') & 0x8000) command = 2;
-		if (GetKeyState('3') & 0x8000) command = 3;
+		if (GetKeyState('2') & 0x8000) command = 2; 
+		if (GetKeyState('3') & 0x8000) command = 3; 
 		if (GetKeyState('4') & 0x8000) command = 4;
 		if (GetKeyState('5') & 0x8000) command = 5;
 		if (GetKeyState('6') & 0x8000) command = 6;
@@ -98,6 +99,7 @@ void FooBot::OnStep() {
 	}
 
 	Actions()->SendActions();
+	Debug()->SendDebug();
 
 	if (spawn_all_units) {
 		if (Observation()->GetUnits(sc2::Unit::Alliance::Self).size() > 95 && get_radius) {
@@ -222,19 +224,22 @@ void FooBot::ExecuteCommand() {
 		CommandsOnEmpty200();
 		break;
 	case 3:
-		CommandsOnHeight();
-		break;
-	case 4:
-		CommandsOnLabyrinth();
-		break;
-	case 5:
-		CommandsOnWall();
-		break;
-	case 6:
 		CommandsOnEmpty20();
 		break;
-	case 7:
+	case 4:
 		CommandsOnSpiral50();
+		break;
+	case 5:
+		CommandsOnEasy();
+		break;
+	case 6:
+		CommandsOnMedium();
+		break;
+	case 7:
+		CommandsOnHardOne();
+		break;
+	case 8:
+		CommandsOnHardTwo();
 		break;
 	default:
 		command = 0;
@@ -248,7 +253,7 @@ void FooBot::SpawnUnits(sc2::UNIT_TYPEID unit_id, int amount, sc2::Point2D pos, 
 }
 
 void FooBot::SetDestination(std::vector<Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start, sc2::Point2D end) {
-	pos.y = MAP_Y_R - 1 - pos.y;
+	pos.y = MAP_Y_R - pos.y;
 	if (air_unit) {
 		for (int i = 0; i < units_vec.size(); ++i) {
 			if (start.x == -1) {
@@ -276,7 +281,7 @@ void FooBot::SetDestination(std::vector<Unit>& units_vec, sc2::Point2D pos, beha
 }
 
 void FooBot::SetDestination(std::vector<AstarUnit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start, sc2::Point2D end) {
-	pos.y = MAP_Y_R - 1 - pos.y;
+	pos.y = MAP_Y_R - pos.y;
 	Node agent;
 	agent.euc_dist = 0;
 	agent.parentX = -1;
@@ -288,7 +293,7 @@ void FooBot::SetDestination(std::vector<AstarUnit>& units_vec, sc2::Point2D pos,
 		for (int i = 0; i < units_vec.size(); ++i) {
 			units_vec[i].behavior = type_of_movement;
 			agent.x = units_vec[i].unit->pos.x;
-			agent.y = MAP_Y_R - 1 - units_vec[i].unit->pos.y;
+			agent.y = MAP_Y_R - units_vec[i].unit->pos.y;
 			if (start.x == -1) {
 				units_vec[i].path = Astar(agent, pos);
 			}
@@ -305,7 +310,7 @@ void FooBot::SetBehavior(std::vector<Unit>& units_vec, sc2::ABILITY_ID behavior)
 	}
 }
 
-//NOTE!!!! x- and y-coordinates are fliped.
+//NOTE!!!! x- and y-coordinates are flipped.
 void FooBot::UpdateUnitsPaths() {
 	for (int i = 0; i < player_units.size(); ++i) {
 		if (player_units[i].destination == nullptr) continue;		//No destination set
@@ -313,15 +318,14 @@ void FooBot::UpdateUnitsPaths() {
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;
-		
 		translated_pos.x = translated_pos.x;
-		translated_pos.y = MAP_Y_R - 1 - translated_pos.y;
+		translated_pos.y = MAP_Y_R - translated_pos.y;
+
+		PrintValues(i, translated_pos);
 
 		if (player_units[i].destination->destination == sc2::Point2D((int)translated_pos.x, (int)translated_pos.y)) {	//Found destination.
-			sc2::Point2D new_pos = player_units[i].destination->destination;
-			sc2::Point2D pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y);
-			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, pos);
-			player_units[i].last_pos = pos;
+			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, player_units[i].next_pos);
+			player_units[i].last_pos = translated_pos;
 			std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
 			std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 			player_units[i].destination = nullptr;
@@ -329,12 +333,12 @@ void FooBot::UpdateUnitsPaths() {
 		}
 
 		if (player_units[i].last_pos.x == -1) {
-			player_units[i].last_pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y);
+			player_units[i].last_pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - player_units[i].unit->pos.y);
 			map_storage->PrintMap(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
 			map_storage->PrintMap(map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x), MAP_X_R, MAP_Y_R, "PF");
 		}
 		else {
-			sc2::Point2D pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y);
+			sc2::Point2D pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - player_units[i].unit->pos.y);
 			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, pos);
 			player_units[i].last_pos = pos;
 		}
@@ -351,7 +355,8 @@ void FooBot::UpdateUnitsPaths() {
 		sc2::Point2D p1 = sc2::Point2D(translated_pos.x, translated_pos.y);
 		sc2::Point2D p2 = sc2::Point2D(player_units[i].next_pos.x, player_units[i].next_pos.y); 
 		float unit_radius = player_units[i].unit->radius < 0.5 ? 0.5 : 1.5;
-		if ((p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) || p2.x == -1) {
+		//float unit_radius = 0;
+		//if ((p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) || p2.x == -1) {
 			std::vector<sc2::Point2D> udlr;
 			udlr.push_back(sc2::Point2D(p1.x + 0, p1.y + 1));
 			udlr.push_back(sc2::Point2D(p1.x + 1, p1.y + 1));
@@ -384,8 +389,9 @@ void FooBot::UpdateUnitsPaths() {
 			}
 
 			sc2::Point2D new_pos = sc2::Point2D(udlr[next_tile].x, udlr[next_tile].y);
+			//new_pos += sc2::Point2D(0.5, 0.5);
 			player_units[i].next_pos = new_pos;
-			new_pos.y = MAP_Y_R - 1 - new_pos.y;
+			new_pos.y = MAP_Y_R - new_pos.y;
 			if (player_units[i].behavior == behaviors::DEFENCE || player_units[i].behavior == behaviors::PASSIVE)
 				Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 			else if (player_units[i].behavior == behaviors::ATTACK) {
@@ -394,7 +400,7 @@ void FooBot::UpdateUnitsPaths() {
 				else
 					Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 			}
-		}
+		//}
 	}
 	Debug()->SendDebug();
 }
@@ -402,12 +408,13 @@ void FooBot::UpdateUnitsPaths() {
 void FooBot::UpdateAstarPath() {
 	for (int i = 0; i < astar_units.size(); ++i) {
 		if (astar_units[i].path.size() > 0) {
-			sc2::Point2D p1 = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
+			PrintPath(i);
+			sc2::Point2D p1 = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y);
 			sc2::Point2D p2 = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 			if (astar_units[i].last_pos.x == -1)
-				astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
+				astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y);
 			else if (astar_units[i].path.size() > 0) {	//Calculate dist until it's one node left.
-				sc2::Point2D pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
+				sc2::Point2D pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y);
 				astar_units[i].dist_traveled += CalculateEuclideanDistance(astar_units[i].last_pos, pos);
 				astar_units[i].last_pos = pos;
 			}
@@ -416,12 +423,12 @@ void FooBot::UpdateAstarPath() {
 				sc2::Point2D last_path_pos = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 				astar_units[i].path.pop_back();
 				if (astar_units[i].path.size() > 0) {
-					sc2::Point2D new_pos = sc2::Point2D(astar_units[i].path.back().x, MAP_Y_R - 1 - astar_units[i].path.back().y);
+					sc2::Point2D new_pos = sc2::Point2D(astar_units[i].path.back().x, MAP_Y_R - astar_units[i].path.back().y);
 					Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 				}
 				else {	//Calculates dist for last node.
 					sc2::Point2D current_pos = astar_units[i].unit->pos;
-					current_pos.y = MAP_Y_R - 1 - current_pos.y;
+					current_pos.y = MAP_Y_R - current_pos.y;
 					astar_units[i].dist_traveled += CalculateEuclideanDistance(current_pos, last_path_pos);
 					std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 					std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
@@ -434,7 +441,7 @@ void FooBot::UpdateAstarPath() {
 void FooBot::UpdateAstarPFPath() {
 	for (int i = 0; i < astar_units.size(); ++i) {
 		if (astar_units[i].path.size() > 0) {
-			sc2::Point2D p1 = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
+			sc2::Point2D p1 = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y);
 			sc2::Point2D p2 = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 			bool astar = true;
 			bool new_path = false;
@@ -489,7 +496,7 @@ void FooBot::UpdateAstarPFPath() {
 					}
 				}
 				if (min_value < current_pf) {
-					sc2::Point2D new_pos = sc2::Point2D(udlr[next_tile].x, MAP_Y_R - 1 - udlr[next_tile].y);
+					sc2::Point2D new_pos = sc2::Point2D(udlr[next_tile].x, MAP_Y_R - udlr[next_tile].y);
 					if (astar_units[i].behavior == behaviors::DEFENCE)
 						Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 					else if (astar_units[i].behavior == behaviors::ATTACK) {
@@ -503,9 +510,9 @@ void FooBot::UpdateAstarPFPath() {
 			//A*
 			else if (astar && !new_path) {
 				if (astar_units[i].last_pos.x == -1)
-					astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
+					astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y);
 				else if (astar_units[i].path.size() > 0) {	//Calculate dist until it's one node left.
-					sc2::Point2D pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y);
+					sc2::Point2D pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y);
 					astar_units[i].dist_traveled += CalculateEuclideanDistance(astar_units[i].last_pos, pos);
 					astar_units[i].last_pos = pos;
 				}
@@ -517,12 +524,12 @@ void FooBot::UpdateAstarPFPath() {
 					sc2::Point2D last_path_pos = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 					astar_units[i].path.pop_back();
 					if (astar_units[i].path.size() > 0) {
-						sc2::Point2D new_pos = sc2::Point2D(astar_units[i].path.back().x, MAP_Y_R - 1 - astar_units[i].path.back().y);
+						sc2::Point2D new_pos = sc2::Point2D(astar_units[i].path.back().x, MAP_Y_R - astar_units[i].path.back().y);
 						Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 					}
 					else {	//Calculates dist for last node.
 						sc2::Point2D current_pos = astar_units[i].unit->pos;
-						current_pos.y = MAP_Y_R - 1 - current_pos.y;
+						current_pos.y = MAP_Y_R - current_pos.y;
 						astar_units[i].dist_traveled += CalculateEuclideanDistance(current_pos, last_path_pos);
 						std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 						std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
@@ -537,7 +544,7 @@ void FooBot::UpdateAstarPFPath() {
 				agent.parentY = -1;
 				agent.walk_dist = 0;
 				agent.x = astar_units[i].unit->pos.x;
-				agent.y = MAP_Y_R - 1 - astar_units[i].unit->pos.y;
+				agent.y = MAP_Y_R - astar_units[i].unit->pos.y;
 				sc2::Point2D dest = sc2::Point2D(astar_units[i].path.front().x, astar_units[i].path.front().y);
 				astar_units[i].path = Astar(agent, dest);
 				astar_units[i].PF_mode = false;
@@ -554,7 +561,7 @@ void FooBot::RecreateAstarPaths() {
 		agent.parentY = -1;
 		agent.walk_dist = 0;
 		agent.x = astar_units[i].unit->pos.x;
-		agent.y = MAP_Y_R - 1 - astar_units[i].unit->pos.y;
+		agent.y = MAP_Y_R - astar_units[i].unit->pos.y;
 		sc2::Point2D dest = sc2::Point2D(astar_units[i].path.front().x, astar_units[i].path.front().y);
 		astar_units[i].path = Astar(agent, dest);
 	}
@@ -593,9 +600,9 @@ std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 		a.walk_dist = node.walk_dist + 1;
 
 		std::vector<sc2::Point2D> adjacadjacent_nodes;
-		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 0, node.y + 1));	//Up
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 0, node.y + 1));	//Down
 		adjacadjacent_nodes.push_back(sc2::Point2D(node.x + 1, node.y + 0));	//Right
-		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 0, node.y - 1));	//Down
+		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 0, node.y - 1));	//Up
 		adjacadjacent_nodes.push_back(sc2::Point2D(node.x - 1, node.y - 0));	//Left
 		
 
@@ -670,20 +677,27 @@ bool FooBot::NodeExistsInList(sc2::Point2D pos, std::vector<Node> list) {
 	return false;
 }
 
-void FooBot::printValues(int unit, sc2::Point2D pos) {
+void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 	sc2::Point3D pp = player_units[unit].unit->pos;
 	pp.z += 0.1f;
-	sc2::Point3D p = { pos.x, pos.y, player_units[unit].unit->pos.z };
-	p.z += 0.1f;
-	for (int i = -5; i <= 5; ++i) {
-		for (int j = -5; j <= 5; ++j) {
-			if (p.x < MAP_X_R && p.y < MAP_Y_R && p.x >= 0 && p.y >= 0) {
-				float new_value = player_units[unit].destination->map[(int)p.y - i][(int)p.x + j][0];
-				if (new_value >= 0)
-					new_value += map_storage->GetGroundAvoidancePFValue((int)p.y - i, (int)p.x + j);
-				Debug()->DebugTextOut(std::to_string(new_value), { pp.x + j, pp.y + i, pp.z }, sc2::Colors::Green, 8);
+	sc2::Point3D translated = pp;
+	translated.y = MAP_Y_R - translated.y;
+	for (int y = -5; y <= 5; ++y) {
+		for (int x = -5; x <= 5; ++x) {
+			sc2::Point3D p = sc2::Point3D(translated.x + x, translated.y - y, translated.z);
+			if (translated.x < MAP_X_R && translated.y < MAP_Y_R && translated.x >= 0 && translated.y >= 0) {
+				int value = player_units[unit].destination->map[(int)p.y][(int)p.x][0];
+				Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
 			}
 		}
+	}
+}
+
+void FooBot::PrintPath(int unit) {
+	for (int i = 0; i < astar_units[unit].path.size(); ++i) {
+		int value = astar_units[unit].path[i].walk_dist;
+		sc2::Point3D pp = sc2::Point3D( astar_units[unit].path[i].x, MAP_Y_R - astar_units[unit].path[i].y, astar_units[unit].unit->pos.z);
+		Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x) + 0.5, int(pp.y) + 0.5, pp.z), sc2::Colors::Green, 8);
 	}
 }
 
@@ -711,7 +725,7 @@ void FooBot::CreateAttractingPFs() {
 			}
 		}
 	}
-	//s�g till map_storage att ett specifikt antal PFs ska g�ras. Anv�nd player_unit_types f�r detta.
+	//säg till map_storage att ett specifikt antal PFs ska göras. Använd player_unit_types för detta.
 	for (auto& unit : player_unit_types)
 		map_storage->CreateAttractingPF(unit.first);
 
@@ -723,7 +737,7 @@ void FooBot::UpdateHostUnitList() {
 		for (int i = 0; i < player_units.size(); ++i) {
 			Entity ent;
 			ent.id = map_storage->GetUnitIDInHostUnitVec(player_units[i].unit->unit_type);
-			ent.pos = { player_units[i].unit->pos.x, MAP_Y_R - 1 - player_units[i].unit->pos.y };
+			ent.pos = { player_units[i].unit->pos.x, MAP_Y_R - player_units[i].unit->pos.y };
 			ent.enemy = false;
 			host_unit_list.push_back(ent);
 		}
@@ -732,7 +746,7 @@ void FooBot::UpdateHostUnitList() {
 		for (int i = 0; i < astar_units.size(); ++i) {
 			Entity ent;
 			ent.id = map_storage->GetUnitIDInHostUnitVec(astar_units[i].unit->unit_type);
-			ent.pos = { astar_units[i].unit->pos.x, MAP_Y_R - 1 - astar_units[i].unit->pos.y };
+			ent.pos = { astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y };
 			ent.enemy = false;
 			host_unit_list.push_back(ent);
 		}
@@ -742,7 +756,7 @@ void FooBot::UpdateHostUnitList() {
 	for (int i = 0; i < enemy_units.size(); ++i) {
 		Entity ent;
 		ent.id = map_storage->GetUnitIDInHostUnitVec(enemy_units[i].unit->unit_type);
-		ent.pos = { enemy_units[i].unit->pos.x,  MAP_Y_R - 1 - enemy_units[i].unit->pos.y };
+		ent.pos = { enemy_units[i].unit->pos.x,  MAP_Y_R - enemy_units[i].unit->pos.y };
 		ent.enemy = true;
 		host_unit_list.push_back(ent);
 	}
@@ -867,11 +881,11 @@ void FooBot::CommandsOnEmpty50() {
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) {
 				SetDestination(player_units, sc2::Point2D(45), behaviors::DEFENCE, false, sc2::Point2D(3), sc2::Point2D(8));
-				SetDestination(player_units, sc2::Point2D(45), behaviors::DEFENCE, false, sc2::Point2D(43), sc2::Point2D(48));
+				SetDestination(player_units, sc2::Point2D(5), behaviors::DEFENCE, false, sc2::Point2D(43), sc2::Point2D(48));
 			}
 			else {
 				SetDestination(astar_units, sc2::Point2D(45), behaviors::DEFENCE, false, sc2::Point2D(3), sc2::Point2D(8));
-				SetDestination(astar_units, sc2::Point2D(45), behaviors::DEFENCE, false, sc2::Point2D(43), sc2::Point2D(48));
+				SetDestination(astar_units, sc2::Point2D(5), behaviors::DEFENCE, false, sc2::Point2D(43), sc2::Point2D(48));
 			}
 			spawned_player_units = -1;
 			spawned_enemy_units = -1;
@@ -1170,8 +1184,8 @@ void FooBot::CommandsOnSpiral50() {
 	case 1: {
 		if (spawned_player_units == -1) {
 			spawned_player_units = 1;
-			//SpawnUnits(sc2::UNIT_TYPEID::TERRAN_SIEGETANK, spawned_player_units, sc2::Point2D(45));
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_SIEGETANK, spawned_player_units, sc2::Point2D(45));
+			//SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, false);
@@ -1199,12 +1213,13 @@ void FooBot::CommandsOnSpiral50() {
 			Debug()->DebugEnemyControl();
 			spawned_player_units = 1;
 			spawned_enemy_units = 1;
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_SIEGETANK, spawned_player_units, sc2::Point2D(45));
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(40, 18), 2);
+			//SpawnUnits(sc2::UNIT_TYPEID::TERRAN_SIEGETANK, spawned_player_units, sc2::Point2D(45));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(41, 18), 2);
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
-			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(27), behaviors::ATTACK, false);
-			else SetDestination(astar_units, sc2::Point2D(27), behaviors::ATTACK, false);
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, false);
+			else SetDestination(astar_units, sc2::Point2D(27), behaviors::DEFENCE, false);
 			spawned_player_units = -1;
 		}
 		if (enemy_units.size() == spawned_enemy_units) {
@@ -1219,13 +1234,109 @@ void FooBot::CommandsOnSpiral50() {
 			spawned_player_units = 1;
 			spawned_enemy_units = 1;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(45));
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(42, 18), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(41, 18), 2);
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
-			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, true);
-			else SetDestination(astar_units, sc2::Point2D(27), behaviors::DEFENCE, true);
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(27), behaviors::DEFENCE, false);
+			else SetDestination(astar_units, sc2::Point2D(27), behaviors::DEFENCE, false);
 			spawned_player_units = -1;
 			spawned_enemy_units = -1;
+			command = 0;
+		}
+		break;
+	}
+	default: {
+		spawned_player_units = -1;
+		spawned_enemy_units = -1;
+		command = 0;
+		break;
+	}
+	}
+}
+
+void FooBot::CommandsOnEasy() {
+	switch (command) {
+	case 1: {
+		if (spawned_player_units == -1) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(9, 6));
+		}
+		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			else SetDestination(astar_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			spawned_player_units = -1;
+			command = 0;
+		}
+		break;
+	}
+	default: {
+		spawned_player_units = -1;
+		spawned_enemy_units = -1;
+		command = 0;
+		break;
+	}
+	}
+}
+
+void FooBot::CommandsOnMedium() {
+	switch (command) {
+	case 1: {
+		if (spawned_player_units == -1) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(10, 7));
+		}
+		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			else SetDestination(astar_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			spawned_player_units = -1;
+			command = 0;
+		}
+		break;
+	}
+	default: {
+		spawned_player_units = -1;
+		spawned_enemy_units = -1;
+		command = 0;
+		break;
+	}
+	}
+}
+
+void FooBot::CommandsOnHardOne() {
+	switch (command) {
+	case 1: {
+		if (spawned_player_units == -1) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(10, 7));
+		}
+		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			else SetDestination(astar_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			spawned_player_units = -1;
+			command = 0;
+		}
+		break;
+	}
+	default: {
+		spawned_player_units = -1;
+		spawned_enemy_units = -1;
+		command = 0;
+		break;
+	}
+	}
+}
+
+void FooBot::CommandsOnHardTwo() {
+	switch (command) {
+	case 1: {
+		if (spawned_player_units == -1) {
+			spawned_player_units = 1;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(10, 7));
+		}
+		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			else SetDestination(astar_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			spawned_player_units = -1;
 			command = 0;
 		}
 		break;
