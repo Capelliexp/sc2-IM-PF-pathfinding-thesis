@@ -137,7 +137,7 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 //Constant memory size: 64KB
 
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map) {
-	extern __shared__ node open_list_shared[];
+	//extern __shared__ node open_list_shared[];
 
 	int block_size = blockDim.x * blockDim.y;
 	int grid_size = (gridDim.x * blockDim.x) * (gridDim.y * blockDim.y);
@@ -190,13 +190,17 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//sizeof(integer) = 2
 	//sizeof(node) = 8 + 2 * sizeof(integer) = 12
 	//195 / 12 = 16
-	const int register_list_size = 16;	//must be const for loop unwinding
-	node register_list[16];
+	const int register_list_size = 16;
+	node register_list[register_list_size];
 
 	//SHARED ARRAY
-	int shared_array_thread_size = IM_shared_array_size_per_thread[0];
-	int thread_array_start_index = shared_array_thread_size * thread_id_in_block;
-	node* open_list_shared_pointer = &open_list_shared[thread_array_start_index];
+	const int mem_per_SM = 49152;
+	const int mem_per_block = mem_per_SM / 4;
+	const int nodes_per_block = mem_per_block / sizeof(node);	// = 1024
+	const int nodes_per_thread = nodes_per_block / 32;	// = 32
+	int thread_array_start_index = nodes_per_thread * thread_id_in_block;
+	__shared__ node shared_list[nodes_per_block];
+	node* open_list_shared_pointer = &shared_list[thread_array_start_index];
 
 	//GLOBAL ARRAY
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;

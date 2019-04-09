@@ -4,8 +4,6 @@
 
 //DEVICE SYMBOL VARIABLES (const & global)
 __device__ __constant__ UnitInfoDevice* device_unit_lookup;
-__device__ __constant__ int* IM_shared_array_size_per_block;
-__device__ __constant__ int* IM_shared_array_size_per_thread;
 
 __device__ float GetFloatMapValue(cudaPitchedPtr map, int x, int y) {
 	char* ptr = (char*)map.ptr;

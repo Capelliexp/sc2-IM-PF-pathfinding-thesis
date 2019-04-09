@@ -245,11 +245,7 @@ private:
 	dim3 dim_grid_low;
 	int threads_in_grid_high;
 	int threads_in_grid_low;
-	int available_shared_data_per_block;
-	int available_nodes_in_shared_array_per_block;
-	int available_nodes_in_shared_array_per_block_in_bytes;
-	int available_nodes_in_shared_array_per_thread_in_bytes;
-
+	
 	//device memory single map pointers
 	cudaPitchedPtr dynamic_map_device_pointer;
 	cudaPitchedPtr repelling_pf_ground_map_pointer;
