@@ -96,6 +96,11 @@ public:
 	void ExecuteDeviceJobs(bool astarPF);
 
 	void PrintMap(sc2::Point2D pos, int x, int y, std::string name);
+	void PrintGroundPF(std::string name);
+	void CreateImage(sc2::Point2D pos, int x, int y, std::string name);
+	void CreateImageDynamic();
+	void AddPathToImage(std::vector<sc2::Point2D> path, colors color);
+	void PrintImage(int x, int y, std::string name);
 
 	void PrintCUDAMemoryUsage(std::string location = "");
 

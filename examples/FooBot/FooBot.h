@@ -29,6 +29,7 @@ struct Unit {
     float dist_traveled;
     sc2::Point2D last_pos;
     sc2::Point2D next_pos;
+    std::vector<sc2::Point2D> path_taken;
 };
 
 //! Struct holding unit and the path to its destination. Used for A*
@@ -40,6 +41,7 @@ struct AstarUnit {
     bool PF_mode;
     float dist_traveled;
     sc2::Point2D last_pos;
+    std::vector<sc2::Point2D> path_taken;
 };
 
 class FooBot : public sc2::Agent {
@@ -75,9 +77,9 @@ private:
     void SetDestination(std::vector<Unit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
     void SetDestination(std::vector<AstarUnit>& units_vec, sc2::Point2D pos, behaviors type_of_movement, bool air_unit, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 });
 
-    //! Function to set the behaviour for units.
-    //! Only used for setting behaviour for enemy units. But can be used for friendly units.
-    void SetBehavior(std::vector<Unit>& units_vec, sc2::ABILITY_ID behavior);
+    //! Function to set the behavior for units.
+    //! Only used for setting behavior for enemy units. But can be used for friendly units.
+    void SetBehavior(std::vector<Unit>& units_vec, sc2::ABILITY_ID behavior, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 }, sc2::Point2D patrol_point = {-1, -1});
 
     //! Function to update all units.
     void UpdateUnitsPaths();
@@ -112,6 +114,7 @@ private:
 
     //! Function to print values in the game world.
     void PrintValues(int unit, sc2::Point2D pos);
+    void PrintValuesPF(int unit);
     void PrintPath(int unit);
 
 private:
