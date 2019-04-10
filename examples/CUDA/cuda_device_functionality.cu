@@ -9,7 +9,7 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
-	int id_global = x + y * blockDim.x;
+	//int id_global = x + y * blockDim.x;
 
 	//move unit list to shared memory
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
@@ -57,7 +57,7 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
-	int id_global = x + y * blockDim.x;
+	//int id_global = x + y * blockDim.x;
 
 	//move unit list to shared memory
 	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
@@ -71,10 +71,11 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 	UnitInfoDevice self_info = device_unit_lookup[owner_type_id];
 
 	float tot_charge = 0;
-	Entity unit;
+	UnitInfoDevice other_info;
+	Entity other_entity;
 	for (int i = 0; i < nr_of_units; ++i) {
-		UnitInfoDevice other_info = device_unit_lookup[unit_list_s[i].id];
-		Entity other_entity = unit_list_s[i];
+		other_info = device_unit_lookup[unit_list_s[i].id];
+		other_entity = unit_list_s[i];
 
 		float dist = (FloatDistance((int)other_entity.pos.x, (int)other_entity.pos.y, x, y) + 0.0001);
 		bool self_can_attack_other = (other_info.is_flying && self_info.can_attack_air) || (!other_info.is_flying && self_info.can_attack_ground);
@@ -153,12 +154,12 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//int y = (start_id / (float)MAP_X_R);
 
 	//original
-	int start_id = original_id;
-	int x = (start_id % grid_thread_width);
-	int y = (start_id / (float)grid_thread_width);
+	integer start_id = (integer)original_id;
+	integer x = (start_id % grid_thread_width);
+	integer y = (start_id / (float)grid_thread_width);
 
-	short_coord debug_coord = {16, 16};
-	bool debug = true;
+	IntPoint2D debug_coord = {16, 16};
+	bool debug = false;
 
 	//if (debug && debug_coord.x == x && debug_coord.y == y) printf(" \n");
 
@@ -401,7 +402,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//-----------------------------
 
 		//add the expanded nodes neighbours to the open list
-		short_coord neighbour_coords[4];
+		IntPoint2D neighbour_coords[4];
 		neighbour_coords[0] = { pos.x, pos.y - 1 };	//up
 		neighbour_coords[2] = { pos.x + 1, pos.y };	//right
 		neighbour_coords[3] = { pos.x, pos.y + 1 };	//down

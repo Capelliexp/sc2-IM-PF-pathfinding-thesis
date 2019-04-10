@@ -85,11 +85,6 @@ typedef struct {
 	float est_dist_start_to_dest_via_pos;
 } node;
 
-typedef struct {	//same as IntPoint2D
-	integer x;
-	integer y;
-} short_coord;
-
 typedef struct {
 	int id = 0;		//sc2::UNIT_TYPEID::INVALID
 	unsigned int device_id = 0;
