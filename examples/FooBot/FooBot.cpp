@@ -490,7 +490,7 @@ void FooBot::UpdateAstarPFPath() {
 				}
 			}
 			PrintValuesPF(i);
-			map_storage->PrintGroundPF("PF");
+			//map_storage->PrintGroundPF("PF");
 
 			//PF
 			// If unit is passive, it ignores enemies
