@@ -24,6 +24,8 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	float ground_charge = 0;
 	float air_charge = 0;
 	float dist = 0;
+	float largest_ground_charge = 0;
+	float largest_air_charge = 0;
 	for (int i = 0; i < nr_of_units; ++i) {
 		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
 		float range_sub = fmaxf(unit.range, 3) + 2;
@@ -31,8 +33,10 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 
 		if (unit_list_s[i].enemy) {	//avoid enemies
 			if (dist < range_sub) {
-				ground_charge += ((range_sub / dist) * unit.can_attack_ground) + 50;
-				air_charge += ((range_sub / dist) * unit.can_attack_air) + 50;
+				float curr_ground_charge = ((range_sub / dist) * unit.can_attack_ground) + 50;
+				float curr_air_charge = ((range_sub / dist) * unit.can_attack_air) + 50;
+				if (curr_ground_charge > largest_ground_charge) largest_ground_charge = curr_ground_charge;
+				if (curr_air_charge > largest_air_charge) largest_air_charge = curr_air_charge;
 			}
 		}
 		else {	//avoid friendlies
@@ -47,8 +51,8 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	//__syncthreads();
 	
 	//write ground_charge and air_charge to global memory in owned coord
-	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge;
-	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge;
+	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
+	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge + largest_air_charge;
 }
 
 __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
@@ -75,6 +79,8 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 	float ground_charge = 0;
 	float air_charge = 0;
 	float dist = 0;
+	float largest_ground_charge = 0;
+	float largest_air_charge = 0;
 	for (int i = 0; i < nr_of_units; ++i) {
 		UnitInfoDevice unit = device_unit_lookup[unit_list_s[i].id];
 		float range_sub = 14;
@@ -82,8 +88,10 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 
 		if (unit_list_s[i].enemy) {	//avoid enemies
 			if (dist < range_sub) {
-				ground_charge += ((max_value - (falloff * dist)) * unit.can_attack_ground);
-				air_charge += ((max_value - (falloff * dist)) * unit.can_attack_air);
+				float curr_ground_charge = ((max_value - (falloff * dist)) * unit.can_attack_ground);
+				float curr_air_charge = ((max_value - (falloff * dist)) * unit.can_attack_air);
+				if (curr_ground_charge > largest_ground_charge) largest_ground_charge = curr_ground_charge;
+				if (curr_air_charge > largest_air_charge) largest_air_charge = curr_air_charge;
 			}
 		}
 		else {	//avoid friendlies
@@ -98,8 +106,8 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 	//__syncthreads();
 
 	//write ground_charge and air_charge to global memory in owned coord
-	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge;
-	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge;
+	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
+	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge + largest_air_charge;
 }
 
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map){
