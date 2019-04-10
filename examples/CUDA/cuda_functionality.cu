@@ -485,11 +485,11 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(AttractingFieldMemory* mem){
 			return DeviceMemoryStatus::EMPTY;
 		}
 		if ((cudaEventQuery(mem->begin) == cudaSuccess) && (cudaEventQuery(mem->done) == cudaSuccess)) {
-			mem->status == DeviceMemoryStatus::DONE;
+			mem->status = DeviceMemoryStatus::DONE;
 			return DeviceMemoryStatus::DONE;
 		}
 		if (cudaEventQuery(mem->begin) == cudaSuccess) {
-			mem->status == DeviceMemoryStatus::BUSY;
+			mem->status = DeviceMemoryStatus::BUSY;
 			return DeviceMemoryStatus::BUSY;
 		}
 	}
@@ -503,11 +503,11 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 			return DeviceMemoryStatus::EMPTY;
 		}
 		if ((cudaEventQuery(mem->begin) == cudaSuccess) && (cudaEventQuery(mem->done) == cudaSuccess)) {
-			mem->status == DeviceMemoryStatus::DONE;
+			mem->status = DeviceMemoryStatus::DONE;
 			return DeviceMemoryStatus::DONE;
 		}
 		if (cudaEventQuery(mem->begin) == cudaSuccess) {
-			mem->status == DeviceMemoryStatus::BUSY;
+			mem->status = DeviceMemoryStatus::BUSY;
 			return DeviceMemoryStatus::BUSY;
 		}
 	}
