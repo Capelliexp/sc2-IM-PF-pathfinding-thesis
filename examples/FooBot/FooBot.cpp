@@ -9,7 +9,7 @@ FooBot::FooBot(std::string map,  bool spawn_all_units) {
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
 	this->astar = false;
-	this->astarPF = true;
+	this->astarPF = false;
 	this->new_buildings = false;
 	if		(map == "empty50")		this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -85,6 +85,7 @@ void FooBot::OnStep() {
 	else {
 		UpdateAstarPFPath();
 	}
+	UpdateEnemyUnits();
 
 	if (!astar) {
 		if (!astarPF) {
@@ -118,7 +119,7 @@ void FooBot::OnGameEnd() {
 
 void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
 	if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Enemy) {
-		Unit new_unit;
+		EnemyUnit new_unit;
 		new_unit.unit = unit;
 		new_unit.behavior = behaviors::PASSIVE;
 		this->enemy_units.push_back(new_unit);
@@ -304,19 +305,22 @@ void FooBot::SetDestination(std::vector<AstarUnit>& units_vec, sc2::Point2D pos,
 	}
 }
 
-void FooBot::SetBehavior(std::vector<Unit>& units_vec, sc2::ABILITY_ID behavior, sc2::Point2D start, sc2::Point2D end, sc2::Point2D patrol_point) {
-	for (int i = 0; i < units_vec.size(); ++i) {
+void FooBot::SetBehavior(std::vector<EnemyUnit>& enemy_units_vec, sc2::ABILITY_ID behavior, sc2::Point2D start, sc2::Point2D end, sc2::Point2D patrol_point) {
+	for (int i = 0; i < enemy_units_vec.size(); ++i) {
 		if (start.x == -1) {
 			if (patrol_point.x == -1)
-				Actions()->UnitCommand(units_vec[i].unit, behavior);
+				Actions()->UnitCommand(enemy_units_vec[i].unit, behavior);
 			else
-				Actions()->UnitCommand(units_vec[i].unit, behavior, patrol_point);
+				Actions()->UnitCommand(enemy_units_vec[i].unit, behavior, patrol_point);
 		}
-		else if (sc2::Point2D(units_vec[i].unit->pos) >= start && sc2::Point2D(units_vec[i].unit->pos) <= end) {
+		else if (sc2::Point2D(enemy_units_vec[i].unit->pos) >= start && sc2::Point2D(enemy_units_vec[i].unit->pos) <= end) {
 			if (patrol_point.x == -1)
-				Actions()->UnitCommand(units_vec[i].unit, behavior);
-			else
-				Actions()->UnitCommand(units_vec[i].unit, behavior, patrol_point);
+				Actions()->UnitCommand(enemy_units_vec[i].unit, behavior);
+			else {
+				enemy_units_vec[i].patrol_points.push_back(enemy_units_vec[i].unit->pos);
+				enemy_units_vec[i].patrol_points.push_back(patrol_point);
+				Actions()->UnitCommand(enemy_units_vec[i].unit, behavior, patrol_point);
+			}
 		}
 	}
 }
@@ -599,6 +603,17 @@ void FooBot::RecreateAstarPaths() {
 	}
 }
 
+void FooBot::UpdateEnemyUnits() {
+	for (int i = 0; i < enemy_units.size(); ++i) {
+		if (enemy_units[i].patrol_points.size() > 1) {
+			if (!PointInsideRect(enemy_units[i].unit->pos, enemy_units[i].patrol_points[0], enemy_units[i].patrol_points[1], 1)) {
+				Actions()->UnitCommand(enemy_units[i].unit, sc2::ABILITY_ID::MOVE, enemy_units[i].patrol_points[0], false);
+				Actions()->UnitCommand(enemy_units[i].unit, sc2::ABILITY_ID::PATROL, enemy_units[i].patrol_points[1], true);
+			}
+		}
+	}
+}
+
 std::vector<Node> FooBot::Astar(Node agent, sc2::Point2D destination) {
 	std::vector<Node> empty;
 	if (!map_storage->GetDynamicMap(agent.y, agent.x))
@@ -747,6 +762,16 @@ void FooBot::PrintPath(int unit) {
 		sc2::Point3D pp = sc2::Point3D( astar_units[unit].path[i].x, MAP_Y_R - astar_units[unit].path[i].y, astar_units[unit].unit->pos.z);
 		Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x) + 0.5, int(pp.y) + 0.5, pp.z), sc2::Colors::Green, 8);
 	}
+}
+
+bool FooBot::PointInsideRect(sc2::Point2D point, sc2::Point2D bottom_left, sc2::Point2D top_right, float padding) {
+	if (point.x > bottom_left.x - padding && point.x < top_right.x + padding &&
+		point.y > bottom_left.y - padding && point.y < top_right.y + padding)
+		return true;
+	else if (	point.x < bottom_left.x + padding && point.x > top_right.x - padding &&
+				point.y < bottom_left.y + padding && point.y > top_right.y - padding)
+		return true;
+	return false;
 }
 
 void FooBot::CreateAttractingPFs() {
@@ -1368,6 +1393,33 @@ void FooBot::CommandsOnMedium() {
 		}
 		break;
 	}
+	case 2: {
+		if (spawned_player_units == -1 && spawned_enemy_units == -1) {
+			spawned_player_units = 1;
+			spawned_enemy_units = 3;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(23, 9));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(26, 20), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(15.5, 34), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(45, 34), 2);
+			Debug()->DebugEnemyControl();
+			Debug()->DebugShowMap();
+		}
+		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::DEFENCE, false);
+			else SetDestination(astar_units, sc2::Point2D(47, 50), behaviors::DEFENCE, false);
+			spawned_player_units = -1;
+		}
+		else if (enemy_units.size() == spawned_enemy_units) {
+			SetBehavior(enemy_units, sc2::ABILITY_ID::PATROL, { 25, 19 }, { 27, 21 }, { 16, 20 });
+			SetBehavior(enemy_units, sc2::ABILITY_ID::PATROL, { 14.5, 33 }, { 16.5, 35 }, { 15.5, 45 });
+			SetBehavior(enemy_units, sc2::ABILITY_ID::PATROL, { 44, 33 }, { 46, 35 }, { 45, 27 });
+
+			spawned_enemy_units = -1;
+			command = 0;
+			//Debug()->DebugShowMap();
+		}
+		break;
+	}
 	default: {
 		spawned_player_units = -1;
 		spawned_enemy_units = -1;
@@ -1413,6 +1465,35 @@ void FooBot::CommandsOnHardTwo() {
 			else SetDestination(astar_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
 			spawned_player_units = -1;
 			command = 0;
+		}
+		break;
+	}
+	case 2: {
+		if (spawned_player_units == -1 && spawned_enemy_units == -1) {
+			spawned_player_units = 1;
+			spawned_enemy_units = 4;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(10, 7));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(17, 14), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(37, 32), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(29, 38), 2);
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(44.5, 35), 2);
+			Debug()->DebugEnemyControl();
+			Debug()->DebugShowMap();
+		}
+		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::DEFENCE, false);
+			else SetDestination(astar_units, sc2::Point2D(47, 50), behaviors::DEFENCE, false);
+			spawned_player_units = -1;
+		}
+		else if (enemy_units.size() == spawned_enemy_units) {
+			SetBehavior(enemy_units, sc2::ABILITY_ID::PATROL, { 16, 13 }, { 18, 15 }, { 17, 23 });
+			SetBehavior(enemy_units, sc2::ABILITY_ID::PATROL, { 36, 31 }, { 38, 33 }, { 30, 27 });
+			SetBehavior(enemy_units, sc2::ABILITY_ID::PATROL, { 28, 37 }, { 30, 39 }, { 16, 38 });
+			SetBehavior(enemy_units, sc2::ABILITY_ID::PATROL, { 43.5, 34 }, { 45.5, 36 }, { 44.5, 28 });
+
+			spawned_enemy_units = -1;
+			command = 0;
+			//Debug()->DebugShowMap();
 		}
 		break;
 	}

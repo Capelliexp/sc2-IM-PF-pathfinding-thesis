@@ -21,6 +21,12 @@ struct Node {
     float walk_dist;
 };
 
+struct EnemyUnit {
+    const sc2::Unit* unit;
+    behaviors behavior;
+    std::vector<sc2::Point2D> patrol_points;
+};
+
 //! struct holding a unit and info about its destination and the behavior
 struct Unit {
     const sc2::Unit* unit;
@@ -79,13 +85,15 @@ private:
 
     //! Function to set the behavior for units.
     //! Only used for setting behavior for enemy units. But can be used for friendly units.
-    void SetBehavior(std::vector<Unit>& units_vec, sc2::ABILITY_ID behavior, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 }, sc2::Point2D patrol_point = {-1, -1});
+    void SetBehavior(std::vector<EnemyUnit>& units_vec, sc2::ABILITY_ID behavior, sc2::Point2D start = { -1, -1 }, sc2::Point2D end = { -1, -1 }, sc2::Point2D patrol_point = {-1, -1});
 
     //! Function to update all units.
     void UpdateUnitsPaths();
     void UpdateAstarPath();
     void UpdateAstarPFPath();
     void RecreateAstarPaths();
+
+    void UpdateEnemyUnits();
 
     std::vector<Node> Astar(Node agent, sc2::Point2D destination);
     float CalculateEuclideanDistance(sc2::Point2D pos, sc2::Point2D dest);
@@ -117,13 +125,15 @@ private:
     void PrintValuesPF(int unit);
     void PrintPath(int unit);
 
+    bool PointInsideRect(sc2::Point2D point, sc2::Point2D bottom_left, sc2::Point2D top_right, float padding);
+
 private:
     MapStorage* map_storage;
 
     std::vector<Entity> host_unit_list;
     //! A vector of units
     std::vector<Unit> player_units;
-    std::vector<Unit> enemy_units;
+    std::vector<EnemyUnit> enemy_units;
 
     //! A* Units
     std::vector<AstarUnit> astar_units;
