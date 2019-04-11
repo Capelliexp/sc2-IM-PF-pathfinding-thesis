@@ -374,46 +374,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//-----------------------------
 
 		if ((pos.x == destination.x) && (pos.y == destination.y)) {	//destination has been found! HYPE
-			//__syncthreads();
-
 			if (debug && debug_coord.x == x && debug_coord.y == y) printf("destination found! \n");
-
 			solution_found = true;
 			break;
-
-			//if (debug && debug_coord.x == x && debug_coord.y == y) printf("transfering data from shared to global mem\n");
-			////GLOBAL READ/WRITE
-			//for (int i = 0; i < nodes_per_thread - 1; ++i) {
-			//	if (i >= (nodes_per_thread - shared_closed_it - 1)) break;
-			//	closed_list[closed_list_it + i] = shared_list_thread_pointer[nodes_per_thread - 1 - i];
-			//}
-			//closed_list_it += (nodes_per_thread - shared_closed_it - 1);
-			//memset(&shared_list_thread_pointer[0], 0, nodes_per_thread * sizeof(node));	//reset ENTIRE, not partial...
-			//shared_open_it = 0;
-			//shared_closed_it = nodes_per_thread - 1;
-
-			////--------
-
-			//node curr = closed_list[closed_list_it - 1];
-			//IntPoint2D pos;
-			//for (int loop_count = 1; loop_count < MAP_SIZE_R + 1; ++loop_count) {
-			//	pos = IDToPos(curr.pos, grid_thread_width);
-
-			//	if (debug && debug_coord.x == x && debug_coord.y == y) printf("backtrack: printing %d to (%d,%d), node <%d, %d, %d, %f>\n", loop_count, pos.x, pos.y,
-			//		curr.pos, curr.backtrack_it, curr.steps_from_start, curr.est_dist_start_to_dest_via_pos);
-			//	if(curr.steps_from_start < 4) ((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
-
-			//	if (curr.backtrack_it == -1) return;
-			//	curr = closed_list[curr.backtrack_it];
-			//}
-
-			//if (debug && debug_coord.x == x && debug_coord.y == y) printf("backtracking done\n");
-
-			////--------
-
-			//free(open_list);
-			//free(closed_list);
-			//return;
 		}
 
 		//-----------------------------
@@ -645,10 +608,14 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 	}	//END OF A* LOOP
 
+	__syncthreads();
+
 	if (!solution_found) {
 		((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -2;	//shit solution, but it works...
 		return;
 	}
+
+	__syncthreads();
 
 	if (debug && debug_coord.x == x && debug_coord.y == y) printf("transfering data from shared to global mem\n");
 
@@ -658,7 +625,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		closed_list[closed_list_it + i] = shared_list_thread_pointer[nodes_per_thread - 1 - i];
 	}
 	closed_list_it += (nodes_per_thread - shared_closed_it - 1);
-	memset(&shared_list_thread_pointer[0], 0, nodes_per_thread * sizeof(node));	//reset ENTIRE, not partial...
+	//memset(&shared_list_thread_pointer[0], 0, nodes_per_thread * sizeof(node));	//reset ENTIRE, not partial...
 	shared_open_it = 0;
 	shared_closed_it = nodes_per_thread - 1;
 
@@ -671,6 +638,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		if (debug && debug_coord.x == x && debug_coord.y == y) printf("backtrack: printing %d to (%d,%d), node <%d, %d, %d, %f>\n", loop_count, pos.x, pos.y,
 			curr.pos, curr.backtrack_it, curr.steps_from_start, curr.est_dist_start_to_dest_via_pos);
+
 		if (curr.steps_from_start < 4) ((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
 
 		if (curr.backtrack_it == -1) return;
