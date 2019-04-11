@@ -59,7 +59,7 @@ public:
 	~MapStorage();
 
 	void Initialize(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
-		sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar);
+		sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar, bool astarPF);
 
 	void Test();
 
@@ -93,13 +93,20 @@ public:
 	void TransferPFFromDevice();
 	void TransferIMFromDevice();
 	void ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int value);
-	void ExecuteDeviceJobs();
+	void ExecuteDeviceJobs(bool astarPF);
 
 	void PrintMap(sc2::Point2D pos, int x, int y, std::string name);
+	void PrintGroundPF(std::string name);
+	void CreateImage(sc2::Point2D pos, int x, int y, std::string name);
+	void CreateImageDynamic();
+	void AddPathToImage(std::vector<sc2::Point2D> path, colors color);
+	void PrintImage(int x, int y, std::string name);
 
 	void PrintCUDAMemoryUsage(std::string location = "");
 
 	void UpdateIMAtsar();
+
+	float GetUnitGroundWeaponRange(sc2::UnitTypeID sc2_unit_id);
 
 private:
 	//! Craetes the influence map based on the size of the map.
@@ -162,8 +169,8 @@ private:
 	std::list<Destination_IM> destinations_air_IM;
 
 	//! PF that indicates what to avoid on ground or in air
-	float ground_repelling_PF[MAP_X_R][MAP_Y_R][1]; //WILL BE REPLACED
-	float air_repelling_PF[MAP_X_R][MAP_Y_R][1];    //WILL BE REPLACED
+	float ground_repelling_PF[MAP_X_R][MAP_Y_R][1];
+	float air_repelling_PF[MAP_X_R][MAP_Y_R][1];
 
 	//! List of attracting PFs
 	std::list<Potential_Field> attracting_PFs;

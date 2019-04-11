@@ -16,7 +16,7 @@ MapStorage::~MapStorage() {
 }
 
 void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
-    sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar) {
+    sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar, bool astarPF) {
     this->observation = observations;
     this->debug = debug;
     this->actions = actions;
@@ -31,13 +31,15 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 		CreateUnitLookUpTable();
 		cuda->AllocateDeviceMemory();
         cuda->SpecifyDeviceFunctionAttributes();
-		cuda->DeviceTransfer(dynamic_terrain);
+        if (!astarPF)
+		    cuda->DeviceTransferDynamicMap(dynamic_terrain);
+        cuda->DeviceTransferUnitLookup();
 		cuda->BindRepellingMapsToTransferParams();
 		cuda->Tests(ground_repelling_PF, air_repelling_PF);
 
-        PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
-        PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
-        PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
+        //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
+        //PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
+        //PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
 
         PrintMemoryUsage("CudaInit post");
     }
@@ -112,6 +114,51 @@ void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
     }
 }
 
+void MapStorage::PrintGroundPF(std::string name) {
+    std::ofstream out(name + ".txt");
+    for (int i = 0; i < MAP_Y_R; i++) {
+        for (int j = 0; j < MAP_X_R; j++)
+            out << ground_repelling_PF[i][j][0] << ",";
+        out << std::endl;
+    }
+    out.close();
+}
+
+void MapStorage::CreateImage(sc2::Point2D pos, int x, int y, std::string name) {
+    for (auto& d : destinations_ground_IM) {
+        if (d.destination == pos) {
+            PrintMap(d.map, x, y, name);
+            CreateImage(d.map, x, y, colors::GREEN);
+            return;
+        }
+    }
+    for (auto& d : destinations_air_IM) {
+        if (d.destination == pos) {
+            PrintMap(d.map, x, y, name);
+            CreateImage(d.map, x, y, colors::GREEN);
+            return;
+        }
+    }
+}
+
+void MapStorage::CreateImageDynamic() {
+    CreateImage(dynamic_terrain, MAP_X_R, MAP_Y_R);
+    max_value = 255;
+}
+
+void MapStorage::AddPathToImage(std::vector<sc2::Point2D> path, colors color) {
+    std::vector<float> selected_color = DetermineColor(color);
+    for (int i = 0; i < path.size(); ++i) {
+        image[4 * MAP_X_R * (int)path[i].y + 4 * (int)path[i].x + 0] = selected_color[0] * 255;
+        image[4 * MAP_X_R * (int)path[i].y + 4 * (int)path[i].x + 1] = selected_color[1] * 255;
+        image[4 * MAP_X_R * (int)path[i].y + 4 * (int)path[i].x + 2] = selected_color[2] * 255;
+    }
+}
+
+void MapStorage::PrintImage(int x, int y, std::string name) {
+    PrintImage(name + ".png", x, y);
+}
+
 std::vector<int> MapStorage::GetUnitsID() {
     return cuda->GetUnitsID();
 }
@@ -139,7 +186,7 @@ void MapStorage::CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int heigh
     image.resize(width * height * 4);
     for (int y = 0; y < height; y++)
         for (int x = 0; x < width; x++) {
-            float mapP = map[x][y][0];
+            float mapP = map[y][x][0];
             image[4 * width * y + 4 * x + 0] = mapP;
             image[4 * width * y + 4 * x + 1] = mapP;
             image[4 * width * y + 4 * x + 2] = mapP;
@@ -213,9 +260,9 @@ void MapStorage::PrintImage(std::string filename, int width, int height) {
     //Encode the image
     std::vector<unsigned char> printImage(width * height * 4);
     for (int i = 0; i < image.size(); i+=4) {
-        float i0 = min(image[i + 0], max_value);
-        float i1 = min(image[i + 1], max_value);
-        float i2 = min(image[i + 2], max_value);
+        float i0 = image[i + 0] == 255 ? 255 : min(image[i + 0], max_value);
+        float i1 = image[i + 1] == 255 ? 255 : min(image[i + 1], max_value);
+        float i2 = image[i + 2] == 255 ? 255 : min(image[i + 2], max_value);
 
         if (i0 == -2 && i1 == -2 && i2 == -2)   //Can't walk here
             i0 = i1 = i2 = 0;
@@ -223,32 +270,45 @@ void MapStorage::PrintImage(std::string filename, int width, int height) {
             i0 = i1 = i2 = 255;
         else {  //Objective or unit
             if (i0 != 0 && i1 == 0 && i2 == 0) {    //Red pixels
-                i1 = i2 = 255 * (1 - (max_value - i0) / max_value);
+                if (i0 != 255)
+                    i1 = i2 = 255 * (1 - (max_value - i0) / max_value);
                 i0 = 255;
             }
             else if (i0 == 0 && i1 != 0 && i2 == 0) {   //Green pixels
-                i0 = i2 = 255 * (1 - (max_value - i1) / max_value);
+                if (i1 != 255)
+                    i0 = i2 = 255 * (1 - (max_value - i1) / max_value);
                 i1 = 255;
             }
             else if (i0 == 0 && i1 == 0 && i2 != 0) {   //Blue pixels
-                i0 = i1 = 255 * (1 - (max_value - i2) / max_value);
+                if (i2 != 255)
+                    i0 = i1 = 255 * (1 - (max_value - i2) / max_value);
                 i2 = 255;
             }
-            else if (i0 != 0 && i1 != 0 && i2 != 0) {   //White pixels
-                i0 = 255 * (1 - (max_value - i0) / max_value);
-                i1 = 255 * (1 - (max_value - i1) / max_value);
-                i2 = 255 * (1 - (max_value - i2) / max_value);
+            else if ((i0 != 0 && i1 != 0 && i2 != 0) || (i0 == 1 && i1 == 1 && i2 == 1)) {   //White pixels
+                if (i0 == 255 || i0 == 1) {
+                    i0 = 255;
+                    i1 = 255;
+                    i2 = 255;
+                }
+                else {
+                    i0 = 255 * (1 - (max_value - i0) / max_value);
+                    i1 = 255 * (1 - (max_value - i1) / max_value);
+                    i2 = 255 * (1 - (max_value - i2) / max_value);
+                }
             }
             else if (i0 != 0 && i1 != 0 && i2 == 0) {   //Red and Green pixels  Yellow
-                i2 = 255 * (1 - (max_value - i0) / max_value);
+                if (i0 != 255)
+                    i2 = 255 * (1 - (max_value - i0) / max_value);
                 i0 = i1 = 255;
             }
             else if (i0 != 0 && i1 == 0 && i2 != 0) {   //Red and Blue pixels   Purple
-                i1 = 255 * (1 - (max_value - i0) / max_value);
+                if (i0 != 255)
+                    i1 = 255 * (1 - (max_value - i0) / max_value);
                 i0 = i2 = 255;
             }
             else if (i0 == 0 && i1 != 0 && i2 != 0) {   //Green and Blue pixels Cyan
-                i0 = 255 * (1 - (max_value - i1) / max_value);
+                if (i1 != 255)
+                    i0 = 255 * (1 - (max_value - i1) / max_value);
                 i1 = i2 = 255;
             }
         }
@@ -350,12 +410,20 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
     requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));
 }
 
-void MapStorage::ExecuteDeviceJobs() {
-    cuda->ExecuteDeviceJobs();
+void MapStorage::ExecuteDeviceJobs(bool astarPF) {
+    if (!astarPF)
+        cuda->ExecuteDeviceJobs();
+    else
+        cuda->ExecuteDeviceJobs(PFType::Large);
+    //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "PF");
 }
 
 void MapStorage::UpdateIMAtsar() {
     CreateIM();
+}
+
+float MapStorage::GetUnitGroundWeaponRange(sc2::UnitTypeID sc2_unit_id) {
+    return cuda->GetUnitGroundWeaponRange(sc2_unit_id);
 }
 
 void MapStorage::TransferPFFromDevice() {
@@ -363,7 +431,7 @@ void MapStorage::TransferPFFromDevice() {
         Result res = cuda->TransferMapToHost(requested_PF[i]);
         if (res == Result::OK) {
             requested_PF.erase(requested_PF.begin() + i);
-            PrintMap(attracting_PFs.back().map, MAP_X_R, MAP_Y_R, "attarctingPF");
+            //PrintMap(attracting_PFs.back().map, MAP_X_R, MAP_Y_R, "attarctingPF");
         }
     }
 }
@@ -390,11 +458,11 @@ float MapStorage::GetAttractingPF(sc2::UnitTypeID unit_id, int x, int y) {
 }
 
 bool MapStorage::GetDynamicMap(int x, int y) {
-    bool ret = dynamic_terrain[y][x][0];
+    bool ret = dynamic_terrain[x][y][0];
     return ret;
 }
 
-//! Craetes the influence map based on the size of the map.
+//! Creates the influence map based on the size of the map.
 void MapStorage::CreateIM() {
     std::string IM = observation->GetGameInfo().pathing_grid.data;
     //Fill a 8x8 cube with the same value or what GRID_DIVISION have for value, max 8x8

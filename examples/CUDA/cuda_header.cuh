@@ -123,6 +123,11 @@ typedef enum {
 	BAD_RES
 } Result;
 
+typedef enum {
+	Normal,
+	Large
+} PFType;
+
 typedef struct {
 	int owner_id;	//how map_storage identifies the map
 	int queue_id;	//how the queue identifies the map (MUST BE SECOND VARIABLE)
@@ -176,7 +181,8 @@ public:
 	__host__ void SpecifyDeviceFunctionAttributes();
 	__host__ void BindRepellingMapsToTransferParams();
 	__host__ void TransferUnitLookupToDevice();
-	__host__ void DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]);
+	__host__ void DeviceTransferDynamicMap(bool dynamic_terrain[][MAP_Y_R][1]);
+	__host__ void DeviceTransferUnitLookup();
 	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
 
 	//Runtime functionality
@@ -186,7 +192,7 @@ public:
 	//Runtime jobs
 	__host__ int QueueDeviceJob(int owner_id, float* map = nullptr);	//start PF generation job
 	__host__ int QueueDeviceJob(IntPoint2D destination, bool air_path, float* map = nullptr);	//start IM generation job
-	__host__ Result ExecuteDeviceJobs();
+	__host__ Result ExecuteDeviceJobs(PFType pf_type = PFType::Normal);
 	__host__ Result TransferMapToHost(int id);	//start transfer from device to pre-defined host array
 	__host__ DeviceMemoryStatus CheckJobStatus(int id);
 	__host__ DeviceMemoryStatus CheckJobStatus(AttractingFieldMemory* mem);
@@ -209,9 +215,11 @@ public:
 	__host__ void SetHostUnitList(std::vector<Entity>& host_unit_list);
 	__host__ void PrintDeviceMemoryUsage(std::string location = "");
 	__host__ void SyncDevice();
+	__host__ float GetUnitGroundWeaponRange(sc2::UnitTypeID sc2_unit_id);
 	
 	//Kernel launches
 	__host__ void RepellingPFGeneration();
+	__host__ void LargeRepellingPFGeneration();
 	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map);
 	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path, cudaPitchedPtr device_map);
 	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);

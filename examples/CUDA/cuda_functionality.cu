@@ -102,25 +102,31 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	//Check(cudaPeekAtLastError(), "init check 7", true);
 }
 
-__host__ void CUDA::DeviceTransfer(bool dynamic_terrain[][MAP_Y_R][1]) {
+__host__ void CUDA::DeviceTransferDynamicMap(bool dynamic_terrain[][MAP_Y_R][1]) {
 	//device_transfer
 	TransferDynamicMapToDevice(dynamic_terrain);
+
+	Check(cudaPeekAtLastError(), "init check 5");
+}
+
+__host__ void CUDA::DeviceTransferUnitLookup() {
+	//device_transfer
 	TransferUnitLookupToDevice();
 	TransferUnitsToDevice();
 
-	Check(cudaPeekAtLastError(), "init check 5");
+	Check(cudaPeekAtLastError(), "init check 6");
 }
 
 __host__ void CUDA::Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]) {
 	//tests
 	//TestLookupTable();
-	Check(cudaPeekAtLastError(), "init check 6a");
+	Check(cudaPeekAtLastError(), "init check 7a");
 
 	//Test3DArrayUsage();
-	Check(cudaPeekAtLastError(), "init check 6b");
+	Check(cudaPeekAtLastError(), "init check 7b");
 
 	RepellingPFGeneration();
-	Check(cudaPeekAtLastError(), "init check 6c");
+	Check(cudaPeekAtLastError(), "init check 7c");
 }
 
 __host__ const sc2::ObservationInterface* CUDA::GetObservation(){
@@ -347,7 +353,7 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 	return next_id - 1;
 }
 
-__host__ Result CUDA::ExecuteDeviceJobs(){
+__host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 	//cudaDeviceSynchronize();
 
 	//start PF-repelling job
@@ -355,7 +361,11 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
 		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");
 
-		RepellingPFGeneration();
+		if (pf_type == PFType::Normal) RepellingPFGeneration();
+		else if (pf_type == PFType::Large) LargeRepellingPFGeneration();
+
+		/*cudaDeviceSynchronize();
+		PopErrorsCheck("1");*/
 
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_ground), "repelling PF ground memcpy");
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_air), "repelling PF air memcpy");
@@ -370,6 +380,10 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 		InfluenceMapMemory* mem = &(*it);
 		cudaEventRecord(mem->begin, 0);
 		IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
+
+		//cudaDeviceSynchronize();
+		//PopErrorsCheck("2");
+
 		mem->initialized = true;
 		//mem->status = DeviceMemoryStatus::BUSY;
 		cudaEventRecord(mem->done, 0);
@@ -384,6 +398,10 @@ __host__ Result CUDA::ExecuteDeviceJobs(){
 		AttractingFieldMemory* mem = &(*it);
 		cudaEventRecord(mem->begin, 0);
 		AttractingPFGeneration(mem->owner_id, (float(*)[MAP_Y_R][1])mem->map, mem->device_map_ptr);
+
+		/*cudaDeviceSynchronize();
+		PopErrorsCheck("3." + std::to_string(i));*/
+
 		mem->initialized = true;
 		//mem->status = DeviceMemoryStatus::BUSY;
 		cudaEventRecord(mem->done, 0);
@@ -519,9 +537,15 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 /*KERNAL LAUNCHES START*/
 
 __host__ void CUDA::RepellingPFGeneration() {
-	if (host_unit_list.size() > 0) 
+	if (host_unit_list.size() > 0)
 		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
-			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+}
+
+__host__ void CUDA::LargeRepellingPFGeneration() {
+	if (host_unit_list.size() > 0)
+		DeviceLargeRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
+		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
 }
 
 __host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map){
@@ -774,6 +798,10 @@ __host__ void CUDA::PrintDeviceMemoryUsage(std::string location){
 
 __host__ void CUDA::SyncDevice(){
 	cudaDeviceSynchronize();
+}
+
+__host__ float CUDA::GetUnitGroundWeaponRange(sc2::UnitTypeID sc2_unit_id) {
+	return host_unit_info.at(host_unit_transform[sc2_unit_id]).range;
 }
 
 //operator overloads
