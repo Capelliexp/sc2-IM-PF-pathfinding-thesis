@@ -191,7 +191,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//CREATE SHARED ARRAY
 	const int mem_per_SM = 47616;	//normal: 49152, 1536 (384 per block) reserved for block intra-communication
 	const int mem_per_block = mem_per_SM / 4;
-	const int nodes_per_block = mem_per_block / sizeof(node);	// = 1024
+	const int nodes_per_block = mem_per_block / sizeof(node);	// = 992 (should be 1024) 
 	const int nodes_per_thread = nodes_per_block / 32;	// = 31 (should be 32)
 	int thread_array_start_index = nodes_per_thread * thread_id_in_block;
 	__shared__ node shared_list[nodes_per_block];
@@ -222,7 +222,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	for (int step_iterator = 0; step_iterator < MAP_SIZE_R; ++step_iterator) {
 		
 		block_check = false;
-		if (shared_closed_it - shared_open_it < 5) block_check = true;	//check if 1 or more threads need to move data from shared to global
+		if (shared_closed_it - shared_open_it < 6) block_check = true;	//check if 1 or more threads need to move data from shared to global
 		if (block_check) {	//transfer shared data to global memory
 			if (debug && debug_coord.x == x && debug_coord.y == y) printf("transfering data from shared to global mem\n");
 
@@ -288,6 +288,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					}
 				}
 			}
+			memset(register_list, (integer)-2, register_list_size * sizeof(node));	//reset register_list (uneccesary)
 			it += register_list_size;
 		}
 
@@ -306,6 +307,10 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		--shared_closed_it;
 
 		IntPoint2D pos = IDToPos(closest_entry.pos, grid_thread_width);
+
+		if(x < 15 && y > 35)
+			printf("<%d,%d> loop: %d, expanding: (%d,%d), open_list_it: %d, closed_list_it: %d, shared_open_it: %d, shared_closed_it: %d, size_check_counter: %d\n",
+			x, y, step_iterator, pos.x, pos.y, open_list_it, closed_list_it, shared_open_it, shared_closed_it, size_check_counter);
 
 		if (debug && debug_coord.x == x && debug_coord.y == y) printf("expanded (%d,%d) \n", pos.x, pos.y);
 
@@ -327,10 +332,10 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			shared_open_it = 0;
 			shared_closed_it = nodes_per_thread - 1;
 
-			for (int i = 0; i < nodes_per_thread - 1; ++i) {
+			/*for (int i = 0; i < nodes_per_thread - 1; ++i) {
 				if (i >= (nodes_per_thread - shared_closed_it - 1)) break;
 				closed_list[closed_list_it + i] = shared_list_thread_pointer[nodes_per_thread - 1 - i];
-			}
+			}*/
 
 			//--------
 
@@ -506,6 +511,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					}
 				}
 			}
+			memset(register_list, -2, register_list_size * sizeof(node));	//reset register_list (uneccesary)
 			it += register_list_size;
 		}
 
@@ -533,7 +539,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					}
 				}
 			}
-
+			memset(register_list, -2, register_list_size * sizeof(node));	//reset register_list (uneccesary)
 			it += register_list_size;
 		}
 
