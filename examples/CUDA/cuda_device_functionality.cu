@@ -279,7 +279,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//-----------------------------
 
 	int size_check_counter = 0;
-	for (int step_iterator = 0; step_iterator < MAP_SIZE_R; ++step_iterator) {
+	for (int step_iterator = 0; step_iterator < 1400; ++step_iterator) {
+		//~1400 is the nr of iterations it takes for the longest path to be calculated in the complex experiment map
 		
 		block_check = false;
 		if (shared_closed_it - shared_open_it < 6) block_check = true;	//check if 1 or more threads need to move data from shared to global
