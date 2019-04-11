@@ -338,7 +338,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			for (int i = 0; i < register_list_size; ++i) {
 				entry = register_list[i];
 
-				if (entry.pos == -258) break;	//break if we reached the end of list
+				if (entry.pos == -258 || entry.pos == -2) break;	//break if we reached the end of list
 
 				if (entry.pos > 0 ) {	//if valid node
 					if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
@@ -516,7 +516,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			for (int i = 0; i < register_list_size; ++i) {	//loop over register array
 				entry = register_list[i];	//unnecessary
 
-				if (entry.pos == -258) break;
+				if (entry.pos == -258 || entry.pos == -2) break;
 
 				if (entry.pos != -1) {	//if valid list node
 					for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
@@ -544,7 +544,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			for (int i = 0; i < register_list_size; ++i) {	//loop over register array
 				entry = register_list[i];	//unnecessary
 
-				if (entry.pos == -258) break;
+				if (entry.pos == -258 || entry.pos == -2) break;
 
 				if (entry.pos != -1) {	//if valid list node
 					for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
