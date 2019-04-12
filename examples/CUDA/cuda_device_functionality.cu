@@ -348,7 +348,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			//GLOBAL READ/WRITE
 			//memcpy(register_list, &open_list[it], copy_amount * sizeof(node));	//copy entries to register array
 			for (int i = 0; i < register_list_size; ++i) {
-				if (i >= copy_amount) {
+				if (i >= (open_list_it - it + i)) {
 					register_list[i].pos = -2;
 					register_list[i].backtrack_it = -2;
 					register_list[i].steps_from_start = -2;
@@ -523,12 +523,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//Search for id in shared open_list
 		//memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
-		/*for (int i = 0; i < register_list_size; ++i) {
-			register_list[i].pos = -1;
-			register_list[i].backtrack_it = -1;
-			register_list[i].steps_from_start = -1;
-			register_list[i].est_dist_start_to_dest_via_pos = -1.f;
-		}*/
 		//SHARED READ/WRITE
 		//memcpy(register_list, &shared_list_thread_pointer[0], shared_open_it * sizeof(node));
 		for (int i = 0; i < register_list_size; ++i) {
@@ -565,7 +559,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			//GLOBAL READ/WRITE
 			//memcpy(register_list, &closed_list[it], copy_amount * sizeof(node));	//copy entries to register array
 			for (int i = 0; i < register_list_size; ++i) {
-				if (i >= copy_amount) {
+				if (i >= (closed_list_it - it + i)) {
 					register_list[i].pos = -2;
 					register_list[i].backtrack_it = -2;
 					register_list[i].steps_from_start = -2;
@@ -603,7 +597,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			//GLOBAL READ/WRITE
 			//memcpy(register_list, &open_list[it], copy_amount * sizeof(node));	//copy entries to register array
 			for (int i = 0; i < register_list_size; ++i) {
-				if (i >= copy_amount) {
+				if (i >= (open_list_it - it + i)) {
 					register_list[i].pos = -2;
 					register_list[i].backtrack_it = -2;
 					register_list[i].steps_from_start = -2;
