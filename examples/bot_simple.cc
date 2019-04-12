@@ -30,13 +30,15 @@ int main(int argc, char* argv[]) {
     //std::string map = "empty50";
 
     //! Experiment/Labyrinth
-    //std::string map = "easy";
+    std::string map = "easy";
     //std::string map = "medium";
     //std::string map = "hard_one";
-    std::string map = "hard_two";
+    //std::string map = "hard_two";
+
+    int command = 2;
 
     // Add the custom bot, it will control the players.
-    FooBot bot(map);
+    FooBot bot(map, command);
 
     Sleep(1000);
     PrintMemoryUsage("FooBot initialization");
@@ -45,7 +47,7 @@ int main(int argc, char* argv[]) {
         CreateParticipant(sc2::Race::Terran, &bot),
         CreateComputer(sc2::Race::Terran)
     });
-    coordinator.SetRealtime(false);
+    coordinator.SetRealtime(true);
     // Start the game.
     coordinator.LaunchStarcraft();
 

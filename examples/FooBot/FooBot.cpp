@@ -1,15 +1,17 @@
 #include "FooBot.h"
 #include "../tools.h"
+#include <fstream>
 
-FooBot::FooBot(std::string map,  bool spawn_all_units) {
+FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	this->restarts_ = 0;
 	this->spawn_all_units = spawn_all_units;
-	this->command = 0;
+	this->start_command = command;
+	this->command = command;
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
 	this->astar = false;
-	this->astarPF = false;
+	this->astarPF = true;
 	this->new_buildings = false;
 	if		(map == "empty50")		this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -24,6 +26,10 @@ FooBot::FooBot(std::string map,  bool spawn_all_units) {
 
 void FooBot::OnGameStart() {
 	std::cout << "Starting a new game (" << restarts_ << " restarts)" << std::endl;
+
+	this->command = this->start_command;
+	this->spawned_player_units = -1;
+	this->spawned_enemy_units = -1;
 
 	map_storage = new MapStorage();
 	
@@ -114,6 +120,10 @@ void FooBot::OnGameEnd() {
 	++restarts_;
 	std::cout << "Game ended after: " << Observation()->GetGameLoop() << " loops " << std::endl;
 
+	player_units.clear();
+	astar_units.clear();
+	enemy_units.clear();
+
 	delete map_storage;
 }
 
@@ -146,7 +156,15 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 		if (!astar && !astarPF) {
 			for (int i = 0; i < player_units.size(); ++i) {
 				if (player_units[i].unit == unit) {
+					std::cout << "Dead: " << player_units[i].dist_traveled << std::endl;
+					std::cout << "Damage taken:" << player_units[i].unit->health_max << std::endl;
+
+					std::ofstream outfile("output.txt", std::ios::app);
+					outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
+
 					player_units.erase(player_units.begin() + i);
+					Debug()->DebugEndGame();
+					Debug()->SendDebug();
 					return;
 				}
 			}
@@ -154,7 +172,15 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 		else {
 			for (int i = 0; i < astar_units.size(); ++i) {
 				if (astar_units[i].unit == unit) {
+					std::cout << "Dead: " << astar_units[i].dist_traveled << std::endl;
+					std::cout << "Damage taken:" << astar_units[i].unit->health_max << std::endl;
+
+					std::ofstream outfile("output.txt", std::ios::app);
+					outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
+
 					astar_units.erase(astar_units.begin() + i);
+					Debug()->DebugEndGame();
+					Debug()->SendDebug();
 					return;
 				}
 			}
@@ -345,11 +371,20 @@ void FooBot::UpdateUnitsPaths() {
 			std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
 			std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 
+			std::ofstream outfile("output.txt", std::ios::app);
+			outfile << "Done: " << player_units[i].unit->health_max - player_units[i].unit->health << " Distance: " << player_units[i].dist_traveled << std::endl;
+
 			map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
 			map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
 			map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
 
 			player_units[i].destination = nullptr;
+
+			if (player_units.size() == 1) {
+				Debug()->DebugEndGame();
+				Debug()->SendDebug();
+			}
+
 			continue;
 		}
 
@@ -458,12 +493,19 @@ void FooBot::UpdateAstarPath() {
 					std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 					std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 
+					std::ofstream outfile("output.txt", std::ios::app);
+					outfile << "Done: " << astar_units[i].unit->health_max - astar_units[i].unit->health << " Distance: " << astar_units[i].dist_traveled << std::endl;
+
 					astar_units[i].path_taken.push_back(last_path_pos);
 
 					map_storage->CreateImageDynamic();
 					map_storage->AddPathToImage(astar_units[i].path_taken, map_storage->GREEN);
 					map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM_Astar");
 
+					if (astar_units.size() == 1) {
+						Debug()->DebugEndGame();
+						Debug()->SendDebug();
+					}
 				}
 			}
 		}
@@ -569,6 +611,14 @@ void FooBot::UpdateAstarPFPath() {
 						astar_units[i].dist_traveled += CalculateEuclideanDistance(current_pos, last_path_pos);
 						std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 						std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
+
+						std::ofstream outfile("output.txt", std::ios::app);
+						outfile << "Done: " << astar_units[i].unit->health_max - astar_units[i].unit->health << " Distance: " << astar_units[i].dist_traveled << std::endl;
+
+						if (astar_units.size() == 1) {
+							Debug()->DebugEndGame();
+							Debug()->SendDebug();
+						}
 					}
 				}
 			}

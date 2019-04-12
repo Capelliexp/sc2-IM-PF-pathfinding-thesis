@@ -52,7 +52,7 @@ struct AstarUnit {
 
 class FooBot : public sc2::Agent {
 public:
-    FooBot(std::string map, bool spawn_all_units = false);
+    FooBot(std::string map, int command, bool spawn_all_units = false);
 
     virtual void OnGameStart() final;
     virtual void OnStep() final;
@@ -147,6 +147,7 @@ private:
 
     //! Integer that represents the current command.
     int command;
+    int start_command;
     //! Integers and Bool to indicate and help with unit actions during commands
     int spawned_player_units;
     int spawned_enemy_units;
