@@ -246,6 +246,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	//CREATE REGISTER ARRAY
 	const int register_list_size = 32;
 	node register_list[register_list_size];
+	//node* register_list = nullptr;
 
 	//CREATE SHARED ARRAY
 	const int mem_per_SM = 47616;	//normal: 49152, 1536 (384 per block) reserved for block intra-communication
@@ -281,7 +282,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	const int max_step_loops = 1400;
 	const int max_open_list_size = max_step_loops * 3 + 1;
 	const int max_closed_list_size = max_step_loops + 1;
-	int size_check_counter = 0;
+	//int size_check_counter = 0;
 	for (int step_iterator = 0; step_iterator < 1400; ++step_iterator) {
 		//~1400 is the nr of iterations it takes for the longest path to be calculated in the complex experiment map
 		
@@ -311,8 +312,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		float closest_distance_found = 99999;
 		node closest_entry;
 		int closest_coord_found = -1;
-		node entry;
-		int copy_amount = min(register_list_size, open_list_it);
+		//node entry;
+		//int copy_amount = min(register_list_size, open_list_it);
 
 		//search in shared open list
 		//memset(register_list, -1, register_list_size * sizeof(node));	//reset register_list
@@ -329,14 +330,14 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		for (int i = 0; i < nodes_per_thread; ++i) {
 			if (i >= shared_open_it) break;
-			entry = register_list[i];
+			//entry = register_list[i];
 
-			if (entry.pos > 0) {	//if valid node
-				if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
-					closest_distance_found = entry.est_dist_start_to_dest_via_pos;
+			if (register_list[i].pos > 0) {	//if valid node
+				if (register_list[i].est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
+					closest_distance_found = register_list[i].est_dist_start_to_dest_via_pos;
 					closest_node_in_shared_mem = true;
 					closest_coord_found = i;
-					closest_entry = entry;
+					closest_entry = register_list[i];
 				}
 			}
 		}
@@ -358,16 +359,16 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {
-				entry = register_list[i];
+				//entry = register_list[i];
 
-				if (entry.pos == -258 || entry.pos == -2) break;	//break if we reached the end of list
+				if (register_list[i].pos == -258 || register_list[i].pos == -2) break;	//break if we reached the end of list
 
-				if (entry.pos > 0 ) {	//if valid node
-					if (entry.est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
-						closest_distance_found = entry.est_dist_start_to_dest_via_pos;
+				if (register_list[i].pos > 0 ) {	//if valid node
+					if (register_list[i].est_dist_start_to_dest_via_pos </*=*/ closest_distance_found) {	//if closest node
+						closest_distance_found = register_list[i].est_dist_start_to_dest_via_pos;
 						closest_node_in_shared_mem = false;
 						closest_coord_found = it + i;
-						closest_entry = entry;
+						closest_entry = register_list[i];
 					}
 				}
 			}
@@ -404,8 +405,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//-----------------------------
 
 		//expand the size of the open and closed list if necessary
-		if (size_check_counter == 30) {
-			size_check_counter = 0;
+		//if (size_check_counter == 30) {
+		if (step_iterator%30 == 0) {
+			//size_check_counter = 0;
 
 			block_check = false;
 			if ((open_list_size - (open_list_it + shared_open_it)) < 200) block_check = true;
@@ -451,9 +453,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//add the expanded nodes neighbours to the open list
 		IntPoint2D neighbour_coords[4];
 		neighbour_coords[0] = { pos.x, pos.y - 1 };	//up
-		neighbour_coords[2] = { pos.x + 1, pos.y };	//right
-		neighbour_coords[3] = { pos.x, pos.y + 1 };	//down
-		neighbour_coords[1] = { pos.x - 1, pos.y };	//left
+		neighbour_coords[1] = { pos.x + 1, pos.y };	//right
+		neighbour_coords[2] = { pos.x, pos.y + 1 };	//down
+		neighbour_coords[3] = { pos.x - 1, pos.y };	//left
 
 		integer neighbour_coord_global[4];
 		neighbour_coord_global[0] = PosToID({ neighbour_coords[0].x, neighbour_coords[0].y }, grid_thread_width);
@@ -507,12 +509,12 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		}
 		for (int i = 0; i < (nodes_per_thread - 1); ++i) {	//loop over register array
 			if (i + shared_closed_it >= nodes_per_thread - 1) break;
-			entry = register_list[i];
+			//entry = register_list[i];
 
-			if (entry.pos != -1) {	//if valid list node
+			if (register_list[i].pos != -1) {	//if valid list node
 				for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
 					if (neighbour_coord_validity[j]) {	//if neighbour is valid	(remove?)
-						if (neighbour_coord_global[j] == entry.pos) {	//node already in closed list
+						if (neighbour_coord_global[j] == register_list[i].pos) {	//node already in closed list
 							if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed (shared) closed list check \n", j);
 							neighbour_coord_validity[j] = false;
 						}
@@ -536,12 +538,12 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		}
 		for (int i = 0; i < (nodes_per_thread - 1); ++i) {	//loop over register array
 			if (i > shared_open_it - 1) break;
-			entry = register_list[i];
+			//entry = register_list[i];
 
-			if (entry.pos != -1) {	//if valid list node
+			if (register_list[i].pos != -1) {	//if valid list node
 				for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
 					if (neighbour_coord_validity[j]) {	//if neighbour is valid	(remove?)
-						if (neighbour_coord_global[j] == entry.pos) {	//node already in open list
+						if (neighbour_coord_global[j] == register_list[i].pos) {	//node already in open list
 							if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed (shared) closed list check \n", j);
 							neighbour_coord_validity[j] = false;
 						}
@@ -552,7 +554,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//Search for id in global closed_list
 		//memset(register_list, -2, register_list_size * sizeof(node));	//reset register_list
-		copy_amount = min(register_list_size, closed_list_it);
+		//copy_amount = min(register_list_size, closed_list_it);
 		it = 0;
 		while (it < open_list_it) {
 			if ((neighbour_coord_validity[0] + neighbour_coord_validity[1] + neighbour_coord_validity[2] + neighbour_coord_validity[3]) < 1) break;
@@ -569,14 +571,14 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {	//loop over register array
-				entry = register_list[i];	//unnecessary
+				//entry = register_list[i];	//unnecessary
 
-				if (entry.pos == -258 || entry.pos == -2) break;
+				if (register_list[i].pos == -258 || register_list[i].pos == -2) break;
 
-				if (entry.pos != -1) {	//if valid list node
+				if (register_list[i].pos != -1) {	//if valid list node
 					for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
 						if (neighbour_coord_validity[j]) {	//if neighbour is valid	(remove?)
-							if (neighbour_coord_global[j] == entry.pos) {	//node already in closed list
+							if (neighbour_coord_global[j] == register_list[i].pos) {	//node already in closed list
 								if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed (global) closed list check \n", j);
 								neighbour_coord_validity[j] = false;
 							}
@@ -590,7 +592,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//Search for id in global open_list
 		//memset(register_list, -2, register_list_size * sizeof(node));	//reset register_list
-		copy_amount = min(register_list_size, open_list_it);
+		//copy_amount = min(register_list_size, open_list_it);
 		it = 0;
 		while (it < open_list_it) {
 			if ((neighbour_coord_validity[0] + neighbour_coord_validity[1] + neighbour_coord_validity[2] + neighbour_coord_validity[3]) < 1) break;
@@ -607,14 +609,14 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {	//loop over register array
-				entry = register_list[i];	//unnecessary
+				//entry = register_list[i];	//unnecessary
 
-				if (entry.pos == -258 || entry.pos == -2) break;
+				if (register_list[i].pos == -258 || register_list[i].pos == -2) break;
 
-				if (entry.pos != -1) {	//if valid list node
+				if (register_list[i].pos != -1) {	//if valid list node
 					for (int j = 0; j < 4; ++j) {	//loop over the 4 neighbours
 						if (neighbour_coord_validity[j]) {	//if neighbour is valid	(remove?)
-							if (neighbour_coord_global[j] == entry.pos) {	//node already in open list
+							if (neighbour_coord_global[j] == register_list[i].pos) {	//node already in open list
 								if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed (global) open list check \n", j);
 								neighbour_coord_validity[j] = false;
 							}
@@ -666,10 +668,10 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			//SHARED READ/WRITE
 			shared_list_thread_pointer[closest_coord_found].pos = -1;	//mark expanded node as invalid in the open list (shared)
 		}
-		++size_check_counter;
+		//++size_check_counter;
 
-		if (debug && debug_coord.x == x && debug_coord.y == y) printf("open_list_it: %d\nclosed_list_it: %d\nshared_open_it: %d\nshared_closed_it: %d\nsize_check_counter: %d\n",
-			open_list_it, closed_list_it, shared_open_it, shared_closed_it, size_check_counter);
+		if (debug && debug_coord.x == x && debug_coord.y == y) printf("open_list_it: %d\nclosed_list_it: %d\nshared_open_it: %d\nshared_closed_it: %d\nsize_check_counter: ?\n",
+			open_list_it, closed_list_it, shared_open_it, shared_closed_it/*, size_check_counter*/);
 
 	}	//END OF A* LOOP
 
