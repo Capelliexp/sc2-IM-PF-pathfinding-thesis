@@ -376,7 +376,7 @@ void FooBot::UpdateUnitsPaths() {
 			outfile << "Done: " << player_units[i].unit->health_max - player_units[i].unit->health << " Distance: " << player_units[i].dist_traveled << std::endl;
 
 			map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
-			map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
+			//map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
 			map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
 
 			player_units[i].destination = nullptr;
@@ -1045,8 +1045,8 @@ void FooBot::CommandsOnEmpty200() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5));
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
-			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(195), behaviors::PASSIVE, false);
-			else SetDestination(astar_units, sc2::Point2D(195), behaviors::PASSIVE, false);
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(100), behaviors::PASSIVE, false);
+			else SetDestination(astar_units, sc2::Point2D(100), behaviors::PASSIVE, false);
 			spawned_player_units = -1;
 			command = 0;
 		}
