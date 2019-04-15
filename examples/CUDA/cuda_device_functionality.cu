@@ -610,7 +610,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//Add the valid neighbours to the open list
 		int new_open_list_entries = 0;
 		struct { node node; bool valid = false; } nodes_to_add[4];
-		//node nodes_to_add[4];
 		for (int i = 0; i < 4; ++i) {	//loop over the 4 neighbours
 			if (neighbour_coord_validity[i]) {	//the neighbour is valid
 				node new_list_entry = {
@@ -619,7 +618,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					closest_entry.steps_from_start + 1,
 					closest_entry.steps_from_start + 1 + FloatDistance(neighbour_coords[i].x, neighbour_coords[i].y, destination.x, destination.y)
 				};
-				//nodes_to_add[new_open_list_entries] = new_list_entry;
 				nodes_to_add[i].node = new_list_entry;
 				nodes_to_add[i].valid = true;
 				++new_open_list_entries;
@@ -634,8 +632,6 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//-----------------------------
 
 		//SHARED READ/WRITE
-		//memcpy(&shared_list_thread_pointer[shared_open_it], nodes_to_add, new_open_list_entries * sizeof(node));
-		//shared_open_it += new_open_list_entries;
 		for (int i = 0; i < 4; ++i) {
 			if (nodes_to_add[i].valid) {
 				shared_list_thread_pointer[shared_open_it] = nodes_to_add[i].node;
