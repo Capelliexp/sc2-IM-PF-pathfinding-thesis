@@ -19,7 +19,7 @@ __host__ CUDA::CUDA() {
 
 __host__ CUDA::~CUDA() {
 	cudaDeviceSynchronize();
-
+	PopErrorsCheck();
 	cudaFree(unit_lookup_device_pointer);
 	cudaFree(device_unit_list_pointer);
 	cudaFree(global_memory_im_list_storage);

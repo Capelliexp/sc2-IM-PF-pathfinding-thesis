@@ -11,7 +11,7 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
 	this->astar = false;
-	this->astarPF = true;
+	this->astarPF = false;
 	this->new_buildings = false;
 	if		(map == "empty50")		this->map = 1;
 	else if (map == "empty200")		this->map = 2;
@@ -120,9 +120,10 @@ void FooBot::OnGameEnd() {
 	++restarts_;
 	std::cout << "Game ended after: " << Observation()->GetGameLoop() << " loops " << std::endl;
 
-	player_units.clear();
-	astar_units.clear();
-	enemy_units.clear();
+	this->player_units.clear();
+	this->astar_units.clear();
+	this->enemy_units.clear();
+	this->host_unit_list.clear();
 
 	delete map_storage;
 }
@@ -163,7 +164,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
 
 					player_units.erase(player_units.begin() + i);
-					Debug()->DebugEndGame();
+					//Debug()->DebugEndGame();
 					Debug()->SendDebug();
 					return;
 				}
@@ -179,7 +180,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
 
 					astar_units.erase(astar_units.begin() + i);
-					Debug()->DebugEndGame();
+					//Debug()->DebugEndGame();
 					Debug()->SendDebug();
 					return;
 				}
@@ -381,7 +382,7 @@ void FooBot::UpdateUnitsPaths() {
 			player_units[i].destination = nullptr;
 
 			if (player_units.size() == 1) {
-				Debug()->DebugEndGame();
+				//Debug()->DebugEndGame();
 				Debug()->SendDebug();
 			}
 
@@ -503,7 +504,7 @@ void FooBot::UpdateAstarPath() {
 					map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM_Astar");
 
 					if (astar_units.size() == 1) {
-						Debug()->DebugEndGame();
+						//Debug()->DebugEndGame();
 						Debug()->SendDebug();
 					}
 				}
@@ -535,12 +536,13 @@ void FooBot::UpdateAstarPFPath() {
 					new_path = true;
 				}
 			}
-			PrintValuesPF(i);
+			
 			//map_storage->PrintGroundPF("PF");
-
 			//PF
 			// If unit is passive, it ignores enemies
 			if (astar_units[i].PF_mode && !astar) {
+				PrintValuesPF(i);
+				std::cout << "PF" << std::endl;
 				float current_pf = 0;
 				if (astar_units[i].behavior == behaviors::DEFENCE)
 					current_pf = map_storage->GetGroundAvoidancePFValue((int)p1.y, (int)p1.x);
@@ -586,6 +588,8 @@ void FooBot::UpdateAstarPFPath() {
 			}
 			//A*
 			else if (astar && !new_path) {
+				PrintPath(i);
+				std::cout << "A*" << std::endl;
 				if (astar_units[i].last_pos.x == -1) {
 					astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y);
 				}
@@ -616,7 +620,7 @@ void FooBot::UpdateAstarPFPath() {
 						outfile << "Done: " << astar_units[i].unit->health_max - astar_units[i].unit->health << " Distance: " << astar_units[i].dist_traveled << std::endl;
 
 						if (astar_units.size() == 1) {
-							Debug()->DebugEndGame();
+							//Debug()->DebugEndGame();
 							Debug()->SendDebug();
 						}
 					}
@@ -624,6 +628,7 @@ void FooBot::UpdateAstarPFPath() {
 			}
 			//Redo A* path
 			else if (new_path) {
+				std::cout << "New path" << std::endl;
 				Node agent;
 				agent.euc_dist = 0;
 				agent.parentX = -1;
@@ -784,7 +789,9 @@ void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 			sc2::Point3D p = sc2::Point3D(translated.x + x, translated.y - y, translated.z);
 			if (translated.x < MAP_X_R && translated.y < MAP_Y_R && translated.x >= 0 && translated.y >= 0) {
 				int value = player_units[unit].destination->map[(int)p.y][(int)p.x][0];
-				Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
+				int pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
+				value += pf;
+				Debug()->DebugTextOut(std::to_string(pf), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
 			}
 		}
 	}
@@ -1433,7 +1440,7 @@ void FooBot::CommandsOnMedium() {
 	case 1: {
 		if (spawned_player_units == -1) {
 			spawned_player_units = 1;
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(10, 7));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(23, 9));
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);

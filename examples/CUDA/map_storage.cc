@@ -12,7 +12,14 @@ MapStorage::MapStorage() {
 }
 
 MapStorage::~MapStorage() {
-    delete cuda;
+    if (cuda != NULL)
+        delete cuda;
+    for (const auto& i : destinations_ground_IM)
+        delete i.map;
+    for (const auto& i : destinations_air_IM)
+        delete i.map;
+    for (const auto& i : attracting_PFs)
+        delete i.map;
 }
 
 void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
@@ -23,6 +30,8 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
     this->actions_feature_layer = actions_feature_layer;
     this->max_value = 0;
     CreateIM();
+
+    cuda = nullptr;
 
 	if (!astar) {
         PrintMemoryUsage("CudaInit pre");
