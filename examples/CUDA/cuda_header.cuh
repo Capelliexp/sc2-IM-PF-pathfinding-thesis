@@ -188,6 +188,7 @@ public:
 	//Runtime functionality
 	__host__ void TransferUnitsToDevice();
 	__host__ void TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]);
+	__host__ void* CreateMappedMemory(int byte_size = (MAP_X_R * MAP_Y_R * sizeof(float)));
 
 	//Runtime jobs
 	__host__ int QueueDeviceJob(int owner_id, float* map = nullptr);	//start PF generation job

@@ -26,20 +26,50 @@ Data:
 * units
 */
 
+template <class T>
+class Map {
+public:
+	Map() {
+		this->x = MAP_X_R;
+		this->y = MAP_Y_R;
+		this->z = 1;
+	}
+
+	Map(int x, int y, int z) {
+		this->x = x;
+		this->y = y;
+		this->z = z;
+	}
+
+	~Map(){}
+
+	T* map_pointer;
+	
+	T* operator[](const int row) {
+		return map_pointer + (row * y);
+	}
+
+private:
+	int x, y, z;
+};
+
 struct Attracting_PF {
 	int id;
-	float map[MAP_X_R][MAP_Y_R][1];
+	//float map[MAP_X_R][MAP_Y_R][1];
+	Map<float>map;
 };
 
 struct Destination_IM {
 	bool air_path = false;
 	sc2::Point2D destination;
-	float map[MAP_X_R][MAP_Y_R][1];
+	//float map[MAP_X_R][MAP_Y_R][1];
+	Map<float>map;
 };
 
 struct Potential_Field {
 	sc2::UnitTypeID sc2_id;
-	float map[MAP_X_R][MAP_Y_R][1];
+	//float map[MAP_X_R][MAP_Y_R][1];
+	Map<float>map;
 };
 
 class MapStorage {
@@ -119,19 +149,23 @@ private:
 	//!< \param height Integer representing the height of the map.
 	//!< \param file The name of the image that is to be created.
 	void CreateImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height);
+	//void CreateImage(bool* map, int width, int height);
 	void CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color);
+	//void CreateImage(float* map, int width, int height, colors color);
 	//! Function to add elements to the image.
 	//!< \param map A 2D array of floats containing the elements to add to the map.
 	//!< \param width Integer representing the width of the map.
 	//!< \param height Integer representing the height of the map.
 	//!< \param colors The color of the elements to be added to the map
 	void AddToImage(float map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color);
+	//void AddToImage(float* map, int width, int height, colors color);
 	//! Function to add elements to the image.
 	//!< \param map A 2D array of bools containing the elements to add to the map.
 	//!< \param width Integer representing the width of the map.
 	//!< \param height Integer representing the height of the map.
 	//!< \param colors The color of the elements to be added to the map
 	void AddToImage(bool map[MAP_X_R][MAP_Y_R][1], int width, int height, colors color);
+	//void AddToImage(bool* map, int width, int height, colors color);
 	//! Function to print the image.
 	//!< \param filename The name that the image have when printed to disk.
 	//!< \param width Integer representing the width of the map.
@@ -151,8 +185,11 @@ private:
 
 	void PrintStatus(std::string msg);
 	void PrintMap(float map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	//void PrintMap(float* map, int x, int y, std::string file);
 	void PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	//void PrintMap(bool map, int x, int y, std::string file);
 	void PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file);
+	//void PrintMap(int map, int x, int y, std::string file);
 private:
 	CUDA* cuda;
 	const sc2::ObservationInterface* observation;

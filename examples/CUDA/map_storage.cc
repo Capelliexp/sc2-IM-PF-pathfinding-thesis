@@ -98,16 +98,16 @@ void MapStorage::PrintCUDAMemoryUsage(std::string location){
 void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
     for (auto& d : destinations_ground_IM) {
         if (d.destination == pos) {
-            PrintMap(d.map, x, y, name);
-            CreateImage(d.map, x, y, colors::GREEN);
+            PrintMap(((d.map)[MAP_Y_R][1]), x, y, name);    //this is probs shit...
+            //CreateImage(d.map, x, y, colors::GREEN);  //Temporary avoidance of problems...
             PrintImage(name + ".png", x, y);
             return;
         }
     }
     for (auto& d : destinations_air_IM) {
         if (d.destination == pos) {
-            PrintMap(d.map, x, y, name);
-            CreateImage(d.map, x, y, colors::GREEN);
+            //PrintMap(d.map, x, y, name);
+            //CreateImage(d.map, x, y, colors::GREEN);  //Temporary avoidance of problems...
             PrintImage(name + ".png", x, y);
             return;
         }
@@ -127,15 +127,15 @@ void MapStorage::PrintGroundPF(std::string name) {
 void MapStorage::CreateImage(sc2::Point2D pos, int x, int y, std::string name) {
     for (auto& d : destinations_ground_IM) {
         if (d.destination == pos) {
-            PrintMap(d.map, x, y, name);
-            CreateImage(d.map, x, y, colors::GREEN);
+            //PrintMap(d.map, x, y, name);
+            //CreateImage(d.map, x, y, colors::GREEN);  //Temporary avoidance of problems...
             return;
         }
     }
     for (auto& d : destinations_air_IM) {
         if (d.destination == pos) {
-            PrintMap(d.map, x, y, name);
-            CreateImage(d.map, x, y, colors::GREEN);
+            //PrintMap(d.map, x, y, name);
+            //CreateImage(d.map, x, y, colors::GREEN);  //Temporary avoidance of problems...
             return;
         }
     }
@@ -373,10 +373,11 @@ Destination_IM & MapStorage::RequestGroundDestination(sc2::Point2D pos) {
             return dest;
     }
     Destination_IM map;
+    map.map.map_pointer = (float*)cuda->CreateMappedMemory(MAP_X_R * MAP_Y_R * sizeof(float));
     destinations_ground_IM.push_back(map);
     destinations_ground_IM.back().destination = pos;
     destinations_ground_IM.back().air_path = false;
-    requested_IM.push_back(cuda->QueueDeviceJob({ (integer)pos.x, (integer)pos.y }, false, (float*)destinations_ground_IM.back().map));
+    requested_IM.push_back(cuda->QueueDeviceJob({ (integer)pos.x, (integer)pos.y }, false, (float*)destinations_ground_IM.back().map.map_pointer));
     return destinations_ground_IM.back();
 }
 
@@ -385,10 +386,12 @@ Destination_IM & MapStorage::RequestAirDestination(sc2::Point2D pos) {
         if (dest.destination == pos)
             return dest;
     }
-    destinations_air_IM.push_back({});
+    Destination_IM map;
+    map.map.map_pointer = (float*)cuda->CreateMappedMemory(MAP_X_R * MAP_Y_R * sizeof(float));
+    destinations_ground_IM.push_back(map);
     destinations_air_IM.back().destination = pos;
     destinations_air_IM.back().air_path = true;
-    requested_IM.push_back(cuda->QueueDeviceJob({ (integer)pos.x, (integer)pos.y }, true, (float*)destinations_air_IM.back().map));
+    requested_IM.push_back(cuda->QueueDeviceJob({ (integer)pos.x, (integer)pos.y }, true, (float*)destinations_air_IM.back().map.map_pointer));
     return destinations_air_IM.back();
 }
 
@@ -407,7 +410,7 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
     attracting_PFs.clear();
     attracting_PFs.push_back({});
     attracting_PFs.back().sc2_id = unit_id;
-    requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));
+    requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map.map_pointer));
 }
 
 void MapStorage::ExecuteDeviceJobs(bool astarPF) {
@@ -452,7 +455,7 @@ void MapStorage::ChangeDeviceDynamicMap(sc2::Point2D center, float radius, int v
 float MapStorage::GetAttractingPF(sc2::UnitTypeID unit_id, int x, int y) {
     for (auto& it : attracting_PFs) {
         if (it.sc2_id == unit_id)
-            return it.map[x][y][0];
+            return it.map[x][y];
     }
     return 0;
 }

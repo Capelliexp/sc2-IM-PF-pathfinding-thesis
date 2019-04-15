@@ -329,7 +329,7 @@ void FooBot::SetBehavior(std::vector<EnemyUnit>& enemy_units_vec, sc2::ABILITY_I
 void FooBot::UpdateUnitsPaths() {
 	for (int i = 0; i < player_units.size(); ++i) {
 		if (player_units[i].destination == nullptr) continue;		//No destination set
-		if (player_units[i].destination->map[0][0][0] == -107374176) continue;	//No destination ready to be used
+		if (player_units[i].destination->map[0][0] == -107374176) continue;	//No destination ready to be used
 
 		sc2::Point2D current_pos = player_units[i].unit->pos;
 		sc2::Point2D translated_pos = current_pos;
@@ -367,7 +367,7 @@ void FooBot::UpdateUnitsPaths() {
 		}
 
 		//Get the value from the IM and PF to determine the total value of the tile.
-		float current_value = player_units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x][0];
+		float current_value = player_units[i].destination->map[(int)translated_pos.y][(int)translated_pos.x];
 		float current_pf = 0;
 		if (player_units[i].behavior == behaviors::DEFENCE)
 			current_pf = map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x);
@@ -394,7 +394,7 @@ void FooBot::UpdateUnitsPaths() {
 			int next_tile = 0;
 			for (int j = 0; j < udlr.size(); ++j) {
 				//Get the value from the IM and PF to determine the total value of the new tile.
-				float new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
+				float new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x];
 
 				if (new_value < 0) continue;
 				float pf_value = 0;
@@ -733,7 +733,7 @@ void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 		for (int x = -5; x <= 5; ++x) {
 			sc2::Point3D p = sc2::Point3D(translated.x + x, translated.y - y, translated.z);
 			if (translated.x < MAP_X_R && translated.y < MAP_Y_R && translated.x >= 0 && translated.y >= 0) {
-				int value = player_units[unit].destination->map[(int)p.y][(int)p.x][0];
+				int value = player_units[unit].destination->map[(int)p.y][(int)p.x];
 				Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
 			}
 		}

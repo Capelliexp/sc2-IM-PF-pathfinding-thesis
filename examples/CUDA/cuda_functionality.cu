@@ -46,7 +46,9 @@ __host__ void CUDA::PrintGenInfo() {
 
 __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float ground_PF[][MAP_Y_R][1], float air_PF[][MAP_Y_R][1]){
 	std::cout << "Initializing CUDA object" << std::endl;
-	
+
+	cudaSetDeviceFlags(cudaDeviceMapHost);	//enable pinned host memory that is	accessible to the device
+
 	size_t size;
 	cudaDeviceGetLimit(&size, cudaLimitMallocHeapSize);
 	std::cout << "CUDA base heap size: " << size << std::endl;
@@ -231,7 +233,7 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	cudaMalloc((void**)&device_unit_list_pointer, unit_list_max_length * sizeof(Entity));	//unit list (might extend size during runtime)
 	cudaMalloc3D(&repelling_pf_ground_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling on ground
 	cudaMalloc3D(&repelling_pf_air_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling in air
-	
+
 	Check(cudaPeekAtLastError(), "cuda allocation peek");
 }
 
@@ -293,6 +295,13 @@ __host__ void CUDA::TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1
 	par.kind = cudaMemcpyHostToDevice;
 
 	Check(cudaMemcpy3DAsync(&par), "Dynamic map transfer");
+}
+
+__host__ void * CUDA::CreateMappedMemory(int byte_size){
+	void* mapped_mem;
+	Check(cudaHostAlloc(&mapped_mem, byte_size, cudaHostAllocMapped));
+
+	return mapped_mem;
 }
 
 __host__ int CUDA::QueueDeviceJob(int owner_id, float* map){
