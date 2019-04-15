@@ -30,6 +30,7 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 		cuda->InitializeCUDA(observations, debug, actions, ground_repelling_PF, air_repelling_PF);
 		CreateUnitLookUpTable();
 		cuda->AllocateDeviceMemory();
+        cuda->SpecifyDeviceFunctionAttributes();
         if (!astarPF)
 		    cuda->DeviceTransferDynamicMap(dynamic_terrain);
         cuda->DeviceTransferUnitLookup();
@@ -205,6 +206,12 @@ void MapStorage::CreateImage(float map[MAP_X_R][MAP_Y_R][1], int width, int heig
                 image[4 * width * x + 4 * y + 0] = mapP;
                 image[4 * width * x + 4 * y + 1] = mapP;
                 image[4 * width * x + 4 * y + 2] = mapP;
+                image[4 * width * x + 4 * y + 3] = 255;
+            }
+            else if (mapP == 0) {
+                image[4 * width * x + 4 * y + 0] = 255;
+                image[4 * width * x + 4 * y + 1] = 0;
+                image[4 * width * x + 4 * y + 2] = 0;
                 image[4 * width * x + 4 * y + 3] = 255;
             }
             else {
@@ -476,4 +483,5 @@ void MapStorage::CreateIM() {
 
 bool MapStorage::CheckIfFileExists(std::string filename) {
     return std::filesystem::exists(filename);
+    //return false;
 }

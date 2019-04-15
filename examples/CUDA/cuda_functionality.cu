@@ -231,9 +231,13 @@ __host__ void CUDA::AllocateDeviceMemory(){
 	cudaMalloc((void**)&device_unit_list_pointer, unit_list_max_length * sizeof(Entity));	//unit list (might extend size during runtime)
 	cudaMalloc3D(&repelling_pf_ground_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling on ground
 	cudaMalloc3D(&repelling_pf_air_map_pointer, cudaExtent{ MAP_X_R * sizeof(float), MAP_Y_R, 1 });	//repelling in air
-	Check(cudaMalloc((void**)&global_memory_im_list_storage, 256000000 * sizeof(list_double_entry)), "big AF allocation");	//big AF list for A* open/closed list
 	
 	Check(cudaPeekAtLastError(), "cuda allocation peek");
+}
+
+__host__ void CUDA::SpecifyDeviceFunctionAttributes(){
+	//Check(cudaFuncSetAttribute(DeviceGroundIMGeneration, cudaFuncAttributeMaxDynamicSharedMemorySize, 49152), "increase of dynamic shared memory size for DeviceGroundIMGeneration"); 
+	//Check(cudaFuncSetAttribute(DeviceGroundIMGeneration, cudaFuncAttributePreferredSharedMemoryCarveout, 100), "increase of dynamic shared memory carvout for DeviceGroundIMGeneration");
 }
 
 __host__ void CUDA::BindRepellingMapsToTransferParams(){
@@ -407,7 +411,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 	PopErrorsCheck();
 	
 	cudaDeviceSynchronize();
-	PopErrorsCheck("Final");
+	PopErrorsCheck("Execute Device Jobs End");
 
 	return Result::OK;
 }
@@ -499,11 +503,11 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(AttractingFieldMemory* mem){
 			return DeviceMemoryStatus::EMPTY;
 		}
 		if ((cudaEventQuery(mem->begin) == cudaSuccess) && (cudaEventQuery(mem->done) == cudaSuccess)) {
-			mem->status == DeviceMemoryStatus::DONE;
+			mem->status = DeviceMemoryStatus::DONE;
 			return DeviceMemoryStatus::DONE;
 		}
 		if (cudaEventQuery(mem->begin) == cudaSuccess) {
-			mem->status == DeviceMemoryStatus::BUSY;
+			mem->status = DeviceMemoryStatus::BUSY;
 			return DeviceMemoryStatus::BUSY;
 		}
 	}
@@ -517,11 +521,11 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 			return DeviceMemoryStatus::EMPTY;
 		}
 		if ((cudaEventQuery(mem->begin) == cudaSuccess) && (cudaEventQuery(mem->done) == cudaSuccess)) {
-			mem->status == DeviceMemoryStatus::DONE;
+			mem->status = DeviceMemoryStatus::DONE;
 			return DeviceMemoryStatus::DONE;
 		}
 		if (cudaEventQuery(mem->begin) == cudaSuccess) {
-			mem->status == DeviceMemoryStatus::BUSY;
+			mem->status = DeviceMemoryStatus::BUSY;
 			return DeviceMemoryStatus::BUSY;
 		}
 	}
@@ -551,8 +555,7 @@ __host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_
 
 __host__ void CUDA::IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path, cudaPitchedPtr device_map) {
 	if (!air_path) {
-		DeviceGroundIMGeneration <<<dim_grid_low, dim_block_low>>>
-			(destination, device_map, dynamic_map_device_pointer, global_memory_im_list_storage);
+		DeviceGroundIMGeneration <<< dim_grid_low, dim_block_low >>> (destination, device_map, dynamic_map_device_pointer);
 	}
 	else {
 		DeviceAirIMGeneration <<<dim_grid_low, dim_block_high>>> (destination, device_map);
@@ -782,7 +785,7 @@ __host__ void CUDA::PrintDeviceMemoryUsage(std::string location){
 	//unit_lookup_device_pointer, device_unit_list_pointer, global_memory_im_list_storage
 	VRAM_global_bytes_allocated += device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice);
 	VRAM_global_bytes_allocated += unit_list_max_length * sizeof(Entity);
-	VRAM_global_bytes_allocated += 256000000 * sizeof(list_double_entry);
+	//VRAM_global_bytes_allocated += 256000000 * sizeof(list_double_entry);
 	
 	//device memory map lists & queues:
 	//PF_mem, IM_mem

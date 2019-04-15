@@ -63,7 +63,7 @@
 
 typedef short integer;
 
-typedef struct {
+typedef struct {	//same as short_coord
 	integer x;
 	integer y;
 } IntPoint2D;
@@ -81,14 +81,9 @@ typedef struct {
 typedef struct {
 	integer pos;
 	integer backtrack_it;
-	float steps_from_start;
+	integer steps_from_start;
 	float est_dist_start_to_dest_via_pos;
 } node;
-
-typedef struct {
-	integer x;
-	integer y;
-} short_coord;
 
 typedef struct {
 	int id = 0;		//sc2::UNIT_TYPEID::INVALID
@@ -163,14 +158,12 @@ bool operator!=(const InfluenceMapMemory& first, const InfluenceMapMemory& secon
 //DEVICE FUNCTION
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
-__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer, list_double_entry* global_memory_im_list_storage);
+__global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer);
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map);
 __global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_right, IntPoint2D center, float radius, int new_value, cudaPitchedPtr dynamic_map_device_pointer);
 
 __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map);
 __global__ void TestDeviceLookupUsage(float* result);
-
-__device__ void Backtrack(cudaPitchedPtr device_map, node* closed_list, int start_it, int width);
 
 class CUDA {
 	//friend class MapStorage;
@@ -179,12 +172,13 @@ public:
 	__host__ CUDA();
 	__host__ ~CUDA();
 	
-	//Initialization (requires cleanup)
+	//Initialization
 	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float ground_PF[][MAP_Y_R][1], float air_PF[][MAP_Y_R][1]);
 	__host__ void PrintGenInfo();
 	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
-	__host__ void AllocateDeviceMemory(); 
+	__host__ void AllocateDeviceMemory();
+	__host__ void SpecifyDeviceFunctionAttributes();
 	__host__ void BindRepellingMapsToTransferParams();
 	__host__ void TransferUnitLookupToDevice();
 	__host__ void DeviceTransferDynamicMap(bool dynamic_terrain[][MAP_Y_R][1]);
@@ -252,7 +246,7 @@ private:
 	dim3 dim_grid_low;
 	int threads_in_grid_high;
 	int threads_in_grid_low;
-
+	
 	//device memory single map pointers
 	cudaPitchedPtr dynamic_map_device_pointer;
 	cudaPitchedPtr repelling_pf_ground_map_pointer;
@@ -261,8 +255,9 @@ private:
 	//device memory array pointers
 	UnitInfoDevice* unit_lookup_device_pointer;
 	Entity* device_unit_list_pointer;
-	list_double_entry* global_memory_im_list_storage;
-
+	int* device_IM_shared_array_size_per_block;
+	int* device_IM_shared_array_size_per_thread;
+	
 	//device memory map lists & queues
 	std::vector<AttractingFieldMemory> PF_mem;
 	std::vector<InfluenceMapMemory> IM_mem;
