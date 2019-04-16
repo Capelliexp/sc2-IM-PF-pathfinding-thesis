@@ -13,6 +13,10 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	this->astar = false;
 	this->astarPF = false;
 	this->new_buildings = false;
+	this->total_damage = 0;
+	this->units_died = 0;
+	this->total_damage_enemy_units = 0;
+	this->units_died_enemy_units = 0;
 	if		(map == "empty50")		this->map = 1;
 	else if (map == "empty200")		this->map = 2;
 	else if (map == "empty20")		this->map = 3;
@@ -153,16 +157,22 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 			new_buildings = true;
 		return;
 	}
-	else {
+	else if (unit->alliance == sc2::Unit::Alliance::Self) {
 		if (!astar && !astarPF) {
 			for (int i = 0; i < player_units.size(); ++i) {
 				if (player_units[i].unit == unit) {
 					std::cout << "Dead: " << player_units[i].dist_traveled << std::endl;
 					std::cout << "Damage taken:" << player_units[i].unit->health_max << std::endl;
-
-					std::ofstream outfile("output.txt", std::ios::app);
-					outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
-
+					units_died++;
+					total_damage += unit->health_max;
+					if (player_units.size() == 1) {
+						std::ofstream outfile("output.txt", std::ios::app);
+						outfile << "All player units died. " << units_died << " units died. " << total_damage << " total damage" << std::endl;
+						for (int j = 0; j < enemy_units.size(); ++j)
+							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health;
+						outfile << "Enemy losses. " << units_died_enemy_units << " units died. " << total_damage_enemy_units << " total damage" << std::endl << std::endl;
+						//outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
+					}
 					player_units.erase(player_units.begin() + i);
 					//Debug()->DebugEndGame();
 					Debug()->SendDebug();
@@ -176,14 +186,42 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					std::cout << "Dead: " << astar_units[i].dist_traveled << std::endl;
 					std::cout << "Damage taken:" << astar_units[i].unit->health_max << std::endl;
 
-					std::ofstream outfile("output.txt", std::ios::app);
-					outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
+					units_died++;
+					total_damage += unit->health_max;
+					if (astar_units.size() == 1) {
+						std::ofstream outfile("output.txt", std::ios::app);
+						outfile << "All player units died. " << units_died << " units died. " << total_damage << " total damage" << std::endl;
+						for (int j = 0; j < enemy_units.size(); ++j)
+							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health;
+						outfile << "Enemy losses. " << units_died_enemy_units << " units died. " << total_damage_enemy_units << " total damage" << std::endl << std::endl;
+						//outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
+					}
 
 					astar_units.erase(astar_units.begin() + i);
 					//Debug()->DebugEndGame();
 					Debug()->SendDebug();
 					return;
 				}
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < enemy_units.size(); ++i) {
+			if (enemy_units[i].unit == unit) {
+				units_died_enemy_units++;
+				total_damage_enemy_units += unit->health_max;
+
+				if (enemy_units.size() == 1) {
+					for (int j = 0; j < player_units.size(); ++j)
+						total_damage += player_units[j].unit->health_max - player_units[j].unit->health;
+					for (int j = 0; j < astar_units.size(); ++j)
+						total_damage += astar_units[j].unit->health_max - astar_units[j].unit->health;
+					std::ofstream outfile("output.txt", std::ios::app);
+					outfile << "All enemy units died. " << units_died_enemy_units << " units died. " << total_damage_enemy_units << " total damage" << std::endl;
+					outfile << "Players losses: " << units_died << " units died. " << total_damage << " total damage" << std::endl << std::endl;
+					//outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
+				}
+				enemy_units.erase(enemy_units.begin() + i);
 			}
 		}
 	}
@@ -363,7 +401,8 @@ void FooBot::UpdateUnitsPaths() {
 		translated_pos.x = translated_pos.x;
 		translated_pos.y = MAP_Y_R - translated_pos.y;
 
-		PrintValues(i, translated_pos);
+		if (i == 0)
+			PrintValues(i, translated_pos);
 
 		if (player_units[i].destination->destination == sc2::Point2D((int)translated_pos.x, (int)translated_pos.y)) {	//Found destination.
 			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, player_units[i].next_pos);
@@ -372,8 +411,8 @@ void FooBot::UpdateUnitsPaths() {
 			std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
 			std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 
-			std::ofstream outfile("output.txt", std::ios::app);
-			outfile << "Done: " << player_units[i].unit->health_max - player_units[i].unit->health << " Distance: " << player_units[i].dist_traveled << std::endl;
+			//std::ofstream outfile("output.txt", std::ios::app);
+			//outfile << "Done: " << player_units[i].unit->health_max - player_units[i].unit->health << " Distance: " << player_units[i].dist_traveled << std::endl;
 
 			map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
 			//map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
@@ -411,42 +450,40 @@ void FooBot::UpdateUnitsPaths() {
 			current_pf = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)translated_pos.y, (int)translated_pos.x);
 		current_value += current_pf;
 
-		sc2::Point2D p1 = sc2::Point2D(translated_pos.x, translated_pos.y);
-		sc2::Point2D p2 = sc2::Point2D(player_units[i].next_pos.x, player_units[i].next_pos.y); 
-		float unit_radius = player_units[i].unit->radius < 0.5 ? 0.5 : 1.5;
-		//float unit_radius = 0;
-		//if ((p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) || p2.x == -1) {
-			std::vector<sc2::Point2D> udlr;
-			udlr.push_back(sc2::Point2D(p1.x + 0, p1.y + 1));
-			udlr.push_back(sc2::Point2D(p1.x + 1, p1.y + 1));
-			udlr.push_back(sc2::Point2D(p1.x + 1, p1.y + 0));
-			udlr.push_back(sc2::Point2D(p1.x + 1, p1.y - 1));
-			udlr.push_back(sc2::Point2D(p1.x + 0, p1.y - 1));
-			udlr.push_back(sc2::Point2D(p1.x - 1, p1.y - 1));
-			udlr.push_back(sc2::Point2D(p1.x - 1, p1.y + 0));
-			udlr.push_back(sc2::Point2D(p1.x - 1, p1.y + 1));
+		std::vector<sc2::Point2D> udlr;
+		udlr.push_back(sc2::Point2D(translated_pos.x + 0, translated_pos.y + 1));
+		udlr.push_back(sc2::Point2D(translated_pos.x + 1, translated_pos.y + 1));
+		udlr.push_back(sc2::Point2D(translated_pos.x + 1, translated_pos.y + 0));
+		udlr.push_back(sc2::Point2D(translated_pos.x + 1, translated_pos.y - 1));
+		udlr.push_back(sc2::Point2D(translated_pos.x + 0, translated_pos.y - 1));
+		udlr.push_back(sc2::Point2D(translated_pos.x - 1, translated_pos.y - 1));
+		udlr.push_back(sc2::Point2D(translated_pos.x - 1, translated_pos.y + 0));
+		udlr.push_back(sc2::Point2D(translated_pos.x - 1, translated_pos.y + 1));
 
-			float min_value = 5000;
-			int next_tile = 0;
-			for (int j = 0; j < udlr.size(); ++j) {
-				//Get the value from the IM and PF to determine the total value of the new tile.
-				float new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
+		float min_value = 5000;
+		int next_tile = 0;
+		for (int j = 0; j < udlr.size(); ++j) {
+			//Get the value from the IM and PF to determine the total value of the new tile.
+			float new_value = player_units[i].destination->map[(int)udlr[j].y][(int)udlr[j].x][0];
 
-				if (new_value < 0) continue;
-				float pf_value = 0;
-				if (player_units[i].behavior == behaviors::DEFENCE)
-					pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
-				else if (player_units[i].behavior == behaviors::ATTACK)
-					pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x);
-				new_value += pf_value;
-
-				if (min_value > new_value) {
-					min_value = min(new_value, min_value);
-					next_tile = j;
-				}
-				//Add check for min_value is better than current_value
+			if (new_value < 0) continue;
+			float pf_value = 0;
+			if (player_units[i].behavior == behaviors::DEFENCE)
+				pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
+			else if (player_units[i].behavior == behaviors::ATTACK)
+				pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x);
+			if (pf_value > 1) {
+				new_value = 0;
 			}
+			new_value += pf_value;
 
+			if (min_value > new_value) {
+				min_value = min(new_value, min_value);
+				next_tile = j;
+			}
+			//Add check for min_value is better than current_value
+		}
+		if (min_value < current_value) {
 			sc2::Point2D new_pos = sc2::Point2D(udlr[next_tile].x, udlr[next_tile].y);
 			player_units[i].next_pos = new_pos;
 			new_pos.y = MAP_Y_R - new_pos.y;
@@ -458,7 +495,7 @@ void FooBot::UpdateUnitsPaths() {
 				else
 					Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 			}
-		//}
+		}
 	}
 	Debug()->SendDebug();
 }
@@ -480,7 +517,12 @@ void FooBot::UpdateAstarPath() {
 				astar_units[i].last_pos = pos;
 			}
 			float unit_radius = astar_units[i].unit->radius < 0.5 ? 0.5 : 1.5;
-			if (p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) {
+			bool test = PointNearPoint(p1, p2, unit_radius);
+			if ((p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius &&
+				p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius)) {
+				bool test2 = true;
+			}
+			if (test || astar_units[i].dist_traveled == 0 || astar_units[i].path_taken[astar_units[i].path_taken.size() - 1] == astar_units[i].path_taken[astar_units[i].path_taken.size() - 2]) {
 				sc2::Point2D last_path_pos = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 				astar_units[i].path.pop_back();
 				if (astar_units[i].path.size() > 0) {
@@ -787,14 +829,21 @@ void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 	pp.z += 0.1f;
 	sc2::Point3D translated = pp;
 	translated.y = MAP_Y_R - translated.y;
-	for (int y = -5; y <= 5; ++y) {
-		for (int x = -5; x <= 5; ++x) {
+	for (int y = -20; y <= 20; ++y) {
+		for (int x = -20; x <= 20; ++x) {
 			sc2::Point3D p = sc2::Point3D(translated.x + x, translated.y - y, translated.z);
 			if (translated.x < MAP_X_R && translated.y < MAP_Y_R && translated.x >= 0 && translated.y >= 0) {
-				int value = player_units[unit].destination->map[(int)p.y][(int)p.x][0];
-				int pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
-				value += pf;
-				Debug()->DebugTextOut(std::to_string(pf), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
+				float value = player_units[unit].destination->map[(int)p.y][(int)p.x][0];
+				//int pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
+				if (PointInsideRect(p, { 0, 0 }, { MAP_X_R, MAP_Y_R }, 0)) {
+					float pf = map_storage->GetAttractingPF(player_units[unit].unit->unit_type, (int)p.y, (int)p.x);
+					value += pf;
+					//Debug()->DebugTextOut(std::to_string(pf), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
+					pf = min(pf, 60);
+					pf = max(pf, 1);
+					sc2::Color c = sc2::Color(255 * (60 - (60 / pf)), 0, 0);
+					Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);
+				}
 			}
 		}
 	}
@@ -830,6 +879,16 @@ bool FooBot::PointInsideRect(sc2::Point2D point, sc2::Point2D bottom_left, sc2::
 		return true;
 	else if (	point.x < bottom_left.x + padding && point.x > top_right.x - padding &&
 				point.y < bottom_left.y + padding && point.y > top_right.y - padding)
+		return true;
+	return false;
+}
+
+bool FooBot::PointNearPoint(sc2::Point2D point, sc2::Point2D point_near, float padding) {
+	if (point.x > point_near.x - padding && point.x < point_near.x + padding &&
+		point.y > point_near.y - padding && point.y < point_near.y + padding)
+		return true;
+	else if (point.x < point_near.x + padding && point.x > point_near.x - padding &&
+		point.y < point_near.y + padding && point.y > point_near.y - padding)
 		return true;
 	return false;
 }
@@ -935,8 +994,9 @@ void FooBot::CommandsOnEmpty50() {
 	case 3: {
 		if (spawned_player_units == -1 && spawned_enemy_units == -1) {
 			Debug()->DebugEnemyControl();
-			spawned_player_units = 1;
-			spawned_enemy_units = 1;
+			Debug()->DebugShowMap();
+			spawned_player_units = 5;
+			spawned_enemy_units = 5;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(25, 25), 2);
 		}

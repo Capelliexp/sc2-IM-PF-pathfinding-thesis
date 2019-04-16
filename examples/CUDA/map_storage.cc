@@ -92,8 +92,7 @@ void MapStorage::PrintMap(bool map[MAP_X_R][MAP_Y_R][1], int x, int y, std::stri
 void MapStorage::PrintMap(int map[MAP_X_R][MAP_Y_R][1], int x, int y, std::string file) {
     std::ofstream out(file + ".txt");
     int width = x;
-    for (int i = 0; i < y; i++)
-    {
+    for (int i = 0; i < y; i++) {
         for (int j = 0; j < width; j++) out << map[i][j][0] << ",";
         out << std::endl;
     }
@@ -413,7 +412,21 @@ float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
 }
 
 void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
-    attracting_PFs.clear();
+    std::list<Potential_Field>::iterator it = attracting_PFs.begin();
+    for (; it != attracting_PFs.end(); it++) {
+        if (it->sc2_id == unit_id) {
+            requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)it->map));
+            return;
+        }
+    }
+
+    /*for (auto& it : attracting_PFs) {
+        if (it.sc2_id == unit_id) {
+            requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)it.map));
+            return;
+        }
+    }*/
+
     attracting_PFs.push_back({});
     attracting_PFs.back().sc2_id = unit_id;
     requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));

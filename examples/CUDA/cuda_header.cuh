@@ -20,7 +20,7 @@
 
 #include "sc2api/sc2_api.h"
 #include "sc2lib/sc2_lib.h"
-//#include "../examples/CUDA/map_storage.hpp"
+//#include "../examples/CUDA/map_storage.hpp" 
 
 //https://devtalk.nvidia.com/default/topic/476201/passing-structures-into-cuda-kernels/
 //https://devblogs.nvidia.com/how-optimize-data-transfers-cuda-cc/

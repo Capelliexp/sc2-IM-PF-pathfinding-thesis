@@ -126,6 +126,7 @@ private:
     void PrintPath(int unit);
 
     bool PointInsideRect(sc2::Point2D point, sc2::Point2D bottom_left, sc2::Point2D top_right, float padding);
+    bool PointNearPoint(sc2::Point2D point, sc2::Point2D point_near, float padding);
 
 private:
     MapStorage* map_storage;
@@ -155,6 +156,12 @@ private:
 
     //! Integer that represents the current map;
     int map;
+
+    int total_damage;
+    int units_died;
+
+    int total_damage_enemy_units;
+    int units_died_enemy_units;
 
 
     bool spawn_all_units;

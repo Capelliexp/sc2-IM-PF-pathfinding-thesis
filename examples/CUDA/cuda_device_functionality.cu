@@ -139,12 +139,12 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 				}
 				else {	//self is ranged
 					float range_diff = self_info.range - other_info.range;
-					if (range_diff > 0) {	//self more range than other
-						if (dist < (other_info.range + (self_info.radius/* + 1*/))) {	//avoid area close to enemy
-							tot_charge += 10 / dist;
+					if (range_diff >= 0) {	//self more range than other
+						if (dist <= (self_info.range + (self_info.radius /*+ 1*/))) {	//avoid area close to enemy
+							tot_charge += 40 - (dist * 2);
 						}
 						else if (dist < self_info.range * 1.2 || dist < 10) {	//attack enemy
-							tot_charge -= 10 / dist;
+							tot_charge -= 10 - (dist);
 						}
 					}
 					else {	//attack other with larger range than self
