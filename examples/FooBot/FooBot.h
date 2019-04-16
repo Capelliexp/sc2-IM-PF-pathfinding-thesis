@@ -62,6 +62,8 @@ public:
     virtual void OnUnitCreated(const sc2::Unit* unit) final;
 
 private:
+    void Reset();
+
     //! Function to spawn all units that influence the PF
     void SpawnAllUnits();
 

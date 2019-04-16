@@ -20,12 +20,28 @@ __host__ CUDA::CUDA() {
 __host__ CUDA::~CUDA() {
 	cudaDeviceSynchronize();
 	PopErrorsCheck();
+	cudaEventDestroy(repelling_PF_event_done);
+	for (int i = 0; i < PF_mem.size(); ++i) {
+		cudaEventDestroy(PF_mem.at(i).done);
+		cudaEventDestroy(PF_mem.at(i).begin);
+	}
 	cudaFree(unit_lookup_device_pointer);
 	cudaFree(device_unit_list_pointer);
 
 	cudaStreamDestroy(0);	// ¯\_(ツ)_/¯
 
 	cudaDeviceReset();
+}
+
+__host__ void CUDA::Reset() {
+	next_id = 0;
+	PF_mem.resize(0);
+	IM_mem.resize(0);
+	host_unit_list.resize(0);
+	while (!PF_queue.empty())
+		PF_queue.pop();
+	while (!IM_queue.empty())
+		IM_queue.pop();
 }
 
 __host__ void CUDA::PrintGenInfo() {
@@ -361,9 +377,10 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 }
 
 __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
-	//cudaDeviceSynchronize();
+	cudaDeviceSynchronize();
 
 	//start PF-repelling job
+	int i = 0 + 100;
 	if (cudaEventQuery(repelling_PF_event_done) == cudaSuccess) {
 		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
 		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");

@@ -169,6 +169,8 @@ public:
 	__host__ CUDA();
 	__host__ ~CUDA();
 	
+	__host__ void Reset();
+
 	//Initialization
 	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float ground_PF[][MAP_Y_R][1], float air_PF[][MAP_Y_R][1]);
 	__host__ void PrintGenInfo();
