@@ -420,13 +420,6 @@ void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
         }
     }
 
-    /*for (auto& it : attracting_PFs) {
-        if (it.sc2_id == unit_id) {
-            requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)it.map));
-            return;
-        }
-    }*/
-
     attracting_PFs.push_back({});
     attracting_PFs.back().sc2_id = unit_id;
     requested_PF.push_back(cuda->QueueDeviceJob(cuda->GetUnitIDInHostUnitVec(unit_id), (float*)attracting_PFs.back().map));

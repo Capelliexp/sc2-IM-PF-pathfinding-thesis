@@ -6,17 +6,7 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	this->restarts_ = 0;
 	this->spawn_all_units = spawn_all_units;
 	this->start_command = command;
-	this->command = command;
-	this->spawned_player_units = -1;
-	this->spawned_enemy_units = -1;
-	this->destination_set = false;
-	this->astar = false;
-	this->astarPF = false;
-	this->new_buildings = false;
-	this->total_damage = 0;
-	this->units_died = 0;
-	this->total_damage_enemy_units = 0;
-	this->units_died_enemy_units = 0;
+
 	if		(map == "empty50")		this->map = 1;
 	else if (map == "empty200")		this->map = 2;
 	else if (map == "empty20")		this->map = 3;
@@ -34,6 +24,16 @@ void FooBot::OnGameStart() {
 	this->command = this->start_command;
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
+	this->destination_set = false;
+	this->astar = false;
+	this->astarPF = false;
+	this->new_buildings = false;
+	this->spawned_player_units = -1;
+	this->spawned_enemy_units = -1;
+	this->total_damage = 0;
+	this->units_died = 0;
+	this->total_damage_enemy_units = 0;
+	this->units_died_enemy_units = 0;
 
 	map_storage = new MapStorage();
 	
@@ -165,17 +165,19 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					std::cout << "Damage taken:" << player_units[i].unit->health_max << std::endl;
 					units_died++;
 					total_damage += unit->health_max;
-					if (player_units.size() == 1) {
+					player_units.erase(player_units.begin() + i);
+					if (player_units.size() == 0) {
 						std::ofstream outfile("output.txt", std::ios::app);
 						outfile << "All player units died. " << units_died << " units died. " << total_damage << " total damage" << std::endl;
 						for (int j = 0; j < enemy_units.size(); ++j)
 							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health;
 						outfile << "Enemy losses. " << units_died_enemy_units << " units died. " << total_damage_enemy_units << " total damage" << std::endl << std::endl;
 						//outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
+
+						//Debug()->DebugEndGame();
+						Debug()->SendDebug();
 					}
-					player_units.erase(player_units.begin() + i);
-					//Debug()->DebugEndGame();
-					Debug()->SendDebug();
+					
 					return;
 				}
 			}
@@ -188,18 +190,19 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 
 					units_died++;
 					total_damage += unit->health_max;
-					if (astar_units.size() == 1) {
+
+					astar_units.erase(astar_units.begin() + i);
+					if (astar_units.size() == 0) {
 						std::ofstream outfile("output.txt", std::ios::app);
 						outfile << "All player units died. " << units_died << " units died. " << total_damage << " total damage" << std::endl;
 						for (int j = 0; j < enemy_units.size(); ++j)
 							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health;
 						outfile << "Enemy losses. " << units_died_enemy_units << " units died. " << total_damage_enemy_units << " total damage" << std::endl << std::endl;
 						//outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
-					}
 
-					astar_units.erase(astar_units.begin() + i);
-					//Debug()->DebugEndGame();
-					Debug()->SendDebug();
+						//Debug()->DebugEndGame();
+						Debug()->SendDebug();
+					}
 					return;
 				}
 			}
@@ -211,6 +214,8 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 				units_died_enemy_units++;
 				total_damage_enemy_units += unit->health_max;
 
+				enemy_units.erase(enemy_units.begin() + i);
+
 				if (enemy_units.size() == 1) {
 					for (int j = 0; j < player_units.size(); ++j)
 						total_damage += player_units[j].unit->health_max - player_units[j].unit->health;
@@ -220,8 +225,10 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					outfile << "All enemy units died. " << units_died_enemy_units << " units died. " << total_damage_enemy_units << " total damage" << std::endl;
 					outfile << "Players losses: " << units_died << " units died. " << total_damage << " total damage" << std::endl << std::endl;
 					//outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
+
+					//Debug()->DebugEndGame();
+					Debug()->SendDebug();
 				}
-				enemy_units.erase(enemy_units.begin() + i);
 			}
 		}
 	}
