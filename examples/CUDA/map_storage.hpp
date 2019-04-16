@@ -206,8 +206,11 @@ private:
 	std::list<Destination_IM> destinations_air_IM;
 
 	//! PF that indicates what to avoid on ground or in air
-	float ground_repelling_PF[MAP_X_R][MAP_Y_R][1];
-	float air_repelling_PF[MAP_X_R][MAP_Y_R][1];
+	//float ground_repelling_PF[MAP_X_R][MAP_Y_R][1];
+	//float air_repelling_PF[MAP_X_R][MAP_Y_R][1];
+	float* ground_repelling_PF;
+	float* air_repelling_PF;
+
 
 	//! List of attracting PFs
 	std::list<Potential_Field> attracting_PFs;

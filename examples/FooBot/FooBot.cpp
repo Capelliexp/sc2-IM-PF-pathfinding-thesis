@@ -357,7 +357,7 @@ void FooBot::UpdateUnitsPaths() {
 			player_units[i].last_pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - player_units[i].unit->pos.y);
 			player_units[i].path_taken.push_back(player_units[i].last_pos);
 
-			map_storage->PrintMap(map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x), MAP_X_R, MAP_Y_R, "PF");
+			//map_storage->PrintMap(map_storage->GetGroundAvoidancePFValue((int)translated_pos.y, (int)translated_pos.x), MAP_X_R, MAP_Y_R, "PF");
 		}
 		else {
 			sc2::Point2D pos = sc2::Point2D(player_units[i].unit->pos.x, MAP_Y_R - player_units[i].unit->pos.y);

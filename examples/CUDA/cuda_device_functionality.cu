@@ -3,7 +3,7 @@
 #include "../examples/CUDA/cuda_header.cuh"
 #include "../examples/CUDA/cuda_device_utility.cu"
 
-__global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
+__global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, float* ground_PF, float* air_PF) {
 	extern __shared__ Entity unit_list_s[];
 
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -46,11 +46,15 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	}
 
 	//write ground_charge and air_charge to global memory in owned coord
-	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
-	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge + largest_air_charge;
+	//((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
+	//((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge + largest_air_charge;
+	//ground_PF[y * MAP_X_R + x] = ground_charge + largest_ground_charge;
+	//air_PF[y * MAP_X_R + x] = air_charge + largest_air_charge;
+	//ground_PF[0] = 0;
+	//air_PF[1] = 1;
 }
 
-__global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
+__global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, float* ground_PF, float* air_PF) {
 	extern __shared__ Entity unit_list_s[];
 
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -98,11 +102,13 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 	}
 
 	//write ground_charge and air_charge to global memory in owned coord
-	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
-	((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge + largest_air_charge;
+	//((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
+	//((float*)(((char*)device_map_air.ptr) + y * device_map_ground.pitch))[x] = air_charge + largest_air_charge;
+	ground_PF[y * MAP_X_R + x] = ground_charge + largest_ground_charge;
+	air_PF[y * MAP_X_R + x] = air_charge + largest_air_charge;
 }
 
-__global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map){
+__global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, float* map){
 	extern __shared__ Entity unit_list_s[];
 
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -163,7 +169,8 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 		}
 	}
 
-	((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = tot_charge;
+	//((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = tot_charge;
+	map[y * MAP_X_R + x] = tot_charge;
 }
 
 //Maximum number of 32-bit registers per thread block: 64k

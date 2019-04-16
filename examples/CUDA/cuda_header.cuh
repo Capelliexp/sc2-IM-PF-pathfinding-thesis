@@ -135,7 +135,7 @@ typedef struct {
 	bool initialized;
 	cudaEvent_t begin, done;
 	float* map;
-	cudaPitchedPtr device_map_ptr;
+	//cudaPitchedPtr device_map_ptr;
 } AttractingFieldMemory;
 
 bool operator==(const AttractingFieldMemory& first, const AttractingFieldMemory& second);
@@ -156,8 +156,9 @@ bool operator==(const InfluenceMapMemory& first, const InfluenceMapMemory& secon
 bool operator!=(const InfluenceMapMemory& first, const InfluenceMapMemory& second);
 
 //DEVICE FUNCTION
-__global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map);
-__global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air);
+__global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, float* map);
+__global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, float* ground_PF, float* air_PF);
+__global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, float* ground_PF, float* air_PF);
 __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map, cudaPitchedPtr dynamic_map_device_pointer);
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map);
 __global__ void DeviceUpdateDynamicMap(IntPoint2D top_left, IntPoint2D bottom_right, IntPoint2D center, float radius, int new_value, cudaPitchedPtr dynamic_map_device_pointer);
@@ -173,7 +174,7 @@ public:
 	__host__ ~CUDA();
 	
 	//Initialization
-	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float ground_PF[][MAP_Y_R][1], float air_PF[][MAP_Y_R][1]);
+	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float* ground_PF, float* air_PF);
 	__host__ void PrintGenInfo();
 	__host__ void CreateUnitLookupOnHost(std::string file);
 	__host__ void TransferStaticMapToHost();
@@ -221,7 +222,7 @@ public:
 	//Kernel launches
 	__host__ void RepellingPFGeneration();
 	__host__ void LargeRepellingPFGeneration();
-	__host__ void AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map);
+	__host__ void AttractingPFGeneration(int owner_type_id, float* map);
 	__host__ void IMGeneration(IntPoint2D destination, float map[][MAP_Y_R][1], bool air_path, cudaPitchedPtr device_map);
 	__host__ void UpdateDynamicMap(IntPoint2D center, float radius, int value);
 
@@ -250,8 +251,10 @@ private:
 	
 	//device memory single map pointers
 	cudaPitchedPtr dynamic_map_device_pointer;
-	cudaPitchedPtr repelling_pf_ground_map_pointer;
-	cudaPitchedPtr repelling_pf_air_map_pointer;
+	//cudaPitchedPtr repelling_pf_ground_map_pointer;
+	//cudaPitchedPtr repelling_pf_air_map_pointer;
+	//float* repelling_pf_ground_map_pointer;	//see "ground_PF" & "air_PF"
+	//float* repelling_pf_air_map_pointer;
 
 	//device memory array pointers
 	UnitInfoDevice* unit_lookup_device_pointer;

@@ -35,7 +35,7 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 		    cuda->DeviceTransferDynamicMap(dynamic_terrain);
         cuda->DeviceTransferUnitLookup();
 		cuda->BindRepellingMapsToTransferParams();
-		cuda->Tests(ground_repelling_PF, air_repelling_PF);
+		//cuda->Tests(ground_repelling_PF, air_repelling_PF);
 
         //PrintMap(ground_repelling_PF, MAP_X_R, MAP_Y_R, "ground");
         //PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
@@ -117,8 +117,10 @@ void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
 void MapStorage::PrintGroundPF(std::string name) {
     std::ofstream out(name + ".txt");
     for (int i = 0; i < MAP_Y_R; i++) {
-        for (int j = 0; j < MAP_X_R; j++)
-            out << ground_repelling_PF[i][j][0] << ",";
+        for (int j = 0; j < MAP_X_R; j++) {
+            //out << ground_repelling_PF[i][j][0] << ",";
+            out << ground_repelling_PF[i * MAP_X_R + j] << ",";
+        }
         out << std::endl;
     }
     out.close();
@@ -401,9 +403,12 @@ void MapStorage::UpdateEntityVector(std::vector<Entity>& host_unit_list) {
 }
 
 float MapStorage::GetGroundAvoidancePFValue(int x, int y) {
-    if (ground_repelling_PF[x][y][0] < 0)
+    /*if (ground_repelling_PF[x][y][0] < 0)
         return 0;
-    return ground_repelling_PF[x][y][0];
+    return ground_repelling_PF[x][y][0];*/
+    if (ground_repelling_PF[y * MAP_X_R + x] < 0)
+        return 0;
+    return ground_repelling_PF[y * MAP_X_R + x];
 }
 
 void MapStorage::CreateAttractingPF(sc2::UnitTypeID unit_id) {
