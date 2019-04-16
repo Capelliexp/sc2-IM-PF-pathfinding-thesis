@@ -488,7 +488,6 @@ void FooBot::UpdateUnitsPaths() {
 				min_value = min(new_value, min_value);
 				next_tile = j;
 			}
-			//Add check for min_value is better than current_value
 		}
 		if (min_value < current_value) {
 			sc2::Point2D new_pos = sc2::Point2D(udlr[next_tile].x, udlr[next_tile].y);
@@ -524,12 +523,8 @@ void FooBot::UpdateAstarPath() {
 				astar_units[i].last_pos = pos;
 			}
 			float unit_radius = astar_units[i].unit->radius < 0.5 ? 0.5 : 1.5;
-			bool test = PointNearPoint(p1, p2, unit_radius);
-			if ((p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius &&
-				p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius)) {
-				bool test2 = true;
-			}
-			if (test || astar_units[i].dist_traveled == 0 || astar_units[i].path_taken[astar_units[i].path_taken.size() - 1] == astar_units[i].path_taken[astar_units[i].path_taken.size() - 2]) {
+			if (PointNearPoint(p1, p2, unit_radius) || astar_units[i].dist_traveled == 0 || 
+				astar_units[i].path_taken[astar_units[i].path_taken.size() - 1] == astar_units[i].path_taken[astar_units[i].path_taken.size() - 2]) {
 				sc2::Point2D last_path_pos = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 				astar_units[i].path.pop_back();
 				if (astar_units[i].path.size() > 0) {
@@ -652,9 +647,7 @@ void FooBot::UpdateAstarPFPath() {
 				}
 				//if (/*Enemy units in range*/)
 				float unit_radius = astar_units[i].unit->radius < 0.5 ? 0.5 : 1.5;
-				if ((p1.x >= p2.x - unit_radius && p1.x <= p2.x + unit_radius && 
-					p1.y >= p2.y - unit_radius && p1.y <= p2.y + unit_radius) ||
-					astar_units[i].unit->orders.size() == 0) {
+				if (PointNearPoint(p1, p2, unit_radius) || astar_units[i].unit->orders.size() == 0) {
 					sc2::Point2D last_path_pos = sc2::Point2D(astar_units[i].path.back().x, astar_units[i].path.back().y);
 					astar_units[i].path.pop_back();
 					if (astar_units[i].path.size() > 0) {
