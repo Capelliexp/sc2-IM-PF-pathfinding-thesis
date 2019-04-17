@@ -134,8 +134,10 @@ void FooBot::OnGameEnd() {
 
 void FooBot::Reset() {
 	++restarts_;
-	std::cout << "Game ended after: " << Observation()->GetGameLoop() << " loops " << std::endl;
+	std::cout << "Game restarted after: " << Observation()->GetGameLoop() << " loops " << std::endl;
+
 	Debug()->DebugShowMap();
+	Debug()->SendDebug();
 	for (int i = 0; i < player_units.size(); ++i) {
 		Debug()->DebugKillUnit(player_units[i].unit);
 	}
@@ -145,6 +147,7 @@ void FooBot::Reset() {
 	for (int i = 0; i < enemy_units.size(); ++i) {
 		Debug()->DebugKillUnit(enemy_units[i].unit);
 	}
+	Debug()->DebugShowMap();
 	Debug()->SendDebug();
 
 	this->player_units.clear();
@@ -160,8 +163,6 @@ void FooBot::Reset() {
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
-	this->astar = false;
-	this->astarPF = false;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
@@ -175,6 +176,14 @@ void FooBot::Reset() {
 
 void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
 	if (!IsStructure(unit) && unit->alliance == sc2::Unit::Alliance::Enemy) {
+		bool match_found = false;
+		for (int i = 0; i < enemy_units.size(); ++i) {
+			if (enemy_units[i].unit->tag == unit->tag)
+				match_found = true;
+		}
+		if (match_found) {
+			return;
+		}
 		EnemyUnit new_unit;
 		new_unit.unit = unit;
 		new_unit.behavior = behaviors::PASSIVE;
@@ -453,24 +462,24 @@ void FooBot::UpdateUnitsPaths() {
 			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, player_units[i].next_pos);
 			player_units[i].path_taken.push_back(player_units[i].next_pos);
 			player_units[i].last_pos = translated_pos;
-			std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
-			std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
+			//std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
+			//std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 
 			//std::ofstream outfile("output.txt", std::ios::app);
 			//outfile << "Done: " << player_units[i].unit->health_max - player_units[i].unit->health << " Distance: " << player_units[i].dist_traveled << std::endl;
 
-			map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
+			//map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
 			//map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
-			map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
+			//map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
 
-			player_units[i].destination = nullptr;
+			//player_units[i].destination = nullptr;
 
 			if (player_units.size() == 1) {
 				//Reset();
 				Debug()->SendDebug();
 			}
 
-			continue;
+			//continue;
 		}
 
 		if (player_units[i].last_pos.x == -1) {
@@ -517,7 +526,7 @@ void FooBot::UpdateUnitsPaths() {
 				pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
 			else if (player_units[i].behavior == behaviors::ATTACK)
 				pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x);
-			if (pf_value > 1) {
+			if (enemy_units.size() > 0 && pf_value >= 4) {
 				new_value = 0;
 			}
 			new_value += pf_value;
@@ -579,8 +588,8 @@ void FooBot::UpdateAstarPath() {
 					std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 					std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 
-					std::ofstream outfile("output.txt", std::ios::app);
-					outfile << "Done: " << astar_units[i].unit->health_max - astar_units[i].unit->health << " Distance: " << astar_units[i].dist_traveled << std::endl;
+					/*std::ofstream outfile("output.txt", std::ios::app);
+					outfile << "Done: " << astar_units[i].unit->health_max - astar_units[i].unit->health << " Distance: " << astar_units[i].dist_traveled << std::endl;*/
 
 					astar_units[i].path_taken.push_back(last_path_pos);
 
@@ -607,14 +616,14 @@ void FooBot::UpdateAstarPFPath() {
 			bool new_path = false;
 			for (int j = 0; j < enemy_units.size(); ++j) {
 				float dist = CalculateEuclideanDistance(astar_units[i].unit->pos, enemy_units[j].unit->pos);
-				float enemy_weapon_range = map_storage->GetUnitGroundWeaponRange(enemy_units[i].unit->unit_type);
+				float enemy_weapon_range = map_storage->GetUnitGroundWeaponRange(enemy_units[j].unit->unit_type);
 				enemy_weapon_range = max(enemy_weapon_range, 6.0);
 
 				if (dist < enemy_weapon_range || (dist > enemy_weapon_range && astar_units[i].PF_mode) && dist < astar_units[i].sight_range) {
 					astar_units[i].PF_mode = true;
 					astar = false;
 				}
-				else if ((enemy_units[i].unit->display_type == sc2::Unit::Snapshot || enemy_units[i].unit->display_type == sc2::Unit::Visible) && !astar_units[i].PF_mode) {
+				else if ((enemy_units[j].unit->display_type == sc2::Unit::Snapshot || enemy_units[j].unit->display_type == sc2::Unit::Visible) && !astar_units[i].PF_mode) {
 					astar = true;
 				}
 				else if (dist > astar_units[i].sight_range && astar_units[i].PF_mode) {
@@ -1032,11 +1041,11 @@ void FooBot::CommandsOnEmpty50() {
 	case 3: {
 		if (spawned_player_units == -1 && spawned_enemy_units == -1) {
 			Debug()->DebugEnemyControl();
-			Debug()->DebugShowMap();
+			//Debug()->DebugShowMap();
 			spawned_player_units = 5;
-			spawned_enemy_units = 5;
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5, 5));
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_enemy_units, sc2::Point2D(25, 25), 2);
+			spawned_enemy_units = 3;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_VIKINGASSAULT, spawned_player_units, sc2::Point2D(5, 5));
+			SpawnUnits(sc2::UNIT_TYPEID::ZERG_ROACH, spawned_enemy_units, sc2::Point2D(25, 25), 2);
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(25), behaviors::ATTACK, false);

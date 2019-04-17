@@ -51,7 +51,8 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
 void MapStorage::Reset() {
     this->max_value = 0;
     CreateIM();
-    cuda->Reset();
+    if (cuda != NULL)
+        cuda->Reset();
     image.clear();
     requested_PF.clear();
     requested_IM.clear();
