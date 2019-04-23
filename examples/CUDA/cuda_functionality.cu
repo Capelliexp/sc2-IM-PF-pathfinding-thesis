@@ -561,19 +561,27 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 /*KERNAL LAUNCHES START*/
 
 __host__ void CUDA::RepellingPFGeneration() {
-	if (host_unit_list.size() > 0)
-		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
-		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	if (host_unit_list.size() > 0) {
+		int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
+
+		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, shared_size >> >
+			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	}
 }
 
 __host__ void CUDA::LargeRepellingPFGeneration() {
-	if (host_unit_list.size() > 0)
-		DeviceLargeRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
-		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	if (host_unit_list.size() > 0) {
+		int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
+
+		DeviceLargeRepellingPFGeneration << <dim_grid_high, dim_block_high, shared_size >> >
+			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	}
 }
 
 __host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map){
-	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
+	int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
+
+	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, shared_size >> >
 		(device_unit_list_pointer, host_unit_list.size(), owner_type_id, device_map);
 }
 

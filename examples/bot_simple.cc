@@ -10,6 +10,9 @@
 
 #include "Synchapi.h"
 
+#include <time.h>
+#include <windows.h>
+
 
 //*************************************************************************************************
 int main(int argc, char* argv[]) {
@@ -59,11 +62,17 @@ int main(int argc, char* argv[]) {
     //map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
     char* str = new char[map.size()];
     std::strcpy(str, map.c_str());
+
+    clock_t before;
     while (true) {
         //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
         coordinator.StartGame(str);
-        while (coordinator.Update()) {
-        }
+        /*while (true) {
+            before = clock();
+            coordinator.Update();
+            Sleep(max((42 - (clock() - before)), 0));
+        }*/
+        while(coordinator.Update()){}
     }
 
     return 0;
