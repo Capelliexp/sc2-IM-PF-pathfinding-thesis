@@ -232,7 +232,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	const int nodes_per_thread = nodes_per_block / 32;	// = 31 (should be 32)
 	int thread_array_start_index = nodes_per_thread * thread_id_in_block;
 	__shared__ node shared_list[nodes_per_block];
-	node* shared_list_thread_pointer = &shared_list[thread_array_start_index];
+	node* __restrict__ shared_list_thread_pointer = &shared_list[thread_array_start_index];
 	int /*open*/   shared_open_it = 0,
 		/*closed*/ shared_closed_it = nodes_per_thread - 1;
 
@@ -240,8 +240,8 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 	//CREATE GLOBAL ARRAY
 	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
-	node* open_list = (node*)malloc(1000 * sizeof(node));
-	node* closed_list = (node*)malloc(1000 * sizeof(node));
+	node* __restrict__ open_list = (node*)malloc(1000 * sizeof(node));
+	node* __restrict__ closed_list = (node*)malloc(1000 * sizeof(node));
 
 	if (open_list == NULL || closed_list == NULL) {
 		printf("Device heap limit to low for lists\n");
