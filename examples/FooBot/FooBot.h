@@ -52,7 +52,7 @@ struct AstarUnit {
 
 class FooBot : public sc2::Agent {
 public:
-    FooBot(std::string map, bool spawn_all_units = false);
+    FooBot(std::string map, int command, bool spawn_all_units = false);
 
     virtual void OnGameStart() final;
     virtual void OnStep() final;
@@ -62,6 +62,8 @@ public:
     virtual void OnUnitCreated(const sc2::Unit* unit) final;
 
 private:
+    void Reset();
+
     //! Function to spawn all units that influence the PF
     void SpawnAllUnits();
 
@@ -126,6 +128,7 @@ private:
     void PrintPath(int unit);
 
     bool PointInsideRect(sc2::Point2D point, sc2::Point2D bottom_left, sc2::Point2D top_right, float padding);
+    bool PointNearPoint(sc2::Point2D point, sc2::Point2D point_near, float padding);
 
 private:
     MapStorage* map_storage;
@@ -147,6 +150,7 @@ private:
 
     //! Integer that represents the current command.
     int command;
+    int start_command;
     //! Integers and Bool to indicate and help with unit actions during commands
     int spawned_player_units;
     int spawned_enemy_units;
@@ -154,6 +158,12 @@ private:
 
     //! Integer that represents the current map;
     int map;
+
+    int total_damage;
+    int units_died;
+
+    int total_damage_enemy_units;
+    int units_died_enemy_units;
 
 
     bool spawn_all_units;

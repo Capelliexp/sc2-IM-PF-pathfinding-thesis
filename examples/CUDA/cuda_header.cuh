@@ -20,7 +20,6 @@
 
 #include "sc2api/sc2_api.h"
 #include "sc2lib/sc2_lib.h"
-//#include "../examples/CUDA/map_storage.hpp"
 
 //https://devtalk.nvidia.com/default/topic/476201/passing-structures-into-cuda-kernels/
 //https://devblogs.nvidia.com/how-optimize-data-transfers-cuda-cc/
@@ -166,12 +165,12 @@ __global__ void TestDevice3DArrayUsage(Entity* device_unit_list_pointer, int nr_
 __global__ void TestDeviceLookupUsage(float* result);
 
 class CUDA {
-	//friend class MapStorage;
-	
 public:
 	__host__ CUDA();
 	__host__ ~CUDA();
 	
+	__host__ void Reset();
+
 	//Initialization
 	__host__ void InitializeCUDA(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions, float ground_PF[][MAP_Y_R][1], float air_PF[][MAP_Y_R][1]);
 	__host__ void PrintGenInfo();
@@ -233,7 +232,6 @@ public:
 	
 private:
 	//class pointers
-	//MapStorage* map_storage;
 	const sc2::ObservationInterface* observation;
 	sc2::DebugInterface* debug;
 	sc2::ActionInterface* actions;

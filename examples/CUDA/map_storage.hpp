@@ -60,7 +60,7 @@ public:
 
 	void Initialize(const sc2::ObservationInterface* observations, sc2::DebugInterface* debug, sc2::ActionInterface* actions,
 		sc2::ActionFeatureLayerInterface* actions_feature_layer, bool astar, bool astarPF);
-
+	void Reset();
 	void Test();
 
 	std::vector<int> GetUnitsID();
@@ -160,7 +160,7 @@ private:
 	sc2::ActionInterface* actions;
 	sc2::ActionFeatureLayerInterface* actions_feature_layer;
 
-	std::unordered_map<sc2::UNIT_TYPEID, float*> unit_attraction_PF;
+	//std::unordered_map<sc2::UNIT_TYPEID, float*> unit_attraction_PF;
 
 	bool dynamic_terrain[MAP_X_R][MAP_Y_R][1];	//update on-building-creation, on-building-destruction, on-building-vision
 
