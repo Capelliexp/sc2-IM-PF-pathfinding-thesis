@@ -442,6 +442,12 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		//-----------------------------
 
+		//use register list for terrain map values
+		register_list[0].pos = GetBoolMapValue(dynamic_map, neighbour_coords[0].x, neighbour_coords[0].y);
+		register_list[1].pos = GetBoolMapValue(dynamic_map, neighbour_coords[1].x, neighbour_coords[1].y);
+		register_list[2].pos = GetBoolMapValue(dynamic_map, neighbour_coords[2].x, neighbour_coords[2].y);
+		register_list[3].pos = GetBoolMapValue(dynamic_map, neighbour_coords[3].x, neighbour_coords[3].y);
+
 		//Check the neighbours for invalid positions
 		for (int i = 0; i < 4; ++i) {
 			if (!(neighbour_coords[i].x <= MAP_X_R) || !(neighbour_coords[i].y <= MAP_Y_R) || !(neighbour_coords[i].x > 0) || !(neighbour_coords[i].y > 0)) {	//coord not in map (FIX UGLINESS!)
@@ -450,7 +456,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			}
 
 			//GLOBAL READ/WRITE
-			if (neighbour_coord_validity[i] && !(GetBoolMapValue(dynamic_map, neighbour_coords[i].x, neighbour_coords[i].y) != 0)) {	//coord in terrain
+			if (neighbour_coord_validity[i] && !(register_list[i].pos != 0)) {	//coord in terrain
 				if (debug && debug_coord.x == x && debug_coord.y == y) printf("   neighbour %d failed terrain check \n", i);
 				neighbour_coord_validity[i] = false;
 			}
