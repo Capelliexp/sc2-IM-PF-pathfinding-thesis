@@ -239,9 +239,9 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	const int array_size_diff = (int)(((float)nodes_per_thread / (float)register_list_size) + 0.99);
 
 	//CREATE GLOBAL ARRAY
-	int open_list_it = 0, closed_list_it = 0, open_list_size = 1000, closed_list_size = 1000;
-	node* __restrict__ open_list = (node*)malloc(1000 * sizeof(node));
-	node* __restrict__ closed_list = (node*)malloc(1000 * sizeof(node));
+	int open_list_it = 0, closed_list_it = 0, open_list_size = 2000, closed_list_size = 1400;
+	node* __restrict__ open_list = (node*)malloc(2000 * sizeof(node));
+	node* __restrict__ closed_list = (node*)malloc(1400 * sizeof(node));
 
 	if (open_list == NULL || closed_list == NULL) {
 		printf("Device heap limit to low for lists\n");
