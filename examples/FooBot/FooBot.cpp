@@ -26,7 +26,7 @@ void FooBot::OnGameStart() {
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
 	this->astar = false;
-	this->astarPF = false;
+	this->astarPF = true;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
@@ -134,7 +134,7 @@ void FooBot::OnGameEnd() {
 
 void FooBot::Reset() {
 	++restarts_;
-	std::cout << "Game restarted after: " << Observation()->GetGameLoop() << " loops " << std::endl;
+	std::cout << "Restart: " << restarts_ << std::endl;
 
 	Debug()->DebugShowMap();
 	Debug()->SendDebug();
@@ -211,15 +211,15 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 		if (!astar && !astarPF) {
 			for (int i = 0; i < player_units.size(); ++i) {
 				if (player_units[i].unit == unit) {
-					std::cout << "Dead: " << player_units[i].dist_traveled << std::endl;
-					std::cout << "Damage taken:" << player_units[i].unit->health_max << std::endl;
+					//std::cout << "Dead: " << player_units[i].dist_traveled << std::endl;
+					//std::cout << "Damage taken:" << player_units[i].unit->health_max << std::endl;
 					units_died++;
 					total_damage += unit->health_max;
 					player_units.erase(player_units.begin() + i);
 					if (player_units.size() == 0) {
 						std::ofstream outfile("output.txt", std::ios::app);
 						for (int j = 0; j < enemy_units.size(); ++j)
-							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health;
+							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
 						outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl ;
 						//outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
 
@@ -234,8 +234,8 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 		else {
 			for (int i = 0; i < astar_units.size(); ++i) {
 				if (astar_units[i].unit == unit) {
-					std::cout << "Dead: " << astar_units[i].dist_traveled << std::endl;
-					std::cout << "Damage taken:" << astar_units[i].unit->health_max << std::endl;
+					//std::cout << "Dead: " << astar_units[i].dist_traveled << std::endl;
+					//std::cout << "Damage taken:" << astar_units[i].unit->health_max << std::endl;
 
 					units_died++;
 					total_damage += unit->health_max;
@@ -244,7 +244,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					if (astar_units.size() == 0) {
 						std::ofstream outfile("output.txt", std::ios::app);
 						for (int j = 0; j < enemy_units.size(); ++j)
-							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health;
+							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
 						outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
 						//outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
 
@@ -260,7 +260,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 		for (int i = 0; i < enemy_units.size(); ++i) {
 			if (enemy_units[i].unit == unit) {
 				units_died_enemy_units++;
-				total_damage_enemy_units += unit->health_max;
+				total_damage_enemy_units += unit->health_max + unit->shield_max;
 
 				enemy_units.erase(enemy_units.begin() + i);
 
@@ -585,8 +585,8 @@ void FooBot::UpdateAstarPath() {
 					sc2::Point2D current_pos = astar_units[i].unit->pos;
 					current_pos.y = MAP_Y_R - current_pos.y;
 					astar_units[i].dist_traveled += CalculateEuclideanDistance(current_pos, last_path_pos);
-					std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
-					std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
+					//std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
+					//std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 
 					/*std::ofstream outfile("output.txt", std::ios::app);
 					outfile << "Done: " << astar_units[i].unit->health_max - astar_units[i].unit->health << " Distance: " << astar_units[i].dist_traveled << std::endl;*/
@@ -636,7 +636,7 @@ void FooBot::UpdateAstarPFPath() {
 			// If unit is passive, it ignores enemies
 			if (astar_units[i].PF_mode && !astar) {
 				PrintValuesPF(i);
-				std::cout << "PF" << std::endl;
+				//std::cout << "PF" << std::endl;
 				float current_pf = 0;
 				if (astar_units[i].behavior == behaviors::DEFENCE)
 					current_pf = map_storage->GetGroundAvoidancePFValue((int)p1.y, (int)p1.x);
@@ -683,7 +683,7 @@ void FooBot::UpdateAstarPFPath() {
 			//A*
 			else if (astar && !new_path) {
 				PrintPath(i);
-				std::cout << "A*" << std::endl;
+				//std::cout << "A*" << std::endl;
 				if (astar_units[i].last_pos.x == -1) {
 					astar_units[i].last_pos = sc2::Point2D(astar_units[i].unit->pos.x, MAP_Y_R - astar_units[i].unit->pos.y);
 				}
@@ -705,11 +705,11 @@ void FooBot::UpdateAstarPFPath() {
 						sc2::Point2D current_pos = astar_units[i].unit->pos;
 						current_pos.y = MAP_Y_R - current_pos.y;
 						astar_units[i].dist_traveled += CalculateEuclideanDistance(current_pos, last_path_pos);
-						std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
-						std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
+						//std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
+						//std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 
-						std::ofstream outfile("output.txt", std::ios::app);
-						outfile << "Done: " << astar_units[i].unit->health_max - astar_units[i].unit->health << " Distance: " << astar_units[i].dist_traveled << std::endl;
+						/*std::ofstream outfile("output.txt", std::ios::app);
+						outfile << "Done: " << astar_units[i].unit->health_max - astar_units[i].unit->health << " Distance: " << astar_units[i].dist_traveled << std::endl;*/
 
 						if (astar_units.size() == 1) {
 							//Reset();
@@ -720,7 +720,7 @@ void FooBot::UpdateAstarPFPath() {
 			}
 			//Redo A* path
 			else if (new_path) {
-				std::cout << "New path" << std::endl;
+				//std::cout << "New path" << std::endl;
 				Node agent;
 				agent.euc_dist = 0;
 				agent.parentX = -1;
@@ -1043,8 +1043,8 @@ void FooBot::CommandsOnEmpty50() {
 			Debug()->DebugEnemyControl();
 			//Debug()->DebugShowMap();
 			spawned_player_units = 5;
-			spawned_enemy_units = 3;
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_VIKINGASSAULT, spawned_player_units, sc2::Point2D(5, 5));
+			spawned_enemy_units = 5;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_GHOST, spawned_player_units, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::ZERG_ROACH, spawned_enemy_units, sc2::Point2D(25, 25), 2);
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
