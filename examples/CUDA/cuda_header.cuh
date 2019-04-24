@@ -183,11 +183,11 @@ public:
 	__host__ void DeviceTransferDynamicMap(bool dynamic_terrain[][MAP_Y_R][1]);
 	__host__ void DeviceTransferUnitLookup();
 	__host__ void Tests(float ground_avoidance_PF[][MAP_Y_R][1], float air_avoidance_PF[][MAP_Y_R][1]);
-
+	
 	//Runtime functionality
 	__host__ void TransferUnitsToDevice();
 	__host__ void TransferDynamicMapToDevice(bool dynamic_terrain[][MAP_Y_R][1]);
-
+	  
 	//Runtime jobs
 	__host__ int QueueDeviceJob(int owner_id, float* map = nullptr);	//start PF generation job
 	__host__ int QueueDeviceJob(IntPoint2D destination, bool air_path, float* map = nullptr);	//start IM generation job
@@ -196,7 +196,7 @@ public:
 	__host__ DeviceMemoryStatus CheckJobStatus(int id);
 	__host__ DeviceMemoryStatus CheckJobStatus(AttractingFieldMemory* mem);
 	__host__ DeviceMemoryStatus CheckJobStatus(InfluenceMapMemory* mem);
-
+	
 	//Other functionality
 	__host__ const sc2::ObservationInterface* GetObservation();
 	__host__ sc2::DebugInterface* GetDebug();

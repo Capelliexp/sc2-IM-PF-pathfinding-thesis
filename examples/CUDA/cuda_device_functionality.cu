@@ -156,53 +156,61 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 
 	int nr_of_slice_loops = ((float)((int)(((float)nr_of_units / (float)register_list_size) - 0.00001)) + 1);
 	for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
-		for (int i = 0; i < register_list_size; ++i) {
-			if (i + slice * register_list_size >= nr_of_units) break;
-			register_list[i] = unit_list_s[i + (slice * register_list_size)];
+		for (int j = 0; j < register_list_size; ++j) {
+			register_list[j] = unit_list_s[j + (slice * register_list_size)];
 		}
 
 		for (int i = 0; i < register_list_size; ++i) {
-			if (register_list[i].id < 1 || register_list[i].id > 120) break;
+			if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_units;
 
 			other_info = device_unit_lookup[register_list[i].id];
 			other_entity = register_list[i];
 
-			float dist = (FloatDistance((int)other_entity.pos.x, (int)other_entity.pos.y, x, y) + 0.0001);
+			float dist = sqrtf(x - (int)other_entity.pos.x) * (x - (int)other_entity.pos.x) + (y - (int)other_entity.pos.y) * (y - (int)other_entity.pos.y) + 0.0001;
 			bool self_can_attack_other = (other_info.is_flying && self_info.can_attack_air) || (!other_info.is_flying && self_info.can_attack_ground);
 
 			if (other_entity.enemy) {	//attack enemy
+			//	//tot_charge += register_list[i].id + other_info.can_attack_air + other_entity.id + dist + self_can_attack_other;	//TEST
 				if (self_can_attack_other) {	//can attack unit
 					if (self_info.range < 1.1) {	//self is melee
 						if (dist < 10) {	//attack enemy
 							tot_charge -= 10 / dist;
+							goto end_of_loop;
 						}
+						goto end_of_loop;
 					}
-					else {	//self is ranged
-						float range_diff = self_info.range - other_info.range;
-						if (range_diff >= 0) {	//self more range than other
-							if (dist <= (self_info.range + (self_info.radius /*+ 1*/))) {	//avoid area close to enemy
-								tot_charge += 40 - (dist * 2);
-							}
-							else if (dist < self_info.range * 1.2 || dist < 10) {	//attack enemy
-								tot_charge -= 10 - (dist);
-							}
-						}
-						else {	//attack other with larger range than self
-							tot_charge -= 10 / dist;
-						}
+
+					//self is ranged:
+					if ((self_info.range - other_info.range) > -0.001) {	//self more range than other - OBS TEST
+						//if (dist <= (self_info.range + (self_info.radius /*+ 1*/))) {	//avoid area close to enemy
+						//	tot_charge += 40 - (dist * 2);
+						//	goto end_of_loop;
+						//}
+						//if (dist < self_info.range * 1.2 || dist < 10) {	//attack enemy
+						//	tot_charge -= 10 - (dist);
+						//}
+						goto end_of_loop;
 					}
+
+					//attack other with larger range than self:
+					//tot_charge -= 10 / dist;
+				}
+
+				goto end_of_loop;
+			}
+
+			//avoid friend:
+			if (self_info.is_flying == other_info.is_flying) {
+				int res = 1 - (int)dist + (int)(other_info.radius + 0.5);
+				if (res > 0) {
+					tot_charge += (res / 2.f);
 				}
 			}
-			else {	//avoid friend
-				if (self_info.is_flying == other_info.is_flying) {
-					int res = 1 - (int)dist + (int)(other_info.radius + 0.5);
-					if (res > 0) {
-						tot_charge += (res / 2.f);
-					}
-				}
-			}
+			
+		end_of_loop:
 		}
 	}
+end_of_units:
 
 	((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = tot_charge;
 }
