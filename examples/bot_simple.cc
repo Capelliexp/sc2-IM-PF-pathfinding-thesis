@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     //std::string map = "hard_one";
     //std::string map = "hard_two";
 
-    int command = 3;
+    int command = 2;
 
     // Add the custom bot, it will control the players.
     FooBot bot(map, command);

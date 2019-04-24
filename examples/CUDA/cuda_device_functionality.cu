@@ -28,14 +28,14 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	float largest_ground_charge = 0;
 	float largest_air_charge = 0;
 
-	int nr_of_slice_loops = (int)((float)((int)(nr_of_units / register_list_size) - 0.00001) + 1);
+	int nr_of_slice_loops = ((float)((int)(((float)nr_of_units / (float)register_list_size) - 0.00001)) + 1);
 	for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
 		for (int i = 0; i < register_list_size; ++i) {
 			register_list[i] = unit_list_s[i + (slice * register_list_size)];
 		}
 
 		for (int i = 0; i < register_list_size; ++i) {
-			if (register_list[i].id == 0) break;	//break if we reach end of list
+			if (register_list[i].id < 1 || register_list[i].id > 120) break;	//break if we reach end of list
 
 			UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
 			float range_sub = fmaxf(unit.range, 3) + 2;
@@ -93,14 +93,14 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 	float largest_ground_charge = 0;
 	float largest_air_charge = 0;
 
-	int nr_of_slice_loops = (int)((float)((int)(nr_of_units / register_list_size) - 0.00001) + 1);
+	int nr_of_slice_loops = ((float)((int)(((float)nr_of_units / (float)register_list_size) - 0.00001)) + 1);
 	for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
 		for (int i = 0; i < register_list_size; ++i) {
 			register_list[i] = unit_list_s[i + (slice * register_list_size)];
 		}
 
 		for (int i = 0; i < register_list_size; ++i) {
-			if (register_list[i].id == 0) break;
+			if (register_list[i].id < 1 || register_list[i].id > 120) break;
 
 			UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
 			float dist = (FloatDistance((int)register_list[i].pos.x, (int)register_list[i].pos.y, x, y) + 0.0001);
@@ -154,17 +154,18 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 	UnitInfoDevice other_info;
 	Entity other_entity;
 
-	int nr_of_slice_loops = (int)((float)((int)(nr_of_units / register_list_size) - 0.00001) + 1);
+	int nr_of_slice_loops = ((float)((int)(((float)nr_of_units / (float)register_list_size) - 0.00001)) + 1);
 	for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
 		for (int i = 0; i < register_list_size; ++i) {
+			if (i + slice * register_list_size >= nr_of_units) break;
 			register_list[i] = unit_list_s[i + (slice * register_list_size)];
 		}
 
 		for (int i = 0; i < register_list_size; ++i) {
-			if (register_list[i].id == 0) break;
+			if (register_list[i].id < 1 || register_list[i].id > 120) break;
 
-			other_info = device_unit_lookup[unit_list_s[i].id];
-			other_entity = unit_list_s[i];
+			other_info = device_unit_lookup[register_list[i].id];
+			other_entity = register_list[i];
 
 			float dist = (FloatDistance((int)other_entity.pos.x, (int)other_entity.pos.y, x, y) + 0.0001);
 			bool self_can_attack_other = (other_info.is_flying && self_info.can_attack_air) || (!other_info.is_flying && self_info.can_attack_ground);
@@ -300,10 +301,10 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 	//-----------------------------
 
-	const int max_step_loops = 1400;
+	const int max_step_loops = 2800;
 	const int max_open_list_size = max_step_loops * 3 + 1;
 	const int max_closed_list_size = max_step_loops + 1;
-	for (int step_iterator = 0; step_iterator < 1400; ++step_iterator) {
+	for (int step_iterator = 0; step_iterator < max_step_loops; ++step_iterator) {
 		//~1400 is the nr of iterations it takes for the longest path to be calculated in the complex experiment map
 		
 		block_check = false;
