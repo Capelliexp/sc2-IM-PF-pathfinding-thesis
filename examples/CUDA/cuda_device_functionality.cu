@@ -31,17 +31,17 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	int nr_of_slice_loops = ((float)((int)(((float)nr_of_units / (float)register_list_size) - 0.00001)) + 1);
 	for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
 		for (int i = 0; i < register_list_size; ++i) {
+			if (i + (slice * register_list_size) >= nr_of_units) break;
 			register_list[i] = unit_list_s[i + (slice * register_list_size)];
 		}
 
 		for (int i = 0; i < register_list_size; ++i) {
-			if (register_list[i].id < 1 || register_list[i].id > 120) break;	//break if we reach end of list
+			if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loop;	//break if we reach end of list
 
 			UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
 			float range_sub = fmaxf(unit.range, 3) + 2;
 			//float dist = (FloatDistance((int)register_list[i].pos.x, (int)register_list[i].pos.y, x, y) + 0.0001);
 			float dist = sqrtf((x - (int)register_list[i].pos.x) * (x - (int)register_list[i].pos.x) + (y - (int)register_list[i].pos.y) * (y - (int)register_list[i].pos.y)) + 0.0001;
-
 
 			if (register_list[i].enemy) {	//avoid enemies
 				if (dist < range_sub) {
@@ -60,6 +60,7 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 			}
 		}
 	}
+	end_of_loop:
 
 	//write ground_charge and air_charge to global memory in owned coord
 	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
@@ -98,11 +99,12 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 	int nr_of_slice_loops = ((float)((int)(((float)nr_of_units / (float)register_list_size) - 0.00001)) + 1);
 	for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
 		for (int i = 0; i < register_list_size; ++i) {
+			if (i + (slice * register_list_size) >= nr_of_units) break;
 			register_list[i] = unit_list_s[i + (slice * register_list_size)];
 		}
 
 		for (int i = 0; i < register_list_size; ++i) {
-			if (register_list[i].id < 1 || register_list[i].id > 120) break;
+			if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loops;
 
 			UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
 			//float dist = (FloatDistance((int)register_list[i].pos.x, (int)register_list[i].pos.y, x, y) + 0.0001);
@@ -125,6 +127,7 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 			}
 		}
 	}
+	end_of_loops:
 
 	//write ground_charge and air_charge to global memory in owned coord
 	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
@@ -133,7 +136,7 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map){
 	extern __shared__ Entity unit_list_s[];
-	memset(unit_list_s, 0, (nr_of_units * sizeof(Entity)) + ((32 * sizeof(Entity)) - ((nr_of_units * sizeof(Entity))) % 32));
+	//memset(unit_list_s, 0, (nr_of_units * sizeof(Entity)) + ((32 * sizeof(Entity)) - ((nr_of_units * sizeof(Entity))) % 32));
 
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -167,11 +170,14 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 			UnitInfoDevice other_info = device_unit_lookup[register_list[i].id];
 			Entity other_entity = register_list[i];
 
-			float dist = sqrtf(x - (int)other_entity.pos.x) * (x - (int)other_entity.pos.x) + (y - (int)other_entity.pos.y) * (y - (int)other_entity.pos.y) + 0.0001;
+			//float dist = sqrtf(x - (int)other_entity.pos.x) * (x - (int)other_entity.pos.x) + (y - (int)other_entity.pos.y) * (y - (int)other_entity.pos.y) + 0.0001;
 			bool self_can_attack_other = (other_info.is_flying && self_info.can_attack_air) || (!other_info.is_flying && self_info.can_attack_ground);
 
+			float a = ((int)other_entity.pos.x - x) * ((int)other_entity.pos.x - x);
+			float b = ((int)other_entity.pos.y - y) * ((int)other_entity.pos.y - y);
+			float dist = sqrtf(a + b) + 0.0001;
+
 			if (other_entity.enemy) {	//attack enemy
-			//	//tot_charge += register_list[i].id + other_info.can_attack_air + other_entity.id + dist + self_can_attack_other;	//TEST
 				if (self_can_attack_other) {	//can attack unit
 					if (self_info.range < 1.1) {	//self is melee
 						if (dist < 10) {	//attack enemy
@@ -179,9 +185,8 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 						}
 					}
 					else {	//self is ranged
-						float diff = self_info.range - other_info.range;
-						if (diff >= 0) {	//self more range than other - OBS TEST
-							if (dist <= (self_info.range + (self_info.radius /*+ 1*/))) {	//avoid area close to enemy
+						if ((self_info.range - other_info.range) >= 0) {	//self more range than other
+							if (dist <= (self_info.range + (self_info.radius))) {	//avoid area close to enemy
 								tot_charge += 40 - (dist * 2);
 							}
 							else if (dist < (self_info.range * 1.2) || dist < 10) {	//attack enemy
@@ -269,7 +274,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	node register_list[register_list_size];
 
 	//CREATE SHARED ARRAY
-	const int mem_per_SM = 47616;	//normal: 49152, 1536 (384 per block) reserved for block intra-communication
+	const int mem_per_SM = 47616;	//normal: 49152, 1536B (384B per block) reserved for block intra-communication
 	const int mem_per_block = mem_per_SM / 4;
 	const int nodes_per_block = mem_per_block / sizeof(node);	// = 992 (should be 1024) 
 	const int nodes_per_thread = nodes_per_block / 32;	// = 31 (should be 32)
