@@ -883,13 +883,14 @@ void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 				float value = player_units[unit].destination->map[(int)p.y][(int)p.x][0];
 				//int pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
 				if (PointInsideRect(p, { 0, 0 }, { MAP_X_R, MAP_Y_R }, 0)) {
-					float pf = map_storage->GetAttractingPF(player_units[unit].unit->unit_type, (int)p.y, (int)p.x);
+					//float pf = map_storage->GetAttractingPF(player_units[unit].unit->unit_type, (int)p.y, (int)p.x);
+					float pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
 					value += pf;
-					//Debug()->DebugTextOut(std::to_string(pf), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
-					pf = min(pf, 60);
-					pf = max(pf, 1);
-					sc2::Color c = sc2::Color(255 * (60 - (60 / pf)), 0, 0);
-					Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);
+					Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
+					//pf = min(pf, 60);
+					//pf = max(pf, 1);
+					//sc2::Color c = sc2::Color(255 * (60 - (60 / pf)), 0, 0);
+					//Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);
 				}
 			}
 		}
@@ -1641,7 +1642,7 @@ void FooBot::CommandsOnHardTwo() {
 		if (spawned_player_units == -1 && spawned_enemy_units == -1) {
 			spawned_player_units = 1;
 			spawned_enemy_units = 4;
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(10, 7));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(8, 11));
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(17, 14), 2);
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(37, 32), 2);
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(29, 38), 2);

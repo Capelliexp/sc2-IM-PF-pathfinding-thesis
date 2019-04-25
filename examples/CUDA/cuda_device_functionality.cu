@@ -79,6 +79,7 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 end_of_loop:
 	
 	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
+	memset(unit_list_s, 0, 1664);
 
 	//write ground_charge and air_charge to global memory in owned coord
 	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;

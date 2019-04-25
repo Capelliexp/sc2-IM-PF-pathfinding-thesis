@@ -30,15 +30,15 @@ int main(int argc, char* argv[]) {
     coordinator.SetStepSize(1);
 
     //! Om du ändrar denna variable. Glöm inte att ändra #define MAP_X och #define MAP_Y i map_storage.hpp.
-    std::string map = "empty50";
+    //std::string map = "empty50";
 
     //! Experiment/Labyrinth
     //std::string map = "easy";
     //std::string map = "medium";
     //std::string map = "hard_one";
-    //std::string map = "hard_two";
+    std::string map = "hard_two";
 
-    int command = 3;
+    int command = 2;
 
     // Add the custom bot, it will control the players.
     FooBot bot(map, command);
@@ -58,8 +58,8 @@ int main(int argc, char* argv[]) {
     PrintMemoryUsage("SC2 launch");
 
     // Step forward the game simulation.
-    map = std::string("Test/" + map + ".SC2Map");
-    //map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
+    //map = std::string("Test/" + map + ".SC2Map");
+    map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
     char* str = new char[map.size()];
     std::strcpy(str, map.c_str());
 
