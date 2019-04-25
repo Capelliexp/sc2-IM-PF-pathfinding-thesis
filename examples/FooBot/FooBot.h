@@ -36,6 +36,7 @@ struct Unit {
     sc2::Point2D last_pos;
     sc2::Point2D next_pos;
     std::vector<sc2::Point2D> path_taken;
+    bool destination_reached;
 };
 
 //! Struct holding unit and the path to its destination. Used for A*
@@ -155,7 +156,7 @@ private:
     int spawned_player_units;
     int spawned_enemy_units;
     bool destination_set;
-
+    int units_reached_destination;
     //! Integer that represents the current map;
     int map;
 
