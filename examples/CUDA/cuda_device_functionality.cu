@@ -5,18 +5,14 @@
 
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
 	extern __shared__ Entity unit_list_s[];
-	//memset(unit_list_s, 0, (nr_of_units * sizeof(Entity)) + ((32 * sizeof(Entity)) - ((nr_of_units * sizeof(Entity))) % 32));
+	memset(unit_list_s, 0, 1664);
 
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
 	int id_block = threadIdx.x + threadIdx.y * blockDim.x;
 
 	//move unit list to shared memory
-	if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
-
-	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) {	//return if start tex is out of bounds 
-		return;
-	}
+	//if (id_block < nr_of_units) unit_list_s[id_block] = device_unit_list_pointer[id_block];
 
 	const int register_list_size = 16;
 	Entity register_list[register_list_size];
@@ -28,39 +24,61 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 	float largest_ground_charge = 0;
 	float largest_air_charge = 0;
 
-	int nr_of_slice_loops = ((float)((int)(((float)nr_of_units / (float)register_list_size) - 0.00001)) + 1);
-	for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
-		for (int i = 0; i < register_list_size; ++i) {
-			if (i + (slice * register_list_size) >= nr_of_units) break;
-			register_list[i] = unit_list_s[i + (slice * register_list_size)];
+	const int shared_list_size = 128 - 16;
+	const int thread_shared_transfer_size = shared_list_size / 32;
+
+	int nr_of_shared_part_loops = ((float)((int)(((float)nr_of_units / (float)shared_list_size) - 0.00001)) + 1);
+	for (int shared_part = 0; shared_part < nr_of_shared_part_loops; ++shared_part) {
+		__syncthreads();
+
+		if (id_block * thread_shared_transfer_size <= (shared_list_size - thread_shared_transfer_size)) {
+			memset((void*)&unit_list_s[id_block * thread_shared_transfer_size], 0, thread_shared_transfer_size * sizeof(Entity));
+			memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[id_block * thread_shared_transfer_size], thread_shared_transfer_size * sizeof(Entity));
 		}
 
-		for (int i = 0; i < register_list_size; ++i) {
-			if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loop;	//break if we reach end of list
+		__syncthreads();
 
-			UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
-			float range_sub = fmaxf(unit.range, 3) + 2;
-			//float dist = (FloatDistance((int)register_list[i].pos.x, (int)register_list[i].pos.y, x, y) + 0.0001);
-			float dist = sqrtf((x - (int)register_list[i].pos.x) * (x - (int)register_list[i].pos.x) + (y - (int)register_list[i].pos.y) * (y - (int)register_list[i].pos.y)) + 0.0001;
+		if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) continue;
 
-			if (register_list[i].enemy) {	//avoid enemies
-				if (dist < range_sub) {
-					float curr_ground_charge = ((range_sub / dist) * unit.can_attack_ground) + 50;
-					float curr_air_charge = ((range_sub / dist) * unit.can_attack_air) + 50;
-					if (curr_ground_charge > largest_ground_charge) largest_ground_charge = curr_ground_charge;
-					if (curr_air_charge > largest_air_charge) largest_air_charge = curr_air_charge;
-				}
+		//int nr_of_slice_loops = ((float)((int)(((float)nr_of_units / (float)register_list_size) - 0.00001)) + 1);
+		int nr_of_slice_loops = shared_list_size / register_list_size;
+		for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
+			for (int i = 0; i < register_list_size; ++i) {
+				//if (i + (slice * register_list_size) >= nr_of_units) break;
+				//register_list[i] = unit_list_s[i + (slice * register_list_size)];
+				register_list[i] = unit_list_s[i + (slice * register_list_size) + shared_part * register_list_size];
 			}
-			else {	//avoid friendlies
-				int res = 1 - (int)dist + (int)(unit.radius + 0.5);
-				if (res > 0) {
-					ground_charge += (res / 2.f) * !(unit.is_flying);
-					air_charge += (res / 2.f) * unit.is_flying;
+
+			for (int i = 0; i < register_list_size; ++i) {
+				if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loop;	//break if we reach end of list
+
+				UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
+				float range_sub = fmaxf(unit.range, 3) + 2;
+				//float dist = (FloatDistance((int)register_list[i].pos.x, (int)register_list[i].pos.y, x, y) + 0.0001);
+				float dist = sqrtf((x - (int)register_list[i].pos.x) * (x - (int)register_list[i].pos.x) + (y - (int)register_list[i].pos.y) * (y - (int)register_list[i].pos.y)) + 0.0001;
+
+				if (register_list[i].enemy) {	//avoid enemies
+					if (dist < range_sub) {
+						float curr_ground_charge = ((range_sub / dist) * unit.can_attack_ground) + 50;
+						float curr_air_charge = ((range_sub / dist) * unit.can_attack_air) + 50;
+						if (curr_ground_charge > largest_ground_charge) largest_ground_charge = curr_ground_charge;
+						if (curr_air_charge > largest_air_charge) largest_air_charge = curr_air_charge;
+					}
+				}
+				else {	//avoid friendlies
+					int res = 1 - (int)dist + (int)(unit.radius + 0.5);
+					if (res > 0) {
+						ground_charge += (res / 2.f) * !(unit.is_flying);
+						air_charge += (res / 2.f) * unit.is_flying;
+					}
 				}
 			}
 		}
 	}
-	end_of_loop:
+
+end_of_loop:
+	
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
 
 	//write ground_charge and air_charge to global memory in owned coord
 	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
