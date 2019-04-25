@@ -148,7 +148,10 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 						}
 					}
 					else {	//attack other with larger range than self
-						tot_charge -= 10 / dist;
+						if (dist < (self_info.range - 1))
+							tot_charge += 40 - (dist * 2);
+						else
+							tot_charge -= 10 / dist;
 					}
 				}
 			}
@@ -260,11 +263,11 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 	//-----------------------------
 
-	const int max_step_loops = 1400;
+	const int max_step_loops = 2800;
 	const int max_open_list_size = max_step_loops * 3 + 1;
 	const int max_closed_list_size = max_step_loops + 1;
-	for (int step_iterator = 0; step_iterator < 1400; ++step_iterator) {
-		//~1400 is the nr of iterations it takes for the longest path to be calculated in the complex experiment map
+	for (int step_iterator = 0; step_iterator < max_step_loops; ++step_iterator) {
+		//~2800 is the nr of iterations it takes for the longest path to be calculated in the complex experiment map
 		
 		block_check = false;
 		if (shared_closed_it - shared_open_it < 6) block_check = true;	//check if 1 or more threads need to move data from shared to global
