@@ -83,7 +83,7 @@ __host__ void CUDA::InitializeCUDA(const sc2::ObservationInterface* observations
 	this->actions = actions;
 	this->actions_feature_layer = actions_feature_layer;
 
-	dim_block_high = { 32, 32, 1 };
+	dim_block_high = { 32, 16, 1 };
 	unsigned int x1 = (unsigned int)(ceil((MAP_X_R - 1) / (float)dim_block_high.x) + 0.5);
 	unsigned int y1 = (unsigned int)(ceil((MAP_Y_R - 1) / (float)dim_block_high.y) + 0.5);
 	dim_grid_high = { x1, y1, 1 };
@@ -395,6 +395,8 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_air), "repelling PF air memcpy");
 
 		cudaEventRecord(repelling_PF_event_done);
+
+		PopErrorsCheck("PF-repelling job");
 	}
 
 	//start IM job
@@ -412,6 +414,8 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		//mem->status = DeviceMemoryStatus::BUSY;
 		cudaEventRecord(mem->done, 0);
 		IM_queue.pop();
+
+		PopErrorsCheck("IM job");
 	}
 
 	//start PF-attracting jobs
@@ -430,12 +434,14 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		//mem->status = DeviceMemoryStatus::BUSY;
 		cudaEventRecord(mem->done, 0);
 		PF_queue.pop();
+
+		PopErrorsCheck("PF-attracting job loop " + std::to_string(i));
 	}
 
-	PopErrorsCheck();
+	PopErrorsCheck("Execute Device Jobs End 1");
 	
 	cudaDeviceSynchronize();
-	PopErrorsCheck("Execute Device Jobs End");
+	PopErrorsCheck("Execute Device Jobs End 2");
 
 	return Result::OK;
 }
@@ -561,19 +567,27 @@ __host__ DeviceMemoryStatus CUDA::CheckJobStatus(InfluenceMapMemory* mem){
 /*KERNAL LAUNCHES START*/
 
 __host__ void CUDA::RepellingPFGeneration() {
-	if (host_unit_list.size() > 0)
-		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
-		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	if (host_unit_list.size() > 0) {
+		//int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
+
+		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 1664 >> >
+			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	}
 }
 
 __host__ void CUDA::LargeRepellingPFGeneration() {
-	if (host_unit_list.size() > 0)
-		DeviceLargeRepellingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
-		(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	if (host_unit_list.size() > 0) {
+		//int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
+
+		DeviceLargeRepellingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 1664 >> >
+			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
+	}
 }
 
 __host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map){
-	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, (host_unit_list.size() * sizeof(Entity)) >> >
+	//int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
+
+	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 1664 >> >
 		(device_unit_list_pointer, host_unit_list.size(), owner_type_id, device_map);
 }
 
