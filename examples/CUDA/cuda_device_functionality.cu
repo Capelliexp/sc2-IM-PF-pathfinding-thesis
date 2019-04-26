@@ -79,9 +79,8 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 
 end_of_loop:
 	
-	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
-	
 	memset(unit_list_s, 0, 1664);
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
 
 	//write ground_charge and air_charge to global memory in owned coord
 	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
@@ -168,9 +167,8 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 	}
 end_of_loops:
 
-	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
-
 	memset(unit_list_s, 0, 1664);
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
 
 	//write ground_charge and air_charge to global memory in owned coord
 	((float*)(((char*)device_map_ground.ptr) + y * device_map_ground.pitch))[x] = ground_charge + largest_ground_charge;
@@ -274,9 +272,8 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 	}
 end_of_units:
 
-	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
-
 	memset(unit_list_s, 0, 1664);
+	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
 
 	((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = tot_charge;
 }

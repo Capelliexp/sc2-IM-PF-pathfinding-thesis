@@ -42,6 +42,9 @@ __host__ void CUDA::Reset() {
 		PF_queue.pop();
 	while (!IM_queue.empty())
 		IM_queue.pop();
+
+	host_unit_list.clear();
+	TransferUnitsToDevice();
 }
 
 __host__ void CUDA::PrintGenInfo() {
