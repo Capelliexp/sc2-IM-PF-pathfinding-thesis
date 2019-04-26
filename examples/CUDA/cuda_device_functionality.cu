@@ -224,8 +224,8 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {
-				//if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_units;
-				if (i + slice * nr_of_slice_loops + shared_part * shared_list_size > nr_of_units) goto end_of_units;	//break if we reach end of list
+				if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_units;
+				if ((i + (slice * nr_of_slice_loops) + (shared_part * shared_list_size)) > nr_of_units) goto end_of_units;	//break if we reach end of list
 
 				UnitInfoDevice other_info = device_unit_lookup[register_list[i].id];
 				Entity other_entity = register_list[i];
@@ -272,8 +272,9 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 	}
 end_of_units:
 
-	memset(unit_list_s, 0, 1664);
 	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
+
+	memset(unit_list_s, 0, 1664);
 
 	((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = tot_charge;
 }
