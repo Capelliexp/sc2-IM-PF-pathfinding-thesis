@@ -377,7 +377,7 @@ __host__ int CUDA::QueueDeviceJob(IntPoint2D destination, bool air_path, float* 
 }
 
 __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 
 	//start PF-repelling job
 	int i = 0 + 100;
@@ -440,7 +440,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 
 	PopErrorsCheck("Execute Device Jobs End 1");
 	
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 	PopErrorsCheck("Execute Device Jobs End 2");
 
 	return Result::OK;

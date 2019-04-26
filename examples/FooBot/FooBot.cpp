@@ -460,8 +460,8 @@ void FooBot::UpdateUnitsPaths() {
 		translated_pos.x = translated_pos.x;
 		translated_pos.y = MAP_Y_R - translated_pos.y;
 
-		if (i == 0)
-			PrintValues(i, translated_pos);
+		/*if (i == 0)
+			PrintValues(i, translated_pos);*/
 
 		if (player_units[i].destination->destination == sc2::Point2D((int)translated_pos.x, (int)translated_pos.y)) {	//Found destination.
 			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, player_units[i].next_pos);
