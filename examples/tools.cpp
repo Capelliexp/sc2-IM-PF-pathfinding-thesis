@@ -34,3 +34,15 @@ void PrintMemoryUsage(std::string location) {
 		//"   Physical memory currently used: " << physMemUsed << " bytes" << std::endl <<
 		"   Physical memory currently used by process: " << physMemUsedByMe << " bytes" << std::endl;
 }
+
+void PrintFrameTimesToFile(float* data, int length, std::string file_name) {
+	std::ofstream file(file_name);
+
+	if (!file.is_open()) std::cout << "FPS output FAILED" << std::endl;
+
+	for (int i = 0; i < length; ++i) {
+		file << data[i] << "\n";
+	}
+
+	file.close();
+}
