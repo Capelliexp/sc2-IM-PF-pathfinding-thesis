@@ -82,6 +82,8 @@ int main(int argc, char* argv[]) {
     std::vector<float> frame_storage;
     frame_storage.reserve(1000);
 
+    //VRF BLIR PROGRAMMET LÅNGSAMMARE EFTER TESTENS SLUT?!?
+
     //--------
     if (clock_type == MeasureType::CHRONO) {
         std::chrono::steady_clock::time_point frame_start;
@@ -99,6 +101,8 @@ int main(int argc, char* argv[]) {
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync.txt");
         }
     }
     //--------
@@ -120,6 +124,8 @@ int main(int argc, char* argv[]) {
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync.txt");
         }
     }
     //--------
@@ -141,6 +147,8 @@ int main(int argc, char* argv[]) {
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync.txt");
         }
     }
 

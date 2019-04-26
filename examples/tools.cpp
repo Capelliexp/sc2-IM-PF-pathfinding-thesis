@@ -38,11 +38,16 @@ void PrintMemoryUsage(std::string location) {
 void PrintFrameTimesToFile(float* data, int length, std::string file_name) {
 	std::ofstream file(file_name);
 
-	if (!file.is_open()) std::cout << "FPS output FAILED" << std::endl;
+	if (!file.is_open()) {
+		std::cout << "Frame time output FAILED" << std::endl;
+		return;
+	}
 
 	for (int i = 0; i < length; ++i) {
 		file << data[i] << "\n";
 	}
 
 	file.close();
+
+	std::cout << "Frame time output to " << file_name << std::endl;
 }
