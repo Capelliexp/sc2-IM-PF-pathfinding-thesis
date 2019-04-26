@@ -27,7 +27,7 @@ void FooBot::OnGameStart() {
 	this->destination_set = false;
 	this->astar = false;
 	this->astarPF = false;
-	this->new_buildings = true;
+	this->new_buildings = false;
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->total_damage = 0;
@@ -1058,7 +1058,7 @@ void FooBot::CommandsOnEmpty50() {
 			//Debug()->DebugShowMap();
 			spawned_player_units = 5;
 			spawned_enemy_units = 5;
-			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_player_units, sc2::Point2D(5, 5));
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5, 5));
 			SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_enemy_units, sc2::Point2D(25, 25), 2);
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
