@@ -34,6 +34,8 @@ void FooBot::OnGameStart() {
 	this->units_died = 0;
 	this->total_damage_enemy_units = 0;
 	this->units_died_enemy_units = 0;
+	this->units_reached_destination = 0;
+	this->can_see_map = false;
 
 	map_storage = new MapStorage();
 	
@@ -135,8 +137,8 @@ void FooBot::OnGameEnd() {
 void FooBot::Reset() {
 	++restarts_;
 	std::cout << "Restart: " << restarts_ << std::endl;
-
-	Debug()->DebugShowMap();
+	if (!can_see_map)
+		Debug()->DebugShowMap();
 	Debug()->SendDebug();
 	for (int i = 0; i < player_units.size(); ++i) {
 		Debug()->DebugKillUnit(player_units[i].unit);
@@ -147,7 +149,8 @@ void FooBot::Reset() {
 	for (int i = 0; i < enemy_units.size(); ++i) {
 		Debug()->DebugKillUnit(enemy_units[i].unit);
 	}
-	Debug()->DebugShowMap();
+	if (!can_see_map)
+		Debug()->DebugShowMap();
 	Debug()->SendDebug();
 
 	this->player_units.clear();
@@ -214,7 +217,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					//std::cout << "Dead: " << player_units[i].dist_traveled << std::endl;
 					//std::cout << "Damage taken:" << player_units[i].unit->health_max << std::endl;
 					units_died++;
-					total_damage += unit->health_max;
+					total_damage += unit->health_max + unit->shield_max;
 					player_units.erase(player_units.begin() + i);
 					if (player_units.size() == 0) {
 						std::ofstream outfile("output.txt", std::ios::app);
@@ -238,7 +241,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					//std::cout << "Damage taken:" << astar_units[i].unit->health_max << std::endl;
 
 					units_died++;
-					total_damage += unit->health_max;
+					total_damage += unit->health_max + unit->shield_max;
 
 					astar_units.erase(astar_units.begin() + i);
 					if (astar_units.size() == 0) {
@@ -266,9 +269,9 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 
 				if (enemy_units.size() == 0) {
 					for (int j = 0; j < player_units.size(); ++j)
-						total_damage += player_units[j].unit->health_max - player_units[j].unit->health;
+						total_damage += player_units[j].unit->health_max - player_units[j].unit->health + player_units[j].unit->shield_max - player_units[j].unit->shield;
 					for (int j = 0; j < astar_units.size(); ++j)
-						total_damage += astar_units[j].unit->health_max - astar_units[j].unit->health;
+						total_damage += astar_units[j].unit->health_max - astar_units[j].unit->health + astar_units[j].unit->shield_max - astar_units[j].unit->shield;
 					std::ofstream outfile("output.txt", std::ios::app);
 					outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
 					//outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
@@ -296,6 +299,8 @@ void FooBot::OnUnitCreated(const sc2::Unit * unit) {
 			new_unit.dist_traveled = 0;
 			new_unit.last_pos = sc2::Point2D(-1, -1);
 			new_unit.next_pos = sc2::Point2D(-1, -1);
+			new_unit.destination = nullptr;
+			new_unit.destination_reached = false;
 			this->player_units.push_back(new_unit);
 		}
 		else {
@@ -462,6 +467,13 @@ void FooBot::UpdateUnitsPaths() {
 			player_units[i].dist_traveled += CalculateEuclideanDistance(player_units[i].last_pos, player_units[i].next_pos);
 			player_units[i].path_taken.push_back(player_units[i].next_pos);
 			player_units[i].last_pos = translated_pos;
+			if (player_units[i].destination_reached == false)
+				++units_reached_destination;
+			player_units[i].destination_reached = true;
+			if (units_reached_destination == player_units.size()) {
+				std::ofstream outfile("output.txt", std::ios::app);
+				outfile << "Time" << std::endl;
+			}
 			//std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
 			//std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 
@@ -524,10 +536,11 @@ void FooBot::UpdateUnitsPaths() {
 			float pf_value = 0;
 			if (player_units[i].behavior == behaviors::DEFENCE)
 				pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
-			else if (player_units[i].behavior == behaviors::ATTACK)
+			else if (player_units[i].behavior == behaviors::ATTACK) {
 				pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x);
-			if (enemy_units.size() > 0 && pf_value >= 4) {
-				new_value = 0;
+				if (enemy_units.size() > 0 && pf_value >= 4) {
+					new_value = 0;
+				}
 			}
 			new_value += pf_value;
 
@@ -543,6 +556,7 @@ void FooBot::UpdateUnitsPaths() {
 			if (player_units[i].behavior == behaviors::DEFENCE || player_units[i].behavior == behaviors::PASSIVE)
 				Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 			else if (player_units[i].behavior == behaviors::ATTACK) {
+				//Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::ATTACK, new_pos);
 				if (player_units[i].unit->weapon_cooldown < 1)
 					Actions()->UnitCommand(player_units[i].unit, sc2::ABILITY_ID::ATTACK, new_pos);
 				else
@@ -673,7 +687,8 @@ void FooBot::UpdateAstarPFPath() {
 					if (astar_units[i].behavior == behaviors::DEFENCE)
 						Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 					else if (astar_units[i].behavior == behaviors::ATTACK) {
-						if (astar_units[i].unit->weapon_cooldown == 0)
+						//Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::ATTACK, new_pos);
+						if (astar_units[i].unit->weapon_cooldown < 1)
 							Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::ATTACK, new_pos);
 						else
 							Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
@@ -876,21 +891,21 @@ void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 	pp.z += 0.1f;
 	sc2::Point3D translated = pp;
 	translated.y = MAP_Y_R - translated.y;
-	for (int y = -20; y <= 20; ++y) {
-		for (int x = -20; x <= 20; ++x) {
+	for (int y = -50; y <= 50; ++y) {
+		for (int x = -50; x <= 50; ++x) {
 			sc2::Point3D p = sc2::Point3D(translated.x + x, translated.y - y, translated.z);
 			if (p.x < MAP_X_R && p.y < MAP_Y_R && p.x >= 0 && p.y >= 0) {
-				float value = player_units[unit].destination->map[(int)p.y][(int)p.x][0];
-				//int pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
 				if (PointInsideRect(p, { 0, 0 }, { MAP_X_R, MAP_Y_R }, 0)) {
-					//float pf = map_storage->GetAttractingPF(player_units[unit].unit->unit_type, (int)p.y, (int)p.x);
-					float pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
-					value += pf;
+					int value = player_units[unit].destination->map[(int)p.y][(int)p.x][0];
+					int pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
+					//int pf = map_storage->GetAttractingPF(player_units[unit].unit->unit_type, (int)p.y, (int)p.x);
+					if (value >= 0)
+						value += pf;
 					Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
-					//pf = min(pf, 60);
-					//pf = max(pf, 1);
-					//sc2::Color c = sc2::Color(255 * (60 - (60 / pf)), 0, 0);
-					//Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);
+					/*pf = min(pf, 60);
+					pf = max(pf, 1);
+					sc2::Color c = sc2::Color(255 * (60 - (60 / pf)), 0, 0);
+					Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);*/
 				}
 			}
 		}
@@ -1042,7 +1057,6 @@ void FooBot::CommandsOnEmpty50() {
 	case 3: {
 		if (spawned_player_units == -1 && spawned_enemy_units == -1) {
 			Debug()->DebugEnemyControl();
-			//Debug()->DebugShowMap();
 			spawned_player_units = 5;
 			spawned_enemy_units = 5;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(5, 5));
@@ -1117,14 +1131,14 @@ void FooBot::CommandsOnEmpty50() {
 	}
 	case 7: {
 		if (spawned_player_units == -1) {
-			spawned_player_units = 10;
+			spawned_player_units = 5;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(5, 5));
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(45, 45));
+			//SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 5, sc2::Point2D(45, 45));
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) {
 				SetDestination(player_units, sc2::Point2D(45), behaviors::DEFENCE, false, sc2::Point2D(3), sc2::Point2D(8));
-				SetDestination(player_units, sc2::Point2D(5), behaviors::DEFENCE, false, sc2::Point2D(43), sc2::Point2D(48));
+				//SetDestination(player_units, sc2::Point2D(5), behaviors::DEFENCE, false, sc2::Point2D(43), sc2::Point2D(48));
 			}
 			else {
 				SetDestination(astar_units, sc2::Point2D(45), behaviors::DEFENCE, false, sc2::Point2D(3), sc2::Point2D(8));
@@ -1522,6 +1536,7 @@ void FooBot::CommandsOnEasy() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(42, 36), 2);
 			Debug()->DebugEnemyControl();
 			Debug()->DebugShowMap();
+			can_see_map = true;
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::DEFENCE, false);
@@ -1535,7 +1550,6 @@ void FooBot::CommandsOnEasy() {
 
 			spawned_enemy_units = -1;
 			command = 0;
-			//Debug()->DebugShowMap();
 		}
 		break;
 	}
@@ -1573,6 +1587,7 @@ void FooBot::CommandsOnMedium() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(45, 34), 2);
 			Debug()->DebugEnemyControl();
 			Debug()->DebugShowMap();
+			can_see_map = true;
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::DEFENCE, false);
@@ -1586,7 +1601,6 @@ void FooBot::CommandsOnMedium() {
 
 			spawned_enemy_units = -1;
 			command = 0;
-			//Debug()->DebugShowMap();
 		}
 		break;
 	}
@@ -1649,6 +1663,7 @@ void FooBot::CommandsOnHardTwo() {
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, 1, sc2::Point2D(44.5, 35), 2);
 			Debug()->DebugEnemyControl();
 			Debug()->DebugShowMap();
+			can_see_map = true;
 		}
 		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
 			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::DEFENCE, false);
@@ -1663,7 +1678,6 @@ void FooBot::CommandsOnHardTwo() {
 
 			spawned_enemy_units = -1;
 			command = 0;
-			//Debug()->DebugShowMap();
 		}
 		break;
 	}
