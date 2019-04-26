@@ -7,6 +7,7 @@
 
 #include "FooBot/FooBot.h"
 #include "tools.h"
+#include "CUDA/cuda_header.cuh"
 
 #include "Synchapi.h"
 
@@ -62,18 +63,17 @@ int main(int argc, char* argv[]) {
     map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
     char* str = new char[map.size()];
     std::strcpy(str, map.c_str());
-
-    clock_t before;
-    while (true) {
-        //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
-        coordinator.StartGame(str);
-        /*while (true) {
-            before = clock();
-            coordinator.Update();
-            Sleep(max((42 - (clock() - before)), 0));
-        }*/
-        while(coordinator.Update()){}
+    
+    //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
+    coordinator.StartGame(str);
+    
+    long long int frame_nr = 0;
+    cudaEvent_t start, end;
+    
+    bool active = true;
+    while(active){
+        active = coordinator.Update();
     }
-
+    
     return 0;
 }
