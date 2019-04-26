@@ -4,6 +4,9 @@
 #include "psapi.h"
 #include <iostream>
 #include <string>
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 void PrintMemoryUsage(std::string location) {
 	if (location != "") {
@@ -36,6 +39,14 @@ void PrintMemoryUsage(std::string location) {
 }
 
 void PrintFrameTimesToFile(float* data, int length, std::string file_name) {
+	file_name.append("_");
+
+	for (int i = 0; i < 6; ++i) {
+		char a = rand() % 25 + 65;
+		file_name.push_back(a);
+	}
+
+	file_name.append(".txt");
 	std::ofstream file(file_name);
 
 	if (!file.is_open()) {

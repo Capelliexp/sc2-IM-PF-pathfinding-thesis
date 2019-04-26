@@ -34,19 +34,20 @@ int main(int argc, char* argv[]) {
 
     Sleep(1000);
     PrintMemoryUsage("SC2 coordinator initialization");
-
+    srand(time(NULL));
+    
     coordinator.SetStepSize(1);
 
     //! Om du ändrar denna variable. Glöm inte att ändra #define MAP_X och #define MAP_Y i map_storage.hpp.
-    //std::string map = "empty50";
+    std::string map = "empty50";
 
     //! Experiment/Labyrinth
     //std::string map = "easy";
     //std::string map = "medium";
     //std::string map = "hard_one";
-    std::string map = "hard_two";
+    //std::string map = "hard_two";
 
-    int command = 2;
+    int command = 3;
 
     // Add the custom bot, it will control the players.
     FooBot bot(map, command);
@@ -66,8 +67,8 @@ int main(int argc, char* argv[]) {
     PrintMemoryUsage("SC2 launch");
 
     // Step forward the game simulation.
-    //map = std::string("Test/" + map + ".SC2Map");
-    map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
+    map = std::string("Test/" + map + ".SC2Map");
+    //map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
     char* str = new char[map.size()];
     std::strcpy(str, map.c_str());
     
@@ -102,7 +103,7 @@ int main(int argc, char* argv[]) {
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync.txt");
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
         }
     }
     //--------
@@ -125,7 +126,7 @@ int main(int argc, char* argv[]) {
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync.txt");
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
         }
     }
     //--------
@@ -148,7 +149,7 @@ int main(int argc, char* argv[]) {
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync.txt");
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
         }
     }
 
