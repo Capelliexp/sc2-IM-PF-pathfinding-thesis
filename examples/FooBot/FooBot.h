@@ -149,14 +149,19 @@ private:
     bool astar;
     bool astarPF;
 
-    //! Integer that represents the current command.
+    //! Integers that represents the current command and start command.
     int command;
     int start_command;
+
+    //! Bool indicating if player can see the whole map
+    bool can_see_map;
+
     //! Integers and Bool to indicate and help with unit actions during commands
     int spawned_player_units;
     int spawned_enemy_units;
     bool destination_set;
     int units_reached_destination;
+
     //! Integer that represents the current map;
     int map;
 
