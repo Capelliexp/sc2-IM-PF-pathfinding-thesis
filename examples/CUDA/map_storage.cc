@@ -44,9 +44,9 @@ void MapStorage::Initialize(const sc2::ObservationInterface* observations, sc2::
         //PrintMap(air_repelling_PF, MAP_X_R, MAP_Y_R, "air");
         //PrintMap(dynamic_terrain, MAP_X_R, MAP_Y_R, "dynamic");
 
-        CreateImage(dynamic_terrain, MAP_X_R, MAP_Y_R);
-        max_value = 1;
-        PrintImage("dynamic.png", MAP_X_R, MAP_Y_R);
+        //CreateImage(dynamic_terrain, MAP_X_R, MAP_Y_R);
+        //max_value = 1;
+        //PrintImage("dynamic.png", MAP_X_R, MAP_Y_R);
 
         PrintMemoryUsage("CudaInit post");
     }
