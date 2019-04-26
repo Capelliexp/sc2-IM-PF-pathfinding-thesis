@@ -13,7 +13,13 @@
 
 #include <time.h>
 #include <windows.h>
+#include <chrono>
 
+typedef enum {
+    CUDA_EVENTS,
+    CHRONO,
+    CHRONO_WITH_SYNC
+} MeasureType;
 
 //*************************************************************************************************
 int main(int argc, char* argv[]) {
@@ -66,14 +72,76 @@ int main(int argc, char* argv[]) {
     
     //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
     coordinator.StartGame(str);
-    
-    long long int frame_nr = 0;
-    cudaEvent_t start, end;
-    
+
+    MeasureType clock_type = MeasureType::CHRONO;
     bool active = true;
-    while(active){
-        active = coordinator.Update();
+    long long int frame_nr = 0;
+    float elapsed_frame_time = 0;
+
+    std::vector<float> frame_storage;
+    frame_storage.reserve(1000);
+
+    //--------
+    if (clock_type == MeasureType::CUDA_EVENTS) {   //NOT MEASURING CPU ACCURATELY
+        cudaEvent_t frame_start, frame_end;
+
+        while (active) {
+            cudaEventCreate(&frame_start);
+            cudaEventCreate(&frame_end);
+
+            cudaEventRecord(frame_start);
+            active = coordinator.Update();
+            cudaEventRecord(frame_end);
+
+            cudaEventSynchronize(frame_end);
+            cudaEventElapsedTime(&elapsed_frame_time, frame_start, frame_end);
+
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+
+            cudaEventDestroy(frame_start);
+            cudaEventDestroy(frame_end);
+        }
     }
-    
+    //--------
+    else if (clock_type == MeasureType::CHRONO_WITH_SYNC) {
+        std::chrono::steady_clock::time_point frame_start;
+        std::chrono::steady_clock::time_point frame_end;
+
+        while (active) {
+            active = coordinator.Update();
+            cudaDeviceSynchronize();
+
+            frame_end = std::chrono::steady_clock::now();
+            elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
+            frame_start = std::chrono::steady_clock::now();
+
+
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+        }
+    }
+    //--------
+    else if (clock_type == MeasureType::CHRONO){
+        std::chrono::steady_clock::time_point frame_start;
+        std::chrono::steady_clock::time_point frame_end;
+
+        frame_start = std::chrono::steady_clock::now();
+
+        while (active) {
+            active = coordinator.Update();
+
+            frame_end = std::chrono::steady_clock::now();
+            elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
+            frame_start = std::chrono::steady_clock::now();
+
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+        }
+    }
+
     return 0;
 }
