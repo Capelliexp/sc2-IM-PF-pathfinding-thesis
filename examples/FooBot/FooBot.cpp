@@ -69,15 +69,6 @@ void FooBot::OnStep() {
 		if (GetKeyState('8') & 0x8000) command = 8;
 	}
 
-	INPUT ip;
-	ip.type = INPUT_KEYBOARD;
-	ip.ki.wScan = 0;
-	ip.ki.time = 0;
-	ip.ki.dwExtraInfo = 0;
-	ip.ki.wVk = 0x4F;	//O
-	ip.ki.dwFlags = KEYEVENTF_KEYUP;
-	SendInput(1, &ip, sizeof(INPUT));
-
 	if (new_buildings) {
 		new_buildings = false;
 		map_storage->UpdateIMAtsar();
@@ -144,6 +135,16 @@ void FooBot::OnGameEnd() {
 }
 
 void FooBot::Reset() {
+	//Press the O-key to print frame time info
+	INPUT ip;
+	ip.type = INPUT_KEYBOARD;
+	ip.ki.wScan = 0;
+	ip.ki.time = 0;
+	ip.ki.dwExtraInfo = 0;
+	ip.ki.wVk = 0x4F;	//O
+	ip.ki.dwFlags = 0;
+	SendInput(1, &ip, sizeof(INPUT));
+
 	++restarts_;
 	std::cout << "Restart: " << restarts_ << std::endl;
 	if (!can_see_map)
@@ -184,16 +185,6 @@ void FooBot::Reset() {
 	this->units_died_enemy_units = 0;
 	
 	Sleep(1000);
-
-	//Press the O-key to print frame time info
-	INPUT ip;
-	ip.type = INPUT_KEYBOARD;
-	ip.ki.wScan = 0;
-	ip.ki.time = 0;
-	ip.ki.dwExtraInfo = 0;
-	ip.ki.wVk = 0x4F;	//O
-	ip.ki.dwFlags = 0;
-	SendInput(1, &ip, sizeof(INPUT));
 }
 
 void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {

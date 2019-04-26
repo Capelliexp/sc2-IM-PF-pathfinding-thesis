@@ -39,14 +39,9 @@ void PrintMemoryUsage(std::string location) {
 }
 
 void PrintFrameTimesToFile(float* data, int length, std::string file_name) {
-	file_name.append("_");
+	static int nr = 0;
 
-	for (int i = 0; i < 6; ++i) {
-		char a = rand() % 25 + 65;
-		file_name.push_back(a);
-	}
-
-	file_name.append(".txt");
+	file_name.append("_" + std::to_string(nr++) + ".txt");
 	std::ofstream file(file_name);
 
 	if (!file.is_open()) {

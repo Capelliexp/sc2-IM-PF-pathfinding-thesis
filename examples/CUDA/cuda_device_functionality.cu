@@ -50,7 +50,8 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {
-				if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loop;	//break if we reach end of list
+				//if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loop;
+				if (i + slice * nr_of_slice_loops + shared_part * shared_list_size > nr_of_units) goto end_of_loop;	//break if we reach end of list
 
 				UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
 				float range_sub = fmaxf(unit.range, 3) + 2;
@@ -140,7 +141,8 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {
-				if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loops;	//break if we reach end of list
+				//if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loops;
+				if (i + slice * nr_of_slice_loops + shared_part * shared_list_size > nr_of_units) goto end_of_loops;	//break if we reach end of list
 
 				UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
 				//float dist = (FloatDistance((int)register_list[i].pos.x, (int)register_list[i].pos.y, x, y) + 0.0001);
@@ -224,12 +226,13 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {
-				if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_units;	//break if we reach end of list
+				//if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_units;
+				if (i + slice * nr_of_slice_loops + shared_part * shared_list_size > nr_of_units) goto end_of_units;	//break if we reach end of list
 
 				UnitInfoDevice other_info = device_unit_lookup[register_list[i].id];
 				Entity other_entity = register_list[i];
 
-				//float dist = sqrtf(x - (int)other_entity.pos.x) * (x - (int)other_entity.pos.x) + (y - (int)other_entity.pos.y) * (y - (int)other_entity.pos.y) + 0.0001;
+				//float dist = sqrtf((int)other_entity.pos.x - x) * ((int)other_entity.pos.x - x) + ((int)other_entity.pos.y - y) * ((int)other_entity.pos.y - y) + 0.0001;
 				bool self_can_attack_other = (other_info.is_flying && self_info.can_attack_air) || (!other_info.is_flying && self_info.can_attack_ground);
 
 				float a = ((int)other_entity.pos.x - x) * ((int)other_entity.pos.x - x);
@@ -467,6 +470,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 			memset(closed_list, 0, open_list_it * sizeof(node));
 			free(open_list);
 			free(closed_list);
+			memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 			return;
 		}
 
@@ -511,6 +515,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					memset(closed_list, 0, open_list_it * sizeof(node));
 					free(open_list);
 					free(closed_list);
+					memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 					return;
 				}
 			}
@@ -533,6 +538,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 					memset(closed_list, 0, open_list_it * sizeof(node));
 					free(open_list);
 					free(closed_list);
+					memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 					return;
 				}
 			}
@@ -773,6 +779,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		memset(closed_list, 0, open_list_it * sizeof(node));
 		free(open_list);
 		free(closed_list);
+		memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 		return;
 	}
 
@@ -815,6 +822,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 	memset(closed_list, 0, open_list_it * sizeof(node));
 	free(open_list);
 	free(closed_list);
+	memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 }
 
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map) {

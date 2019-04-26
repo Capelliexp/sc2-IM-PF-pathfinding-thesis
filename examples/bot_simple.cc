@@ -104,6 +104,15 @@ int main(int argc, char* argv[]) {
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
             if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
+
+            INPUT ip;
+            ip.type = INPUT_KEYBOARD;
+            ip.ki.wScan = 0;
+            ip.ki.time = 0;
+            ip.ki.dwExtraInfo = 0;
+            ip.ki.wVk = 0x4F;	//O
+            ip.ki.dwFlags = KEYEVENTF_KEYUP;
+            SendInput(1, &ip, sizeof(INPUT));
         }
     }
     //--------
