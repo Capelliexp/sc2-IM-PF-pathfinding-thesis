@@ -534,10 +534,11 @@ void FooBot::UpdateUnitsPaths() {
 			float pf_value = 0;
 			if (player_units[i].behavior == behaviors::DEFENCE)
 				pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
-			else if (player_units[i].behavior == behaviors::ATTACK)
+			else if (player_units[i].behavior == behaviors::ATTACK) {
 				pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x);
-			if (enemy_units.size() > 0 && pf_value >= 4) {
-				new_value = 0;
+				if (enemy_units.size() > 0 && pf_value >= 4) {
+					new_value = 0;
+				}
 			}
 			new_value += pf_value;
 
@@ -896,7 +897,8 @@ void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 				//int pf = map_storage->GetGroundAvoidancePFValue((int)p.y, (int)p.x);
 				if (PointInsideRect(p, { 0, 0 }, { MAP_X_R, MAP_Y_R }, 0)) {
 					int pf = map_storage->GetAttractingPF(player_units[unit].unit->unit_type, (int)p.y, (int)p.x);
-					value += pf;
+					if (value >= 0)
+						value += pf;
 					Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
 					/*pf = min(pf, 60);
 					pf = max(pf, 1);
