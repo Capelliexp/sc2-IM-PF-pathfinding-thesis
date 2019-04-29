@@ -16,6 +16,8 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else if (map == "hard_two")		this->map = 7;
 	else if (map == "hard_one")		this->map = 8;
 	else							this->map = 0;	//Not a valid test map
+
+	restart = false;
 }
 
 void FooBot::OnGameStart() {
@@ -140,15 +142,7 @@ void FooBot::OnGameEnd() {
 }
 
 void FooBot::Reset() {
-	//Press the O-key to print frame time info
-	INPUT ip;
-	ip.type = INPUT_KEYBOARD;
-	ip.ki.wScan = 0;
-	ip.ki.time = 0;
-	ip.ki.dwExtraInfo = 0;
-	ip.ki.wVk = 0x4F;	//O
-	ip.ki.dwFlags = 0;
-	//SendInput(1, &ip, sizeof(INPUT));
+	restart = true;
 
 	++restarts_;
 	std::cout << "Restart: " << restarts_ << std::endl;
