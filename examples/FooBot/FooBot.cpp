@@ -16,6 +16,8 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else if (map == "hard_two")		this->map = 7;
 	else if (map == "hard_one")		this->map = 8;
 	else							this->map = 0;	//Not a valid test map
+
+	restart = false;
 }
 
 void FooBot::OnGameStart() {
@@ -139,15 +141,7 @@ void FooBot::OnGameEnd() {
 }
 
 void FooBot::Reset() {
-	//Press the O-key to print frame time info
-	INPUT ip;
-	ip.type = INPUT_KEYBOARD;
-	ip.ki.wScan = 0;
-	ip.ki.time = 0;
-	ip.ki.dwExtraInfo = 0;
-	ip.ki.wVk = 0x4F;	//O
-	ip.ki.dwFlags = 0;
-	//SendInput(1, &ip, sizeof(INPUT));
+	restart = true;
 
 	++restarts_;
 	std::cout << "Restart: " << restarts_ << std::endl;
@@ -492,6 +486,10 @@ void FooBot::UpdateUnitsPaths() {
 				++units_reached_destination;
 			player_units[i].destination_reached = true;
 			if (units_reached_destination == player_units.size()) {
+				map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
+				map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
+				map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
+
 				std::ofstream outfile("output.txt", std::ios::app);
 				outfile << player_units[i].dist_traveled << "," << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 				Reset();
@@ -502,9 +500,9 @@ void FooBot::UpdateUnitsPaths() {
 
 			
 
-			//map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
-			//map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
-			//map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
+ 			map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
+			map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
+			map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
 
 			//player_units[i].destination = nullptr;
 
@@ -926,11 +924,11 @@ void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 					//int pf = map_storage->GetAttractingPF(player_units[unit].unit->unit_type, (int)p.y, (int)p.x);
 					if (value >= 0)
 						value += pf;
-					Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
-					/*pf = min(pf, 60);
+					//Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
+					pf = min(pf, 60);
 					pf = max(pf, 1);
 					sc2::Color c = sc2::Color(255 * (60 - (60 / pf)), 0, 0);
-					Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);*/
+					Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);
 				}
 			}
 		}

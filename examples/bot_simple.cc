@@ -81,15 +81,16 @@ int main(int argc, char* argv[]) {
     float elapsed_frame_time = 0;
 
     std::vector<float> frame_storage;
-    frame_storage.reserve(1000);
+    frame_storage.reserve(10000);
+
+    std::chrono::steady_clock::time_point frame_start;
+    std::chrono::steady_clock::time_point frame_end;
 
     //VRF BLIR PROGRAMMET LÅNGSAMMARE EFTER TESTENS SLUT?!?
 
     //--------
-    if (clock_type == MeasureType::CHRONO) {
-        std::chrono::steady_clock::time_point frame_start;
-        std::chrono::steady_clock::time_point frame_end;
-
+    switch(clock_type){
+    case MeasureType::CHRONO:
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
@@ -101,25 +102,20 @@ int main(int argc, char* argv[]) {
 
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
-
-            INPUT ip;
-            ip.type = INPUT_KEYBOARD;
-            ip.ki.wScan = 0;
-            ip.ki.time = 0;
-            ip.ki.dwExtraInfo = 0;
-            ip.ki.wVk = 0x4F;	//O
-            ip.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &ip, sizeof(INPUT));
+            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
+            if (bot.restart) {
+                bot.restart = false;
+                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
+                frame_storage.clear();
+            }
         }
-    }
-    //--------
-    else if (clock_type == MeasureType::CHRONO_SYNC_PRE_UPDATE) {
-        std::chrono::steady_clock::time_point frame_start;
-        std::chrono::steady_clock::time_point frame_end;
+        break;
 
+        //----------------------------------------------
+
+    case MeasureType::CHRONO_SYNC_PRE_UPDATE:
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
@@ -133,16 +129,20 @@ int main(int argc, char* argv[]) {
 
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+            if (bot.restart) {
+                bot.restart = false;
+                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+                frame_storage.clear();
+            }
         }
-    }
-    //--------
-    else if (clock_type == MeasureType::CHRONO_SYNC_POST_UPDATE) {
-        std::chrono::steady_clock::time_point frame_start;
-        std::chrono::steady_clock::time_point frame_end;
+        break;
 
+        //----------------------------------------------
+
+    case MeasureType::CHRONO_SYNC_POST_UPDATE:
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
@@ -153,13 +153,18 @@ int main(int argc, char* argv[]) {
             elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
             frame_start = std::chrono::steady_clock::now();
 
-
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
+            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
+            if (bot.restart) {
+                bot.restart = false;
+                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
+                frame_storage.clear();
+            }
         }
+        break;
     }
 
     return 0;
