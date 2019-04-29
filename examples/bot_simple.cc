@@ -83,90 +83,84 @@ int main(int argc, char* argv[]) {
     std::vector<float> frame_storage;
     frame_storage.reserve(1000);
 
-
-    while (active) {
-        active = coordinator.Update();
-    }
-
-
     //VRF BLIR PROGRAMMET LÅNGSAMMARE EFTER TESTENS SLUT?!?
 
     //--------
-    //if (clock_type == MeasureType::CHRONO) {
-    //    std::chrono::steady_clock::time_point frame_start;
-    //    std::chrono::steady_clock::time_point frame_end;
+    if (clock_type == MeasureType::CHRONO) {
+        std::chrono::steady_clock::time_point frame_start;
+        std::chrono::steady_clock::time_point frame_end;
 
-    //    frame_start = std::chrono::steady_clock::now();
+        frame_start = std::chrono::steady_clock::now();
 
-    //    while (active) {
-    //        active = coordinator.Update();
+        while (active) {
+            active = coordinator.Update();
 
-    //        frame_end = std::chrono::steady_clock::now();
-    //        elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
-    //        frame_start = std::chrono::steady_clock::now();
+            frame_end = std::chrono::steady_clock::now();
+            elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
+            frame_start = std::chrono::steady_clock::now();
 
-    //        //save frame time data
-    //        frame_storage.push_back(elapsed_frame_time);
-    //        if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
-    //        if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
 
-    //        INPUT ip;
-    //        ip.type = INPUT_KEYBOARD;
-    //        ip.ki.wScan = 0;
-    //        ip.ki.time = 0;
-    //        ip.ki.dwExtraInfo = 0;
-    //        ip.ki.wVk = 0x4F;	//O
-    //        ip.ki.dwFlags = KEYEVENTF_KEYUP;
-    //        SendInput(1, &ip, sizeof(INPUT));
-    //    }
-    //}
-    ////--------
-    //else if (clock_type == MeasureType::CHRONO_SYNC_PRE_UPDATE) {
-    //    std::chrono::steady_clock::time_point frame_start;
-    //    std::chrono::steady_clock::time_point frame_end;
+            INPUT ip;
+            ip.type = INPUT_KEYBOARD;
+            ip.ki.wScan = 0;
+            ip.ki.time = 0;
+            ip.ki.dwExtraInfo = 0;
+            ip.ki.wVk = 0x4F;	//O
+            ip.ki.dwFlags = KEYEVENTF_KEYUP;
+            SendInput(1, &ip, sizeof(INPUT));
+        }
+    }
+    //--------
+    else if (clock_type == MeasureType::CHRONO_SYNC_PRE_UPDATE) {
+        std::chrono::steady_clock::time_point frame_start;
+        std::chrono::steady_clock::time_point frame_end;
 
-    //    frame_start = std::chrono::steady_clock::now();
+        frame_start = std::chrono::steady_clock::now();
 
-    //    while (active) {
-    //        cudaDeviceSynchronize();
-    //        active = coordinator.Update();
+        while (active) {
+            cudaDeviceSynchronize();
+            active = coordinator.Update();
 
-    //        frame_end = std::chrono::steady_clock::now();
-    //        elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
-    //        frame_start = std::chrono::steady_clock::now();
-
-
-    //        //save frame time data
-    //        frame_storage.push_back(elapsed_frame_time);
-    //        if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
-
-    //        if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
-    //    }
-    //}
-    ////--------
-    //else if (clock_type == MeasureType::CHRONO_SYNC_POST_UPDATE) {
-    //    std::chrono::steady_clock::time_point frame_start;
-    //    std::chrono::steady_clock::time_point frame_end;
-
-    //    frame_start = std::chrono::steady_clock::now();
-
-    //    while (active) {
-    //        active = coordinator.Update();
-    //        cudaDeviceSynchronize();
-
-    //        frame_end = std::chrono::steady_clock::now();
-    //        elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
-    //        frame_start = std::chrono::steady_clock::now();
+            frame_end = std::chrono::steady_clock::now();
+            elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
+            frame_start = std::chrono::steady_clock::now();
 
 
-    //        //save frame time data
-    //        frame_storage.push_back(elapsed_frame_time);
-    //        if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
-    //        if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
-    //    }
-    //}
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+        }
+    }
+    //--------
+    else if (clock_type == MeasureType::CHRONO_SYNC_POST_UPDATE) {
+        std::chrono::steady_clock::time_point frame_start;
+        std::chrono::steady_clock::time_point frame_end;
+
+        frame_start = std::chrono::steady_clock::now();
+
+        while (active) {
+            active = coordinator.Update();
+            cudaDeviceSynchronize();
+
+            frame_end = std::chrono::steady_clock::now();
+            elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
+            frame_start = std::chrono::steady_clock::now();
+
+
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
+        }
+    }
 
     return 0;
 }

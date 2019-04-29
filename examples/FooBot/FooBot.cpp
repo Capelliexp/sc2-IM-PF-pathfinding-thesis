@@ -55,8 +55,8 @@ void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 
 	//RAM & VRAM stat prints
-	/*if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
-	if (GetKeyState('L') & 0x8000) map_storage->PrintCUDAMemoryUsage("runtime");*/
+	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
+	if (GetKeyState('L') & 0x8000) map_storage->PrintCUDAMemoryUsage("runtime");
 
 	if (GetKeyState('M') & 0x8000) print_map = true;
 	if (GetKeyState('R') & 0x8000) Reset();
