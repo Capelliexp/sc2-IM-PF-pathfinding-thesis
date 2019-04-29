@@ -62,7 +62,7 @@ public:
     virtual void OnUnitDestroyed(const sc2::Unit* unit) final;
     virtual void OnUnitCreated(const sc2::Unit* unit) final;
 
-    bool restart;
+    bool print_frame_data;
 private:
     void Reset();
 
@@ -178,4 +178,6 @@ private:
     bool spawn_all_units;
     bool get_radius = true;
     uint32_t restarts_;
+
+    int units_to_spawn;
 };

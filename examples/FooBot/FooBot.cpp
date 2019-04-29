@@ -17,7 +17,8 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else if (map == "hard_one")		this->map = 8;
 	else							this->map = 0;	//Not a valid test map
 
-	restart = false;
+	print_frame_data = false;
+	units_to_spawn = 0;
 }
 
 void FooBot::OnGameStart() {
@@ -27,7 +28,7 @@ void FooBot::OnGameStart() {
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
-	this->astar = false;
+	this->astar = true;
 	this->astarPF = false;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
@@ -56,12 +57,16 @@ void FooBot::OnGameStart() {
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 
+	if (game_loop%1000 == 999) { Reset(); }
+
 	//RAM & VRAM stat prints
 	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
 	if (GetKeyState('L') & 0x8000) map_storage->PrintCUDAMemoryUsage("runtime");
 
 	if (GetKeyState('M') & 0x8000) print_map = true;
 	if (GetKeyState('R') & 0x8000) Reset();
+
+	if (GetKeyState('O') & 0x8000) print_frame_data = true;
 
 	//commands
 	if (command == 0) {
@@ -141,7 +146,9 @@ void FooBot::OnGameEnd() {
 }
 
 void FooBot::Reset() {
-	restart = true;
+	print_frame_data = true;
+
+	units_to_spawn += 10;
 
 	++restarts_;
 	std::cout << "Restart: " << restarts_ << std::endl;
@@ -168,7 +175,7 @@ void FooBot::Reset() {
 	this->enemy_units.clear();
 	this->host_unit_list.clear();
 
-	Sleep(1000);
+	//Sleep(1000);
 
 	map_storage->Reset();
 
@@ -185,7 +192,7 @@ void FooBot::Reset() {
 	this->units_died_enemy_units = 0;
 	this->units_reached_destination = 0;
 	
-	Sleep(1000);
+	//Sleep(1000);
 }
 
 void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
@@ -1176,7 +1183,7 @@ void FooBot::CommandsOnEmpty50() {
 	}
 	case 8:
 		if (spawned_player_units == -1) {
-			spawned_player_units = 4096;
+			spawned_player_units = units_to_spawn;
 			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(25, 25));
 			spawned_player_units = -1;
 			command = 0;

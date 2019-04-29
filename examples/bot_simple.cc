@@ -105,8 +105,8 @@ int main(int argc, char* argv[]) {
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
             //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
-            if (bot.restart) {
-                bot.restart = false;
+            if (bot.print_frame_data) {
+                bot.print_frame_data = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
                 frame_storage.clear();
             }
@@ -132,8 +132,8 @@ int main(int argc, char* argv[]) {
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
             //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
-            if (bot.restart) {
-                bot.restart = false;
+            if (bot.print_frame_data) {
+                bot.print_frame_data = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
                 frame_storage.clear();
             }
@@ -158,8 +158,8 @@ int main(int argc, char* argv[]) {
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
             //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
-            if (bot.restart) {
-                bot.restart = false;
+            if (bot.print_frame_data) {
+                bot.print_frame_data = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
                 frame_storage.clear();
             }
