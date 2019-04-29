@@ -4,6 +4,9 @@
 #include "psapi.h"
 #include <iostream>
 #include <string>
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 void PrintMemoryUsage(std::string location) {
 	if (location != "") {
@@ -33,4 +36,24 @@ void PrintMemoryUsage(std::string location) {
 		//"   Physical memory size: " << totalPhysMem << " bytes" << std::endl <<
 		//"   Physical memory currently used: " << physMemUsed << " bytes" << std::endl <<
 		"   Physical memory currently used by process: " << physMemUsedByMe << " bytes" << std::endl;
+}
+
+void PrintFrameTimesToFile(float* data, int length, std::string file_name) {
+	static int nr = 0;
+
+	file_name.append("_" + std::to_string(nr++) + ".txt");
+	std::ofstream file(file_name);
+
+	if (!file.is_open()) {
+		std::cout << "Frame time output FAILED" << std::endl;
+		return;
+	}
+
+	for (int i = 0; i < length; ++i) {
+		file << data[i] << "\n";
+	}
+
+	file.close();
+
+	std::cout << "Frame time output to " << file_name << std::endl;
 }

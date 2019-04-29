@@ -7,12 +7,20 @@
 
 #include "FooBot/FooBot.h"
 #include "tools.h"
+#include "CUDA/cuda_header.cuh"
 
 #include "Synchapi.h"
 
 #include <time.h>
 #include <windows.h>
+#include <chrono>
+#include <iostream>
 
+typedef enum {
+    CHRONO,
+    CHRONO_SYNC_PRE_UPDATE,
+    CHRONO_SYNC_POST_UPDATE
+} MeasureType;
 
 //*************************************************************************************************
 int main(int argc, char* argv[]) {
@@ -26,11 +34,12 @@ int main(int argc, char* argv[]) {
 
     Sleep(1000);
     PrintMemoryUsage("SC2 coordinator initialization");
-
+    srand(time(NULL));
+    
     coordinator.SetStepSize(1);
 
     //! Om du ändrar denna variable. Glöm inte att ändra #define MAP_X och #define MAP_Y i map_storage.hpp.
-    //std::string map = "empty50";
+    std::string map = "empty50";
 
     //! Experiment/Labyrinth
     std::string map = "easy";
@@ -38,7 +47,7 @@ int main(int argc, char* argv[]) {
     //std::string map = "hard_two";
     //std::string map = "hard_one";
 
-    int command = 2;
+    int command = 3;
 
     // Add the custom bot, it will control the players.
     FooBot bot(map, command);
@@ -58,21 +67,99 @@ int main(int argc, char* argv[]) {
     PrintMemoryUsage("SC2 launch");
 
     // Step forward the game simulation.
-    //map = std::string("Test/" + map + ".SC2Map");
-    map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
+    map = std::string("Test/" + map + ".SC2Map");
+    //map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
     char* str = new char[map.size()];
     std::strcpy(str, map.c_str());
+    
+    //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
+    coordinator.StartGame(str);
 
-    clock_t before;
-    while (true) {
-        //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
-        coordinator.StartGame(str);
-        /*while (true) {
-            before = clock();
-            coordinator.Update();
-            Sleep(max((42 - (clock() - before)), 0));
-        }*/
-        while(coordinator.Update()){}
+    MeasureType clock_type = MeasureType::CHRONO;
+    bool active = true;
+    long long int frame_nr = 0;
+    float elapsed_frame_time = 0;
+
+    std::vector<float> frame_storage;
+    frame_storage.reserve(1000);
+
+    //VRF BLIR PROGRAMMET LÅNGSAMMARE EFTER TESTENS SLUT?!?
+
+    //--------
+    if (clock_type == MeasureType::CHRONO) {
+        std::chrono::steady_clock::time_point frame_start;
+        std::chrono::steady_clock::time_point frame_end;
+
+        frame_start = std::chrono::steady_clock::now();
+
+        while (active) {
+            active = coordinator.Update();
+
+            frame_end = std::chrono::steady_clock::now();
+            elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
+            frame_start = std::chrono::steady_clock::now();
+
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
+
+            INPUT ip;
+            ip.type = INPUT_KEYBOARD;
+            ip.ki.wScan = 0;
+            ip.ki.time = 0;
+            ip.ki.dwExtraInfo = 0;
+            ip.ki.wVk = 0x4F;	//O
+            ip.ki.dwFlags = KEYEVENTF_KEYUP;
+            SendInput(1, &ip, sizeof(INPUT));
+        }
+    }
+    //--------
+    else if (clock_type == MeasureType::CHRONO_SYNC_PRE_UPDATE) {
+        std::chrono::steady_clock::time_point frame_start;
+        std::chrono::steady_clock::time_point frame_end;
+
+        frame_start = std::chrono::steady_clock::now();
+
+        while (active) {
+            cudaDeviceSynchronize();
+            active = coordinator.Update();
+
+            frame_end = std::chrono::steady_clock::now();
+            elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
+            frame_start = std::chrono::steady_clock::now();
+
+
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+        }
+    }
+    //--------
+    else if (clock_type == MeasureType::CHRONO_SYNC_POST_UPDATE) {
+        std::chrono::steady_clock::time_point frame_start;
+        std::chrono::steady_clock::time_point frame_end;
+
+        frame_start = std::chrono::steady_clock::now();
+
+        while (active) {
+            active = coordinator.Update();
+            cudaDeviceSynchronize();
+
+            frame_end = std::chrono::steady_clock::now();
+            elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
+            frame_start = std::chrono::steady_clock::now();
+
+
+            //save frame time data
+            frame_storage.push_back(elapsed_frame_time);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+
+            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
+        }
     }
 
     return 0;
