@@ -62,6 +62,7 @@ public:
     virtual void OnUnitDestroyed(const sc2::Unit* unit) final;
     virtual void OnUnitCreated(const sc2::Unit* unit) final;
 
+    bool restart;
 private:
     void Reset();
 

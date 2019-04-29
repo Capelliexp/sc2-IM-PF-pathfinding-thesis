@@ -16,6 +16,8 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else if (map == "hard_one")		this->map = 7;
 	else if (map == "hard_two")		this->map = 8;
 	else							this->map = 0;	//Not a valid test map
+
+	restart = false;
 }
 
 void FooBot::OnGameStart() {
@@ -144,6 +146,8 @@ void FooBot::Reset() {
 	//ip.ki.wVk = 0x4F;	//O
 	//ip.ki.dwFlags = 0;
 	//SendInput(1, &ip, sizeof(INPUT));
+
+	restart = true;
 
 	++restarts_;
 	std::cout << "Restart: " << restarts_ << std::endl;

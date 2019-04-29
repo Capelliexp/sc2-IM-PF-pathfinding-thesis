@@ -16,8 +16,6 @@
 #include <chrono>
 #include <iostream>
 
-bool restart;
-
 typedef enum {
     CHRONO,
     CHRONO_SYNC_PRE_UPDATE,
@@ -84,7 +82,6 @@ int main(int argc, char* argv[]) {
 
     std::vector<float> frame_storage;
     frame_storage.reserve(1000);
-    restart = false;
 
     //VRF BLIR PROGRAMMET LÅNGSAMMARE EFTER TESTENS SLUT?!?
 
@@ -107,16 +104,11 @@ int main(int argc, char* argv[]) {
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
-
-            //INPUT ip;
-            //ip.type = INPUT_KEYBOARD;
-            //ip.ki.wScan = 0;
-            //ip.ki.time = 0;
-            //ip.ki.dwExtraInfo = 0;
-            //ip.ki.wVk = 0x4F;	//O
-            //ip.ki.dwFlags = KEYEVENTF_KEYUP;
-            //SendInput(1, &ip, sizeof(INPUT));
+            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
+            if (bot.restart) {
+                bot.restart = false;
+                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+            }
         }
         break;
 
@@ -142,7 +134,10 @@ int main(int argc, char* argv[]) {
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
             //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
-            if (restart) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+            if (bot.restart) {
+                bot.restart = false;
+                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+            }
         }
         break;
 
@@ -167,8 +162,10 @@ int main(int argc, char* argv[]) {
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
             //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
-            if (restart) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
-
+            if (bot.restart) {
+                bot.restart = false;
+                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+            }
         }
         break;
     }
