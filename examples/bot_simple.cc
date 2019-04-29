@@ -108,6 +108,7 @@ int main(int argc, char* argv[]) {
             if (bot.restart) {
                 bot.restart = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+                frame_storage.clear();
             }
         }
         break;
@@ -134,6 +135,7 @@ int main(int argc, char* argv[]) {
             if (bot.restart) {
                 bot.restart = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+                frame_storage.clear();
             }
         }
         break;
@@ -159,6 +161,7 @@ int main(int argc, char* argv[]) {
             if (bot.restart) {
                 bot.restart = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+                frame_storage.clear();
             }
         }
         break;
