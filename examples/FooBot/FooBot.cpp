@@ -147,7 +147,7 @@ void FooBot::Reset() {
 	ip.ki.dwExtraInfo = 0;
 	ip.ki.wVk = 0x4F;	//O
 	ip.ki.dwFlags = 0;
-	SendInput(1, &ip, sizeof(INPUT));
+	//SendInput(1, &ip, sizeof(INPUT));
 
 	++restarts_;
 	std::cout << "Restart: " << restarts_ << std::endl;
