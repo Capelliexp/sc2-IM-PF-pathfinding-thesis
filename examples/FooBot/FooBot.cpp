@@ -486,6 +486,10 @@ void FooBot::UpdateUnitsPaths() {
 				++units_reached_destination;
 			player_units[i].destination_reached = true;
 			if (units_reached_destination == player_units.size()) {
+				map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
+				map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
+				map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
+
 				std::ofstream outfile("output.txt", std::ios::app);
 				outfile << player_units[i].dist_traveled << "," << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 				Reset();
@@ -496,7 +500,7 @@ void FooBot::UpdateUnitsPaths() {
 
 			
 
-			map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
+ 			map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
 			map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
 			map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
 
