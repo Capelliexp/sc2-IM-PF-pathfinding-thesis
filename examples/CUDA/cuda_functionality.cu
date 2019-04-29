@@ -299,6 +299,7 @@ __host__ void CUDA::TransferUnitsToDevice() {
 	if (host_unit_list.size() > unit_list_max_length) {
 		std::cout << "WARNING: too many units! Increase allocation size, overflow discarded" << std::endl;
 	}
+	Check(cudaMemsetAsync(device_unit_list_pointer, 0, unit_list_max_length * sizeof(Entity)), "TransferUnitsToDevice");
 
 	Check(cudaMemcpyAsync(device_unit_list_pointer, host_unit_list.data(), 
 		std::min((int)host_unit_list.size(), unit_list_max_length) * sizeof(Entity),
