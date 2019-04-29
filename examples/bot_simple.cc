@@ -81,16 +81,16 @@ int main(int argc, char* argv[]) {
     float elapsed_frame_time = 0;
 
     std::vector<float> frame_storage;
-    frame_storage.reserve(1000);
+    frame_storage.reserve(10000);
+
+    std::chrono::steady_clock::time_point frame_start;
+    std::chrono::steady_clock::time_point frame_end;
 
     //VRF BLIR PROGRAMMET LÅNGSAMMARE EFTER TESTENS SLUT?!?
 
     //--------
     switch(clock_type){
     case MeasureType::CHRONO:
-        std::chrono::steady_clock::time_point frame_start;
-        std::chrono::steady_clock::time_point frame_end;
-
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
             //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
             if (bot.restart) {
@@ -115,9 +115,6 @@ int main(int argc, char* argv[]) {
         //----------------------------------------------
 
     case MeasureType::CHRONO_SYNC_PRE_UPDATE:
-        std::chrono::steady_clock::time_point frame_start;
-        std::chrono::steady_clock::time_point frame_end;
-
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
@@ -131,7 +128,7 @@ int main(int argc, char* argv[]) {
 
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
             //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
             if (bot.restart) {
@@ -144,9 +141,6 @@ int main(int argc, char* argv[]) {
         //----------------------------------------------
 
     case MeasureType::CHRONO_SYNC_POST_UPDATE:
-        std::chrono::steady_clock::time_point frame_start;
-        std::chrono::steady_clock::time_point frame_end;
-
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
@@ -159,7 +153,7 @@ int main(int argc, char* argv[]) {
 
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
+            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
             //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
             if (bot.restart) {
