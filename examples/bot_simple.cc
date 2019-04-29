@@ -16,6 +16,8 @@
 #include <chrono>
 #include <iostream>
 
+bool restart;
+
 typedef enum {
     CHRONO,
     CHRONO_SYNC_PRE_UPDATE,
@@ -82,11 +84,13 @@ int main(int argc, char* argv[]) {
 
     std::vector<float> frame_storage;
     frame_storage.reserve(1000);
+    restart = false;
 
     //VRF BLIR PROGRAMMET LÅNGSAMMARE EFTER TESTENS SLUT?!?
 
     //--------
-    if (clock_type == MeasureType::CHRONO) {
+    switch(clock_type){
+    case MeasureType::CHRONO:
         std::chrono::steady_clock::time_point frame_start;
         std::chrono::steady_clock::time_point frame_end;
 
@@ -105,18 +109,20 @@ int main(int argc, char* argv[]) {
 
             if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
 
-            INPUT ip;
-            ip.type = INPUT_KEYBOARD;
-            ip.ki.wScan = 0;
-            ip.ki.time = 0;
-            ip.ki.dwExtraInfo = 0;
-            ip.ki.wVk = 0x4F;	//O
-            ip.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &ip, sizeof(INPUT));
+            //INPUT ip;
+            //ip.type = INPUT_KEYBOARD;
+            //ip.ki.wScan = 0;
+            //ip.ki.time = 0;
+            //ip.ki.dwExtraInfo = 0;
+            //ip.ki.wVk = 0x4F;	//O
+            //ip.ki.dwFlags = KEYEVENTF_KEYUP;
+            //SendInput(1, &ip, sizeof(INPUT));
         }
-    }
-    //--------
-    else if (clock_type == MeasureType::CHRONO_SYNC_PRE_UPDATE) {
+        break;
+
+        //----------------------------------------------
+
+    case MeasureType::CHRONO_SYNC_PRE_UPDATE:
         std::chrono::steady_clock::time_point frame_start;
         std::chrono::steady_clock::time_point frame_end;
 
@@ -135,11 +141,14 @@ int main(int argc, char* argv[]) {
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+            if (restart) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
         }
-    }
-    //--------
-    else if (clock_type == MeasureType::CHRONO_SYNC_POST_UPDATE) {
+        break;
+
+        //----------------------------------------------
+
+    case MeasureType::CHRONO_SYNC_POST_UPDATE:
         std::chrono::steady_clock::time_point frame_start;
         std::chrono::steady_clock::time_point frame_end;
 
@@ -153,13 +162,15 @@ int main(int argc, char* argv[]) {
             elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
             frame_start = std::chrono::steady_clock::now();
 
-
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 1000);
 
-            if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
+            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
+            if (restart) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+
         }
+        break;
     }
 
     return 0;
