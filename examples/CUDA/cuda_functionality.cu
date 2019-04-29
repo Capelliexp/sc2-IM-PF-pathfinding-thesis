@@ -297,11 +297,15 @@ __host__ void CUDA::BindRepellingMapsToTransferParams(){
 __host__ void CUDA::TransferUnitsToDevice() {
 
 	if (host_unit_list.size() > unit_list_max_length) {
-		std::cout << "WARNING: too many units! Increase allocation size, overflow discarded" << std::endl;
+		std::cout << "WARNING: too many units! Increasing allocation size" << std::endl;
+
+		Check(cudaFree(device_unit_list_pointer));
+		unit_list_max_length = host_unit_list.size() * 1.2;
+		cudaMalloc((void**)&device_unit_list_pointer, unit_list_max_length * sizeof(Entity));
 	}
 
 	Check(cudaMemcpyAsync(device_unit_list_pointer, host_unit_list.data(), 
-		std::min((int)host_unit_list.size(), unit_list_max_length) * sizeof(Entity),
+		min((int)host_unit_list.size(), unit_list_max_length) * sizeof(Entity),
 		cudaMemcpyHostToDevice),
 		"TransferUnitsToDevice");
 }
@@ -383,7 +387,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 	//cudaDeviceSynchronize();
 
 	//start PF-repelling job
-	int i = 0 + 100;
+	//int i = 0 + 100;
 	if (cudaEventQuery(repelling_PF_event_done) == cudaSuccess) {
 		Check(cudaEventDestroy(repelling_PF_event_done), "PF-repelling event done reset");
 		Check(cudaEventCreate(&repelling_PF_event_done), "PF-repelling event done create");
@@ -391,8 +395,8 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		if (pf_type == PFType::Normal) RepellingPFGeneration();
 		else if (pf_type == PFType::Large) LargeRepellingPFGeneration();
 
-		/*cudaDeviceSynchronize();
-		PopErrorsCheck("1");*/
+		cudaDeviceSynchronize();
+		PopErrorsCheck("1");
 
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_ground), "repelling PF ground memcpy");
 		Check(cudaMemcpy3DAsync(&repelling_PF_memcpy_params_air), "repelling PF air memcpy");
@@ -410,8 +414,8 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		cudaEventRecord(mem->begin, 0);
 		IMGeneration(mem->destination, (float(*)[MAP_Y_R][1])mem->map, mem->air_path, mem->device_map_ptr);
 
-		//cudaDeviceSynchronize();
-		//PopErrorsCheck("2");
+		cudaDeviceSynchronize();
+		PopErrorsCheck("2");
 
 		mem->initialized = true;
 		//mem->status = DeviceMemoryStatus::BUSY;
@@ -430,8 +434,8 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 		cudaEventRecord(mem->begin, 0);
 		AttractingPFGeneration(mem->owner_id, (float(*)[MAP_Y_R][1])mem->map, mem->device_map_ptr);
 
-		/*cudaDeviceSynchronize();
-		PopErrorsCheck("3." + std::to_string(i));*/
+		cudaDeviceSynchronize();
+		PopErrorsCheck("3." + std::to_string(i));
 
 		mem->initialized = true;
 		//mem->status = DeviceMemoryStatus::BUSY;
@@ -443,7 +447,7 @@ __host__ Result CUDA::ExecuteDeviceJobs(PFType pf_type){
 
 	PopErrorsCheck("Execute Device Jobs End 1");
 	
-	//cudaDeviceSynchronize();
+	cudaDeviceSynchronize();
 	PopErrorsCheck("Execute Device Jobs End 2");
 
 	return Result::OK;
@@ -573,7 +577,7 @@ __host__ void CUDA::RepellingPFGeneration() {
 	if (host_unit_list.size() > 0) {
 		//int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
 
-		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 1664 >> >
+		DeviceRepellingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 2048 >> >
 			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
 	}
 }
@@ -582,7 +586,7 @@ __host__ void CUDA::LargeRepellingPFGeneration() {
 	if (host_unit_list.size() > 0) {
 		//int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
 
-		DeviceLargeRepellingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 1664 >> >
+		DeviceLargeRepellingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 2048 >> >
 			(device_unit_list_pointer, host_unit_list.size(), repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer);
 	}
 }
@@ -590,7 +594,7 @@ __host__ void CUDA::LargeRepellingPFGeneration() {
 __host__ void CUDA::AttractingPFGeneration(int owner_type_id, float map[][MAP_Y_R][1], cudaPitchedPtr device_map){
 	//int shared_size = host_unit_list.size() * sizeof(Entity) + (32 * sizeof(Entity)) - ((host_unit_list.size() * sizeof(Entity))) % 32;
 
-	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 1664 >> >
+	DeviceAttractingPFGeneration << <dim_grid_high, dim_block_high, /*shared_size*/ 2048 >> >
 		(device_unit_list_pointer, host_unit_list.size(), owner_type_id, device_map);
 }
 
