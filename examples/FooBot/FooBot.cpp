@@ -55,14 +55,14 @@ void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 
 	//RAM & VRAM stat prints
-	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
-	if (GetKeyState('L') & 0x8000) map_storage->PrintCUDAMemoryUsage("runtime");
+	/*if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
+	if (GetKeyState('L') & 0x8000) map_storage->PrintCUDAMemoryUsage("runtime");*/
 
 	if (GetKeyState('M') & 0x8000) print_map = true;
-	if (GetKeyState('R') & 0x8000) Reset();
+	//if (GetKeyState('R') & 0x8000) Reset();
 
 	//commands
-	if (command == 0) {
+	/*if (command == 0) {
 		if (GetKeyState('1') & 0x8000) command = 1;
 		if (GetKeyState('2') & 0x8000) command = 2; 
 		if (GetKeyState('3') & 0x8000) command = 3; 
@@ -71,7 +71,7 @@ void FooBot::OnStep() {
 		if (GetKeyState('6') & 0x8000) command = 6;
 		if (GetKeyState('7') & 0x8000) command = 7;
 		if (GetKeyState('8') & 0x8000) command = 8;
-	}
+	}*/
 
 	if (new_buildings) {
 		new_buildings = false;
@@ -82,6 +82,7 @@ void FooBot::OnStep() {
 		//Map transfer PF a/r
 		map_storage->TransferPFFromDevice();
 	}
+	RemoveEnemyUnitsThatAreNotVisible();
 
 	//Set destination
 	ExecuteCommand();
@@ -165,8 +166,10 @@ void FooBot::Reset() {
 	for (int i = 0; i < enemy_units.size(); ++i) {
 		Debug()->DebugKillUnit(enemy_units[i].unit);
 	}
-	if (can_see_map)
+	if (can_see_map) {
 		Debug()->DebugShowMap();
+		can_see_map = false;
+	}
 	Debug()->SendDebug();
 
 	this->player_units.clear();
@@ -260,15 +263,15 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 					units_died++;
 					total_damage += unit->health_max + unit->shield_max;
 
-					std::ofstream outfile("output.txt", std::ios::app);
-					outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max << std::endl;
+					/*std::ofstream outfile("output.txt", std::ios::app);
+					outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max << std::endl;*/
 
 					astar_units.erase(astar_units.begin() + i);
 					if (astar_units.size() == 0) {
 						std::ofstream outfile("output.txt", std::ios::app);
 						for (int j = 0; j < enemy_units.size(); ++j)
 							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
-						//outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
+						outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
 
 						Reset();
 						//Debug()->SendDebug();
@@ -491,12 +494,12 @@ void FooBot::UpdateUnitsPaths() {
 			if (player_units[i].destination_reached == false)
 				++units_reached_destination;
 			player_units[i].destination_reached = true;
-			if (units_reached_destination == player_units.size()) {
+			/*if (units_reached_destination == player_units.size()) {
 				std::ofstream outfile("output.txt", std::ios::app);
 				outfile << player_units[i].dist_traveled << "," << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 				Reset();
 				continue;
-			}
+			}*/
 			//std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
 			//std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 
@@ -624,10 +627,10 @@ void FooBot::UpdateAstarPath() {
 					//std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 					//std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 
-					std::ofstream outfile("output.txt", std::ios::app);
+					/*std::ofstream outfile("output.txt", std::ios::app);
 					outfile  << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 					Reset();
-					continue;
+					continue;*/
 
 					astar_units[i].path_taken.push_back(last_path_pos);
 
@@ -657,23 +660,37 @@ void FooBot::UpdateAstarPFPath() {
 				float enemy_weapon_range = map_storage->GetUnitGroundWeaponRange(enemy_units[j].unit->unit_type);
 				enemy_weapon_range = max(enemy_weapon_range, 6.0);
 
-				if (dist < enemy_weapon_range || (dist > enemy_weapon_range && astar_units[i].PF_mode) && dist < astar_units[i].sight_range) {
+				int game_loop = Observation()->GetGameLoop();
+				if (enemy_units[j].unit->last_seen_game_loop != game_loop) {
+					astar = true;
+				}
+				else if (dist < enemy_weapon_range || (dist > enemy_weapon_range && astar_units[i].PF_mode) && dist < astar_units[i].sight_range) {
 					astar_units[i].PF_mode = true;
 					astar = false;
 				}
-				else if ((enemy_units[j].unit->display_type == sc2::Unit::Snapshot || enemy_units[j].unit->display_type == sc2::Unit::Visible) && !astar_units[i].PF_mode) {
+				/*else if ((enemy_units[j].unit->display_type == sc2::Unit::Snapshot || enemy_units[j].unit->display_type == sc2::Unit::Visible) && !astar_units[i].PF_mode) {
 					astar = true;
-				}
+				}*/
 				else if (dist > astar_units[i].sight_range && astar_units[i].PF_mode) {
 					new_path = true;
 				}
+			}
+			if (astar) {
+				new_path = false;
+				astar_units[i].PF_mode = false;
+			}
+			else {
+				new_path = false;
 			}
 			
 			//map_storage->PrintGroundPF("PF");
 			//PF
 			// If unit is passive, it ignores enemies
 			if (astar_units[i].PF_mode && !astar) {
-				//PrintValuesPF(i);
+				if (print_map) {
+					PrintValuesPF(i);
+					print_map = false;
+				}
 				//std::cout << "PF" << std::endl;
 				float current_pf = 0;
 				if (astar_units[i].behavior == behaviors::DEFENCE)
@@ -746,10 +763,10 @@ void FooBot::UpdateAstarPFPath() {
 						//std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 						//std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 
-						std::ofstream outfile("output.txt", std::ios::app);
-						outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
-						Reset();
-						continue;
+						//std::ofstream outfile("output.txt", std::ios::app);
+						//outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
+						//Reset();
+						//continue;
 
 						if (astar_units.size() == 1) {
 							//Reset();
@@ -979,6 +996,15 @@ bool FooBot::PointNearPoint(sc2::Point2D point, sc2::Point2D point_near, float p
 		point.y < point_near.y + padding && point.y > point_near.y - padding)
 		return true;
 	return false;
+}
+
+void FooBot::RemoveEnemyUnitsThatAreNotVisible() {
+	for (int i = 0; i < enemy_units.size(); ++i) {
+		if (enemy_units[i].unit->last_seen_game_loop != Observation()->GetGameLoop()) {
+			enemy_units.erase(enemy_units.begin() + i);
+			i--;
+		}
+	}
 }
 
 void FooBot::CreateAttractingPFs() {

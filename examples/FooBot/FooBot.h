@@ -131,6 +131,8 @@ private:
     bool PointInsideRect(sc2::Point2D point, sc2::Point2D bottom_left, sc2::Point2D top_right, float padding);
     bool PointNearPoint(sc2::Point2D point, sc2::Point2D point_near, float padding);
 
+    void RemoveEnemyUnitsThatAreNotVisible();
+
 private:
     MapStorage* map_storage;
 
