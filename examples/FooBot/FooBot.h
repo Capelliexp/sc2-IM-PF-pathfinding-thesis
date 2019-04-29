@@ -165,6 +165,8 @@ private:
 
     //! Integer that represents the current map;
     int map;
+    bool print_map;
+
 
     int total_damage;
     int units_died;
