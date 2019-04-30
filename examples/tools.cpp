@@ -39,7 +39,7 @@ void PrintMemoryUsage(std::string location) {
 }
 
 void PrintFrameTimesToFile(float* data, int length, std::string file_name) {
-	static int nr = 250;
+	static int nr = 0;
 
 	file_name.append("_" + std::to_string(nr) + ".txt");
 	std::ofstream file(file_name);
