@@ -44,7 +44,7 @@ void PrintFrameTimesToFile(float* data, int length, std::string file_name) {
 	file_name.append("_" + std::to_string(nr) + ".txt");
 	std::ofstream file(file_name);
 
-	nr += 5;
+	nr += 1;
 
 	if (!file.is_open()) {
 		std::cout << "Frame time output FAILED" << std::endl;

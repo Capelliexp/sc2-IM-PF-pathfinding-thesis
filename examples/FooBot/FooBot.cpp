@@ -18,7 +18,7 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else							this->map = 0;	//Not a valid test map
 
 	print_frame_data = false;
-	units_to_spawn = 2500;
+	units_to_spawn = 0;
 }
 
 void FooBot::OnGameStart() {
@@ -28,7 +28,7 @@ void FooBot::OnGameStart() {
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
-	this->astar = true;
+	this->astar = false;
 	this->astarPF = false;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
@@ -148,7 +148,7 @@ void FooBot::OnGameEnd() {
 void FooBot::Reset() {
 	if (restarts_%2 == 0) {
 		print_frame_data = true;
-		units_to_spawn += 50;
+		units_to_spawn += 10;
 	}
 
 	++restarts_;
@@ -1182,13 +1182,31 @@ void FooBot::CommandsOnEmpty50() {
 		}
 		break;
 	}
-	case 8:
+	case 8:	//spawn units baseline
 		if (spawned_player_units == -1) {
 			spawned_player_units = units_to_spawn;
 			if (restarts_%2 == 0) {
 				SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(25, 25));
 			}
 			spawned_player_units = -1;
+			command = 0;
+		}
+		break;
+	case 9:	//scaling combat test
+		if (spawned_player_units == -1) {
+			Debug()->DebugEnemyControl();
+			spawned_player_units = units_to_spawn;
+			if (restarts_ % 2 == 0) {
+				SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_player_units, sc2::Point2D(5, 5));
+				SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_player_units, sc2::Point2D(45, 45), 2);
+			}
+			
+		}
+		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(45), behaviors::ATTACK, false);
+			else SetDestination(astar_units, sc2::Point2D(45), behaviors::ATTACK, false);
+			spawned_player_units = -1;
+			spawned_enemy_units = -1;
 			command = 0;
 		}
 		break;
