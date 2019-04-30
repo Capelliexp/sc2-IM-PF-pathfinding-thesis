@@ -79,6 +79,7 @@ int main(int argc, char* argv[]) {
     bool active = true;
     long long int frame_nr = 0;
     float elapsed_frame_time = 0;
+    uint32_t restarts_check = 0;
 
     std::vector<float> frame_storage;
     frame_storage.reserve(10000);
@@ -104,11 +105,14 @@ int main(int argc, char* argv[]) {
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
-            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
             if (bot.print_frame_data) {
                 bot.print_frame_data = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
                 frame_storage.clear();
+            }
+            if (bot.restarts_ != restarts_check) {
+                frame_storage.clear();
+                restarts_check = bot.restarts_;
             }
         }
         break;
@@ -131,11 +135,14 @@ int main(int argc, char* argv[]) {
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
-            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
             if (bot.print_frame_data) {
                 bot.print_frame_data = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
                 frame_storage.clear();
+            }
+            if (bot.restarts_ != restarts_check) {
+                frame_storage.clear();
+                restarts_check = bot.restarts_;
             }
         }
         break;
@@ -157,11 +164,14 @@ int main(int argc, char* argv[]) {
             frame_storage.push_back(elapsed_frame_time);
             if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
 
-            //if (GetKeyState('O') & 0x8000) PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
             if (bot.print_frame_data) {
                 bot.print_frame_data = false;
                 PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
                 frame_storage.clear();
+            }
+            if (bot.restarts_ != restarts_check) {
+                frame_storage.clear();
+                restarts_check = bot.restarts_;
             }
         }
         break;

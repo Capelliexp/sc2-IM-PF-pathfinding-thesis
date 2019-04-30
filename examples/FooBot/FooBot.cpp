@@ -18,7 +18,7 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else							this->map = 0;	//Not a valid test map
 
 	print_frame_data = false;
-	units_to_spawn = 0;
+	units_to_spawn = 2500;
 }
 
 void FooBot::OnGameStart() {
@@ -146,9 +146,10 @@ void FooBot::OnGameEnd() {
 }
 
 void FooBot::Reset() {
-	print_frame_data = true;
-
-	units_to_spawn += 10;
+	if (restarts_%2 == 0) {
+		print_frame_data = true;
+		units_to_spawn += 50;
+	}
 
 	++restarts_;
 	std::cout << "Restart: " << restarts_ << std::endl;
@@ -175,7 +176,7 @@ void FooBot::Reset() {
 	this->enemy_units.clear();
 	this->host_unit_list.clear();
 
-	//Sleep(1000);
+	Sleep(1000);
 
 	map_storage->Reset();
 
@@ -1184,7 +1185,9 @@ void FooBot::CommandsOnEmpty50() {
 	case 8:
 		if (spawned_player_units == -1) {
 			spawned_player_units = units_to_spawn;
-			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(25, 25));
+			if (restarts_%2 == 0) {
+				SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(25, 25));
+			}
 			spawned_player_units = -1;
 			command = 0;
 		}
