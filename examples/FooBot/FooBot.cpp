@@ -27,7 +27,7 @@ void FooBot::OnGameStart() {
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
-	this->astar = false;
+	this->astar = true;
 	this->astarPF = false;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
@@ -639,6 +639,10 @@ void FooBot::UpdateAstarPath() {
 					}
 				}
 			}
+			else {
+				sc2::Point2D new_pos = sc2::Point2D(astar_units[i].path.back().x, MAP_Y_R - astar_units[i].path.back().y);
+				Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
+			}
 		}
 	}
 }
@@ -754,6 +758,10 @@ void FooBot::UpdateAstarPFPath() {
 							Debug()->SendDebug();
 						}
 					}
+				}
+				else {
+					sc2::Point2D new_pos = sc2::Point2D(astar_units[i].path.back().x, MAP_Y_R - astar_units[i].path.back().y);
+					Actions()->UnitCommand(astar_units[i].unit, sc2::ABILITY_ID::MOVE, new_pos);
 				}
 			}
 			//Redo A* path
