@@ -4,6 +4,7 @@
 #include "sc2lib/sc2_lib.h"
 
 #include "../CUDA/map_storage.hpp"
+#include "../tools.h"
 
 enum behaviors
 {

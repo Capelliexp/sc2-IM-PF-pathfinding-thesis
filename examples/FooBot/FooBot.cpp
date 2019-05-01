@@ -18,7 +18,7 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else							this->map = 0;	//Not a valid test map
 
 	print_frame_data = false;
-	units_to_spawn = 0;
+	units_to_spawn = 10 + (TEST_START_NR * 10);
 }
 
 void FooBot::OnGameStart() {
@@ -57,7 +57,8 @@ void FooBot::OnGameStart() {
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 
-	if (game_loop%1000 == 999) { Reset(); }
+	//if (game_loop % 1000 == 999) { Reset(); }
+	if (restarts_%2 == 1) { Reset(); }
 
 	//RAM & VRAM stat prints
 	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
@@ -494,23 +495,29 @@ void FooBot::UpdateUnitsPaths() {
 				++units_reached_destination;
 			player_units[i].destination_reached = true;
 			if (units_reached_destination == player_units.size()) {
-				map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
-				map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
-				map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
+				//map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
+				//map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
+				//map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
 
-				std::ofstream outfile("output.txt", std::ios::app);
-				outfile << player_units[i].dist_traveled << "," << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
+				//std::ofstream outfile("output.txt", std::ios::app);
+				//outfile << player_units[i].dist_traveled << "," << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 				Reset();
 				continue;
 			}
+
+			if (units_reached_destination == 1) {	//Pathfinding caling test
+				Reset();
+				continue;
+			}
+
 			//std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
 			//std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
 
 			
 
- 			map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
-			map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
-			map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
+ 			//map_storage->CreateImage(player_units[i].destination->destination, MAP_X_R, MAP_Y_R, "IM");
+			//map_storage->AddPathToImage(player_units[i].path_taken, map_storage->RED);
+			//map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM");
 
 			//player_units[i].destination = nullptr;
 
@@ -630,16 +637,16 @@ void FooBot::UpdateAstarPath() {
 					//std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 					//std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 
-					std::ofstream outfile("output.txt", std::ios::app);
-					outfile  << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
+					//std::ofstream outfile("output.txt", std::ios::app);
+					//outfile  << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 					Reset();
 					continue;
 
 					astar_units[i].path_taken.push_back(last_path_pos);
 
-					map_storage->CreateImageDynamic();
-					map_storage->AddPathToImage(astar_units[i].path_taken, map_storage->GREEN);
-					map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM_Astar");
+					//map_storage->CreateImageDynamic();
+					//map_storage->AddPathToImage(astar_units[i].path_taken, map_storage->GREEN);
+					//map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM_Astar");
 
 					if (astar_units.size() == 1) {
 						//Reset();
@@ -752,8 +759,8 @@ void FooBot::UpdateAstarPFPath() {
 						//std::cout << "Done: " << astar_units[i].dist_traveled << std::endl;
 						//std::cout << "Damage taken:" << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 
-						std::ofstream outfile("output.txt", std::ios::app);
-						outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
+						//std::ofstream outfile("output.txt", std::ios::app);
+						//outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
 						Reset();
 						continue;
 
@@ -932,11 +939,11 @@ void FooBot::PrintValues(int unit, sc2::Point2D pos) {
 					//int pf = map_storage->GetAttractingPF(player_units[unit].unit->unit_type, (int)p.y, (int)p.x);
 					if (value >= 0)
 						value += pf;
-					//Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
-					pf = min(pf, 60);
+					Debug()->DebugTextOut(std::to_string(value), sc2::Point3D(int(pp.x + x) + 0.5, int(pp.y + y) + 0.5, pp.z), sc2::Colors::Green, 8);
+					/*pf = min(pf, 60);
 					pf = max(pf, 1);
 					sc2::Color c = sc2::Color(255 * (60 - (60 / pf)), 0, 0);
-					Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);
+					Debug()->DebugBoxOut(sc2::Point3D(int(pp.x + x), int(pp.y + y), pp.z), sc2::Point3D(int(pp.x + x) + 1, int(pp.y + y) + 1, pp.z), c);*/
 				}
 			}
 		}
@@ -1194,7 +1201,7 @@ void FooBot::CommandsOnEmpty50() {
 		break;
 	case 9:	//scaling combat test
 		if (spawned_player_units == -1) {
-			Debug()->DebugEnemyControl();
+			//Debug()->DebugEnemyControl();
 			spawned_player_units = units_to_spawn;
 			if (restarts_ % 2 == 0) {
 				SpawnUnits(sc2::UNIT_TYPEID::PROTOSS_ZEALOT, spawned_player_units, sc2::Point2D(5, 5));
@@ -1744,6 +1751,25 @@ void FooBot::CommandsOnHardTwo() {
 		}
 		break;
 	}
+	case 8:	//scaling pathfinding test
+		if (spawned_player_units == -1) {
+			spawned_player_units = units_to_spawn;
+			if (restarts_ % 2 == 0) {
+				spawned_player_units = units_to_spawn;
+				for (int i = 0; i < (int)(units_to_spawn / 70) + 1; ++i) {
+					SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, min(70, spawned_player_units), sc2::Point2D(8, 8 + (i * 8.5)));
+					spawned_player_units -= 70;
+				}
+			}
+			spawned_player_units = units_to_spawn;
+		}
+		else if (player_units.size() == spawned_player_units || astar_units.size() == spawned_player_units) {
+			if (!astar && !astarPF) SetDestination(player_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			else SetDestination(astar_units, sc2::Point2D(47, 50), behaviors::PASSIVE, false);
+			spawned_player_units = -1;
+			command = 0;
+		}
+		break;
 	default: {
 		spawned_player_units = -1;
 		spawned_enemy_units = -1;

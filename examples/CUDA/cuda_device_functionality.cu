@@ -472,11 +472,11 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 		if (closest_coord_found == -1) {	//open list is empty and no path to the destination is found, RIP
 			((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -3;
-			//memset(open_list, 0, open_list_it * sizeof(node));
-			//memset(closed_list, 0, open_list_it * sizeof(node));
+			memset(open_list, 0, open_list_it * sizeof(node));
+			memset(closed_list, 0, open_list_it * sizeof(node));
 			free(open_list);
 			free(closed_list);
-			//memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
+			memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 			return;
 		}
 
@@ -517,11 +517,11 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 				if (open_list == NULL) {
 					printf("Device heap limit to low for lists (expand)\n");
-					//memset(open_list, 0, open_list_it * sizeof(node));
-					//memset(closed_list, 0, open_list_it * sizeof(node));
+					memset(open_list, 0, open_list_it * sizeof(node));
+					memset(closed_list, 0, open_list_it * sizeof(node));
 					free(open_list);
 					free(closed_list);
-					//memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
+					memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 					return;
 				}
 			}
@@ -540,11 +540,11 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 				if (closed_list == NULL) {
 					printf("Device heap limit to low for lists (expand)\n");
-					//memset(open_list, 0, open_list_it * sizeof(node));
-					//memset(closed_list, 0, open_list_it * sizeof(node));
+					memset(open_list, 0, open_list_it * sizeof(node));
+					memset(closed_list, 0, open_list_it * sizeof(node));
 					free(open_list);
 					free(closed_list);
-					//memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
+					memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 					return;
 				}
 			}
@@ -781,11 +781,11 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		//GLOBAL READ/WRITE
 		if(((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] == 0)	//shit solution, but it works...
 			((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = -2;
-		//memset(open_list, 0, open_list_it * sizeof(node));
-		//memset(closed_list, 0, open_list_it * sizeof(node));
+		memset(open_list, 0, open_list_it * sizeof(node));
+		memset(closed_list, 0, open_list_it * sizeof(node));
 		free(open_list);
 		free(closed_list);
-		//memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
+		memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 		return;
 	}
 
@@ -812,7 +812,7 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 		if (debug && debug_coord.x == x && debug_coord.y == y) printf("backtrack: printing %d to (%d,%d), node <%d, %d, %d, %f>\n", loop_count, pos.x, pos.y,
 			curr.pos, curr.backtrack_it, curr.steps_from_start, curr.est_dist_start_to_dest_via_pos);
 
-		if (curr.steps_from_start < 4) ((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
+		if (curr.steps_from_start < 2) ((float*)(((char*)device_map.ptr) + pos.y * device_map.pitch))[pos.x] = loop_count;
 
 		if (curr.backtrack_it == -1) {
 			break;
@@ -824,11 +824,11 @@ __global__ void DeviceGroundIMGeneration(IntPoint2D destination, cudaPitchedPtr 
 
 	//--------
 
-	//memset(open_list, 0, open_list_it * sizeof(node));
-	//memset(closed_list, 0, open_list_it * sizeof(node));
+	memset(open_list, 0, open_list_it * sizeof(node));
+	memset(closed_list, 0, open_list_it * sizeof(node));
 	free(open_list);
 	free(closed_list);
-	//memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
+	memset(shared_list_thread_pointer, 0, nodes_per_thread * sizeof(node));
 }
 
 __global__ void DeviceAirIMGeneration(IntPoint2D destination, cudaPitchedPtr device_map) {
