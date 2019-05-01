@@ -1182,6 +1182,14 @@ void FooBot::CommandsOnEmpty50() {
 		}
 		break;
 	}
+	case 8:
+		if (spawned_player_units == -1) {
+			spawned_player_units = 4096;
+			SpawnUnits(sc2::UNIT_TYPEID::TERRAN_MARINE, spawned_player_units, sc2::Point2D(25, 25));
+			spawned_player_units = -1;
+			command = 0;
+		}
+		break;
 	default: {
 		spawned_player_units = -1;
 		spawned_enemy_units = -1;

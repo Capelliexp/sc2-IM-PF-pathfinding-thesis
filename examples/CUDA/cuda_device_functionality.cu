@@ -5,7 +5,7 @@
 
 __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
 	extern __shared__ Entity unit_list_s[];
-	memset(unit_list_s, 0, 1664);
+	memset(unit_list_s, 0, 2048);
 
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -33,7 +33,8 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 
 		if (id_block * thread_shared_transfer_size <= (shared_list_size - thread_shared_transfer_size)) {
 			memset((void*)&unit_list_s[id_block * thread_shared_transfer_size], 0, thread_shared_transfer_size * sizeof(Entity));
-			memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[id_block * thread_shared_transfer_size], thread_shared_transfer_size * sizeof(Entity));
+			memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[(id_block * thread_shared_transfer_size) + 
+				(shared_part * shared_list_size)], thread_shared_transfer_size * sizeof(Entity));
 		}
 
 		__syncthreads();
@@ -46,12 +47,12 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 			for (int i = 0; i < register_list_size; ++i) {
 				//if (i + (slice * register_list_size) >= nr_of_units) break;
 				//register_list[i] = unit_list_s[i + (slice * register_list_size)];
-				register_list[i] = unit_list_s[i + (slice * register_list_size) + shared_part * register_list_size];
+				register_list[i] = unit_list_s[i + (slice * register_list_size) /*+ shared_part * register_list_size*/];
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {
 				//if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loop;
-				if (i + slice * nr_of_slice_loops + shared_part * shared_list_size > nr_of_units) goto end_of_loop;	//break if we reach end of list
+				if (i + slice * register_list_size + shared_part * shared_list_size > nr_of_units) goto end_of_loop;	//break if we reach end of list
 
 				UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
 				float range_sub = fmaxf(unit.range, 3) + 2;
@@ -79,7 +80,7 @@ __global__ void DeviceRepellingPFGeneration(Entity* device_unit_list_pointer, in
 
 end_of_loop:
 	
-	memset(unit_list_s, 0, 1664);
+	memset(unit_list_s, 0, 2048);
 	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
 
 	//write ground_charge and air_charge to global memory in owned coord
@@ -89,7 +90,7 @@ end_of_loop:
 
 __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, cudaPitchedPtr device_map_ground, cudaPitchedPtr device_map_air) {
 	extern __shared__ Entity unit_list_s[];
-	memset(unit_list_s, 0, 1664);
+	memset(unit_list_s, 0, 2048);
 
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -123,7 +124,9 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 
 		if (id_block * thread_shared_transfer_size <= (shared_list_size - thread_shared_transfer_size)) {
 			memset((void*)&unit_list_s[id_block * thread_shared_transfer_size], 0, thread_shared_transfer_size * sizeof(Entity));
-			memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[id_block * thread_shared_transfer_size], thread_shared_transfer_size * sizeof(Entity));
+			//memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[id_block * thread_shared_transfer_size], thread_shared_transfer_size * sizeof(Entity));
+			memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[(id_block * thread_shared_transfer_size) +
+				(shared_part * shared_list_size)], thread_shared_transfer_size * sizeof(Entity));
 		}
 
 		__syncthreads();
@@ -136,12 +139,12 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 			for (int i = 0; i < register_list_size; ++i) {
 				//if (i + (slice * register_list_size) >= nr_of_units) break;
 				//register_list[i] = unit_list_s[i + (slice * register_list_size)];
-				register_list[i] = unit_list_s[i + (slice * register_list_size) + shared_part * register_list_size];
+				register_list[i] = unit_list_s[i + (slice * register_list_size)/* + shared_part * register_list_size*/];
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {
 				//if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_loops;
-				if (i + slice * nr_of_slice_loops + shared_part * shared_list_size > nr_of_units) goto end_of_loops;	//break if we reach end of list
+				if (i + slice * register_list_size + shared_part * shared_list_size > nr_of_units) goto end_of_loops;	//break if we reach end of list
 
 				UnitInfoDevice unit = device_unit_lookup[register_list[i].id];
 				//float dist = (FloatDistance((int)register_list[i].pos.x, (int)register_list[i].pos.y, x, y) + 0.0001);
@@ -167,7 +170,7 @@ __global__ void DeviceLargeRepellingPFGeneration(Entity* device_unit_list_pointe
 	}
 end_of_loops:
 
-	memset(unit_list_s, 0, 1664);
+	memset(unit_list_s, 0, 2048);
 	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
 
 	//write ground_charge and air_charge to global memory in owned coord
@@ -177,7 +180,7 @@ end_of_loops:
 
 __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, int nr_of_units, int owner_type_id, cudaPitchedPtr device_map){
 	extern __shared__ Entity unit_list_s[];
-	memset(unit_list_s, 0, 1664);
+	memset(unit_list_s, 0, 2048);
 
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -208,7 +211,9 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 
 		if (id_block * thread_shared_transfer_size <= (shared_list_size - thread_shared_transfer_size)) {
 			memset((void*)&unit_list_s[id_block * thread_shared_transfer_size], 0, thread_shared_transfer_size * sizeof(Entity));
-			memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[id_block * thread_shared_transfer_size], thread_shared_transfer_size * sizeof(Entity));
+			//memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[id_block * thread_shared_transfer_size], thread_shared_transfer_size * sizeof(Entity));
+			memcpy((void*)&unit_list_s[id_block * thread_shared_transfer_size], (void**)&device_unit_list_pointer[(id_block * thread_shared_transfer_size) +
+				(shared_part * shared_list_size)], thread_shared_transfer_size * sizeof(Entity));
 		}
 
 		__syncthreads();
@@ -220,12 +225,12 @@ __global__ void DeviceAttractingPFGeneration(Entity* device_unit_list_pointer, i
 		for (int slice = 0; slice < nr_of_slice_loops; ++slice) {
 			for (int i = 0; i < register_list_size; ++i) {
 				//register_list[j] = unit_list_s[j + (slice * register_list_size)];
-				register_list[i] = unit_list_s[i + (slice * register_list_size) + shared_part * register_list_size];
+				register_list[i] = unit_list_s[i + (slice * register_list_size)/* + shared_part * register_list_size*/];
 			}
 
 			for (int i = 0; i < register_list_size; ++i) {
 				if (register_list[i].id < 1 || register_list[i].id > 120) goto end_of_units;
-				if ((i + (slice * nr_of_slice_loops) + (shared_part * shared_list_size)) > nr_of_units) goto end_of_units;	//break if we reach end of list
+				if ((i + (slice * register_list_size) + (shared_part * shared_list_size)) > nr_of_units) goto end_of_units;	//break if we reach end of list
 
 				UnitInfoDevice other_info = device_unit_lookup[register_list[i].id];
 				Entity other_entity = register_list[i];
@@ -274,7 +279,7 @@ end_of_units:
 
 	if (x >= MAP_X_R || y >= MAP_Y_R || x < 0 || y < 0) return;
 
-	memset(unit_list_s, 0, 1664);
+	memset(unit_list_s, 0, 2048);
 
 	((float*)(((char*)device_map.ptr) + y * device_map.pitch))[x] = tot_charge;
 }
