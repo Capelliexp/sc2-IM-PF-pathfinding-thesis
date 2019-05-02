@@ -38,24 +38,43 @@ void PrintMemoryUsage(std::string location) {
 		"   Physical memory currently used by process: " << physMemUsedByMe << " bytes" << std::endl;
 }
 
-void PrintFrameTimesToFile(float* data, int length, std::string file_name) {
+int GetMemoryUsage() {
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+	return pmc.WorkingSetSize;
+}
+
+void PrintDataToFile(float* frame_data, int* RAM_data, int* VRAM_data, int length, std::string file_name, bool close) {
 	static int nr = 0 + TEST_START_NR;
 
-	file_name.append("_" + std::to_string(nr) + ".txt");
-	std::ofstream file(file_name);
+	static std::ofstream frame_file(file_name /*+ "_" + std::to_string(nr)*/ + "_frames.txt");
+	static std::ofstream RAM_file(file_name /*+ "_" + std::to_string(nr)*/ + "_RAM.txt");
+	static std::ofstream VRAM_file(file_name /*+ "_" + std::to_string(nr)*/ + "_VRAM.txt");
+
+	if (close) {
+		frame_file.close();
+		RAM_file.close();
+		VRAM_file.close();
+		return;
+	}
 
 	nr += 1;
 
-	if (!file.is_open()) {
-		std::cout << "Frame time output FAILED" << std::endl;
+	if (!frame_file.is_open() || !RAM_file.is_open() || !VRAM_file.is_open()) {
+		std::cout << "data output FAILED" << std::endl;
 		return;
 	}
 
 	for (int i = 0; i < length; ++i) {
-		file << data[i] << "\n";
+		frame_file << frame_data[i] << ", ";
+		RAM_file << RAM_data[i] << ", ";
+		VRAM_file << VRAM_data[i] << ", ";
 	}
 
-	file.close();
+	frame_file << "\n";
+	RAM_file << "\n";
+	VRAM_file << "\n";
 
-	std::cout << "Frame time output to " << file_name << std::endl;
+	//file.close();
+
+	std::cout << "Data output to " << file_name << std::endl;
 }

@@ -818,27 +818,31 @@ __host__ void CUDA::PrintDeviceMemoryUsage(std::string location){
 		location = " at " + location;
 	}
 
+	std::cout << "Device memory usage" << location << ": " << std::endl <<
+		"   global: " << GetDeviceMemoryUsage() << " bytes" << std::endl;
+}
+
+__host__ int CUDA::GetDeviceMemoryUsage(){
 	int VRAM_global_bytes_allocated = 0;
 
 	//device memory single map pointers:
 	//dynamic_map_device_pointer, repelling_pf_ground_map_pointer, repelling_pf_air_map_pointer
-	VRAM_global_bytes_allocated += dynamic_map_device_pointer.pitch * MAP_Y_R;
-	VRAM_global_bytes_allocated += repelling_pf_ground_map_pointer.pitch * MAP_Y_R;
-	VRAM_global_bytes_allocated += repelling_pf_air_map_pointer.pitch * MAP_Y_R;
+	VRAM_global_bytes_allocated += dynamic_map_device_pointer.pitch * MAP_Y_R;		//terrain map
+	VRAM_global_bytes_allocated += repelling_pf_ground_map_pointer.pitch * MAP_Y_R;	//repelling PF ground
+	VRAM_global_bytes_allocated += repelling_pf_air_map_pointer.pitch * MAP_Y_R;	//repelling PF air
 
 	//device memory array pointers:
 	//unit_lookup_device_pointer, device_unit_list_pointer, global_memory_im_list_storage
 	VRAM_global_bytes_allocated += device_unit_lookup_on_host.size() * sizeof(UnitInfoDevice);
 	VRAM_global_bytes_allocated += unit_list_max_length * sizeof(Entity);
 	//VRAM_global_bytes_allocated += 256000000 * sizeof(list_double_entry);
-	
+
 	//device memory map lists & queues:
 	//PF_mem, IM_mem
 	VRAM_global_bytes_allocated += PF_mem.size() * repelling_pf_ground_map_pointer.pitch * MAP_Y_R;	//using PF tex size for simplicity
 	VRAM_global_bytes_allocated += IM_mem.size() * repelling_pf_ground_map_pointer.pitch * MAP_Y_R;	//using PF tex size for simplicity
 
-	std::cout << "Device memory usage" << location << ": " << std::endl <<
-		"   global: " << VRAM_global_bytes_allocated << " bytes" << std::endl;
+	return VRAM_global_bytes_allocated;
 }
 
 __host__ void CUDA::SyncDevice(){

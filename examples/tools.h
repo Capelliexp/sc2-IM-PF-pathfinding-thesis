@@ -7,4 +7,5 @@
 #define TEST_START_NR (0)
 
 void PrintMemoryUsage(std::string location = "");
-void PrintFrameTimesToFile(float* data, int length, std::string file_name);
+int GetMemoryUsage();
+void PrintDataToFile(float* frame_data, int* RAM_data, int* VRAM_data, int length, std::string file_name, bool close);

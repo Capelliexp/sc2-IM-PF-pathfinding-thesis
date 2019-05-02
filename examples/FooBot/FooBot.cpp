@@ -18,7 +18,7 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else							this->map = 0;	//Not a valid test map
 
 	print_frame_data = false;
-	units_to_spawn = 10 + (TEST_START_NR * 10);
+	units_to_spawn = 0 + (TEST_START_NR * 10);
 }
 
 void FooBot::OnGameStart() {
@@ -29,7 +29,7 @@ void FooBot::OnGameStart() {
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
 	this->astar = false;
-	this->astarPF = true;
+	this->astarPF = false;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
@@ -57,8 +57,8 @@ void FooBot::OnGameStart() {
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 
-	//if (game_loop % 1000 == 999) { Reset(); }
-	if (restarts_%2 == 1) { Reset(); }
+	if (game_loop % 1000 == 999) { Reset(); }
+	//if (restarts_%2 == 1) { Reset(); }
 
 	//RAM & VRAM stat prints
 	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
@@ -246,7 +246,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 						outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl ;
 						//outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
 
-						Reset();
+						//Reset();
 						//Debug()->SendDebug();
 					}
 					
@@ -273,7 +273,7 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
 						//outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
 
-						Reset();
+						//Reset();
 						//Debug()->SendDebug();
 					}
 					return;
@@ -501,14 +501,14 @@ void FooBot::UpdateUnitsPaths() {
 
 				//std::ofstream outfile("output.txt", std::ios::app);
 				//outfile << player_units[i].dist_traveled << "," << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
-				Reset();
+				//Reset();
 				continue;
 			}
 
-			if (units_reached_destination == 1) {	//Pathfinding caling test
-				Reset();
-				continue;
-			}
+			//if (units_reached_destination == 1) {	//Pathfinding test
+			//	Reset();
+			//	continue;
+			//}
 
 			//std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
 			//std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
@@ -639,7 +639,7 @@ void FooBot::UpdateAstarPath() {
 
 					//std::ofstream outfile("output.txt", std::ios::app);
 					//outfile  << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
-					Reset();
+					//Reset();
 					continue;
 
 					astar_units[i].path_taken.push_back(last_path_pos);
@@ -765,7 +765,7 @@ void FooBot::UpdateAstarPFPath() {
 
 						//std::ofstream outfile("output.txt", std::ios::app);
 						//outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
-						Reset();
+						//Reset();
 						continue;
 
 						if (astar_units.size() == 1) {
@@ -1000,6 +1000,10 @@ bool FooBot::PointNearPoint(sc2::Point2D point, sc2::Point2D point_near, float p
 		point.y < point_near.y + padding && point.y > point_near.y - padding)
 		return true;
 	return false;
+}
+
+int FooBot::GetDeviceMemoryUsage(){
+	return map_storage->GetCUDAMemoryUsage();
 }
 
 void FooBot::CreateAttractingPFs() {

@@ -103,6 +103,7 @@ public:
 	void PrintImage(int x, int y, std::string name);
 
 	void PrintCUDAMemoryUsage(std::string location = "");
+	int GetCUDAMemoryUsage();
 
 	void UpdateIMAtsar();
 

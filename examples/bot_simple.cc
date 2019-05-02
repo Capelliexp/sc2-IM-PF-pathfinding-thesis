@@ -39,15 +39,15 @@ int main(int argc, char* argv[]) {
     coordinator.SetStepSize(1);
 
     //! Om du ändrar denna variable. Glöm inte att ändra #define MAP_X och #define MAP_Y i map_storage.hpp.
-    //std::string map = "empty50";
+    std::string map = "empty50";
 
     //! Experiment/Labyrinth
     //std::string map = "easy";
     //std::string map = "medium";
-    std::string map = "hard_two";
+    //std::string map = "hard_two";
     //std::string map = "hard_one";
 
-    int command = 8;
+    int command = 9;
 
     // Add the custom bot, it will control the players.
     FooBot bot(map, command);
@@ -67,8 +67,8 @@ int main(int argc, char* argv[]) {
     PrintMemoryUsage("SC2 launch");
 
     // Step forward the game simulation.
-    //map = std::string("Test/" + map + ".SC2Map");
-    map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
+    map = std::string("Test/" + map + ".SC2Map");
+    //map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
     char* str = new char[map.size()];
     std::strcpy(str, map.c_str());
     
@@ -82,7 +82,11 @@ int main(int argc, char* argv[]) {
     uint32_t restarts_check = 0;
 
     std::vector<float> frame_storage;
+    std::vector<int> RAM_storage;
+    std::vector<int> VRAM_storage;
     frame_storage.reserve(10000);
+    RAM_storage.reserve(10000);
+    VRAM_storage.reserve(10000);
 
     std::chrono::steady_clock::time_point frame_start;
     std::chrono::steady_clock::time_point frame_end;
@@ -95,6 +99,11 @@ int main(int argc, char* argv[]) {
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
+            if (GetKeyState('C') & 0x8000) {
+                PrintDataToFile(nullptr, nullptr, nullptr, 0, "", true);
+                return 0;
+            }
+
             active = coordinator.Update();
 
             frame_end = std::chrono::steady_clock::now();
@@ -103,15 +112,25 @@ int main(int argc, char* argv[]) {
 
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
+            RAM_storage.push_back(GetMemoryUsage());
+            VRAM_storage.push_back(bot.GetDeviceMemoryUsage());
+            if (frame_storage.capacity() - frame_storage.size() < 10) {
+                frame_storage.reserve(frame_storage.capacity() + 10000);
+                RAM_storage.reserve(RAM_storage.capacity() + 10000);
+                VRAM_storage.reserve(VRAM_storage.capacity() + 10000);
+            }
 
             if (bot.print_frame_data) {
                 bot.print_frame_data = false;
-                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_no_sync");
+                PrintDataToFile(frame_storage.data(), RAM_storage.data(), VRAM_storage.data(), frame_storage.size(), "chrono_no_sync", false);
                 frame_storage.clear();
+                RAM_storage.clear();
+                VRAM_storage.clear();
             }
             if (bot.restarts_ != restarts_check) {
                 frame_storage.clear();
+                RAM_storage.clear();
+                VRAM_storage.clear();
                 restarts_check = bot.restarts_;
             }
         }
@@ -123,6 +142,11 @@ int main(int argc, char* argv[]) {
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
+            if (GetKeyState('C') & 0x8000) {
+                PrintDataToFile(nullptr, nullptr, nullptr, 0, "", true);
+                return 0;
+            }
+
             cudaDeviceSynchronize();
             active = coordinator.Update();
 
@@ -133,15 +157,25 @@ int main(int argc, char* argv[]) {
 
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
+            RAM_storage.push_back(GetMemoryUsage());
+            VRAM_storage.push_back(bot.GetDeviceMemoryUsage());
+            if (frame_storage.capacity() - frame_storage.size() < 10) {
+                frame_storage.reserve(frame_storage.capacity() + 10000);
+                RAM_storage.reserve(RAM_storage.capacity() + 10000);
+                VRAM_storage.reserve(VRAM_storage.capacity() + 10000);
+            }
 
             if (bot.print_frame_data) {
                 bot.print_frame_data = false;
-                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_pre_sync");
+                PrintDataToFile(frame_storage.data(), RAM_storage.data(), VRAM_storage.data(), frame_storage.size(), "chrono_no_sync", false);
                 frame_storage.clear();
+                RAM_storage.clear();
+                VRAM_storage.clear();
             }
             if (bot.restarts_ != restarts_check) {
                 frame_storage.clear();
+                RAM_storage.clear();
+                VRAM_storage.clear();
                 restarts_check = bot.restarts_;
             }
         }
@@ -153,6 +187,11 @@ int main(int argc, char* argv[]) {
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
+            if (GetKeyState('C') & 0x8000) {
+                PrintDataToFile(nullptr, nullptr, nullptr, 0, "", true);
+                return 0;
+            }
+
             active = coordinator.Update();
             cudaDeviceSynchronize();
 
@@ -162,15 +201,25 @@ int main(int argc, char* argv[]) {
 
             //save frame time data
             frame_storage.push_back(elapsed_frame_time);
-            if (frame_storage.capacity() - frame_storage.size() < 10) frame_storage.reserve(frame_storage.capacity() + 10000);
+            RAM_storage.push_back(GetMemoryUsage());
+            VRAM_storage.push_back(bot.GetDeviceMemoryUsage());
+            if (frame_storage.capacity() - frame_storage.size() < 10) {
+                frame_storage.reserve(frame_storage.capacity() + 10000);
+                RAM_storage.reserve(RAM_storage.capacity() + 10000);
+                VRAM_storage.reserve(VRAM_storage.capacity() + 10000);
+            }
 
             if (bot.print_frame_data) {
                 bot.print_frame_data = false;
-                PrintFrameTimesToFile(frame_storage.data(), frame_storage.size(), "chrono_post_sync");
+                PrintDataToFile(frame_storage.data(), RAM_storage.data(), VRAM_storage.data(), frame_storage.size(), "chrono_no_sync", false);
                 frame_storage.clear();
+                RAM_storage.clear();
+                VRAM_storage.clear();
             }
             if (bot.restarts_ != restarts_check) {
                 frame_storage.clear();
+                RAM_storage.clear();
+                VRAM_storage.clear();
                 restarts_check = bot.restarts_;
             }
         }

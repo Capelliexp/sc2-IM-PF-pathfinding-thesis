@@ -63,6 +63,8 @@ public:
     virtual void OnUnitDestroyed(const sc2::Unit* unit) final;
     virtual void OnUnitCreated(const sc2::Unit* unit) final;
 
+    int GetDeviceMemoryUsage();
+
     bool print_frame_data;
     uint32_t restarts_;
 

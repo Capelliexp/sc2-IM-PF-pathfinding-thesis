@@ -114,6 +114,10 @@ void MapStorage::PrintCUDAMemoryUsage(std::string location){
     cuda->PrintDeviceMemoryUsage(location);
 }
 
+int MapStorage::GetCUDAMemoryUsage() {
+    return cuda->GetDeviceMemoryUsage();
+}
+
 void MapStorage::PrintMap(sc2::Point2D pos, int x, int y, std::string name) {
     for (auto& d : destinations_ground_IM) {
         if (d.destination == pos) {
