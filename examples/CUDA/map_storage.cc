@@ -494,6 +494,7 @@ bool MapStorage::GetDynamicMap(int x, int y) {
 
 //! Creates the influence map based on the size of the map.
 void MapStorage::CreateIM() {
+    auto a = observation->GetGameInfo();
     std::string IM = observation->GetGameInfo().pathing_grid.data;
     //Fill a 8x8 cube with the same value or what GRID_DIVISION have for value, max 8x8
     for (int i = 0; i < MAP_Y; ++i) {
@@ -504,7 +505,8 @@ void MapStorage::CreateIM() {
                 int yp = (y + iP);
                 for (int x = 0; x < GRID_DIVISION; ++x) {
                     int xp = x + jP;
-                    dynamic_terrain[xp][yp][0] = (IM[i + j * MAP_X] == -1) ? 0 : 1;
+                    int pos = i + j * MAP_X;
+                    dynamic_terrain[xp][yp][0] = (IM[pos] == -1) ? 0 : 1;
                 }
             }
         }
