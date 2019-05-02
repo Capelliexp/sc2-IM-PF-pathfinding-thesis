@@ -28,8 +28,8 @@ void FooBot::OnGameStart() {
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
-	this->astar = true;
-	this->astarPF = false;
+	this->astar = false;
+	this->astarPF = true;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
