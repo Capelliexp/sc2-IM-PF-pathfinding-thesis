@@ -40,6 +40,9 @@ void PrintMemoryUsage(std::string location) {
 
 int GetMemoryUsage() {
 	PROCESS_MEMORY_COUNTERS_EX pmc;
+	if (GetProcessMemoryInfo(GetCurrentProcess(), (PPROCESS_MEMORY_COUNTERS)&pmc, sizeof(pmc)) == 0)
+		std::cout << "WARNING: unable to read phys memory info" << std::endl;
+
 	return pmc.WorkingSetSize;
 }
 

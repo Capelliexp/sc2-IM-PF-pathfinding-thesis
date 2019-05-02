@@ -58,7 +58,7 @@ void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 
 	if (game_loop % 1000 == 999) { Reset(); }
-	//if (restarts_%2 == 1) { Reset(); }
+	if (restarts_%2 == 1) { Reset(); }
 
 	//RAM & VRAM stat prints
 	if (GetKeyState('P') & 0x8000) PrintMemoryUsage("runtime");
@@ -246,8 +246,8 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 						outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl ;
 						//outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
 
-						//Reset();
-						//Debug()->SendDebug();
+						Reset();
+						Debug()->SendDebug();
 					}
 					
 					return;
@@ -273,8 +273,8 @@ void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
 							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
 						//outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
 
-						//Reset();
-						//Debug()->SendDebug();
+						Reset();
+						Debug()->SendDebug();
 					}
 					return;
 				}
@@ -501,14 +501,14 @@ void FooBot::UpdateUnitsPaths() {
 
 				//std::ofstream outfile("output.txt", std::ios::app);
 				//outfile << player_units[i].dist_traveled << "," << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
-				//Reset();
+				Reset();
 				continue;
 			}
 
-			//if (units_reached_destination == 1) {	//Pathfinding test
-			//	Reset();
-			//	continue;
-			//}
+			if (units_reached_destination == 1) {	//Pathfinding test
+				Reset();
+				continue;
+			}
 
 			//std::cout << "Done: " << player_units[i].dist_traveled << std::endl;
 			//std::cout << "Damage taken:" << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
@@ -639,7 +639,7 @@ void FooBot::UpdateAstarPath() {
 
 					//std::ofstream outfile("output.txt", std::ios::app);
 					//outfile  << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
-					//Reset();
+					Reset();
 					continue;
 
 					astar_units[i].path_taken.push_back(last_path_pos);
@@ -649,7 +649,7 @@ void FooBot::UpdateAstarPath() {
 					//map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM_Astar");
 
 					if (astar_units.size() == 1) {
-						//Reset();
+						Reset();
 						Debug()->SendDebug();
 					}
 				}
@@ -765,11 +765,11 @@ void FooBot::UpdateAstarPFPath() {
 
 						//std::ofstream outfile("output.txt", std::ios::app);
 						//outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max - astar_units[i].unit->health << std::endl;
-						//Reset();
+						Reset();
 						continue;
 
 						if (astar_units.size() == 1) {
-							//Reset();
+							Reset();
 							Debug()->SendDebug();
 						}
 					}
