@@ -66,6 +66,8 @@ int main(int argc, char* argv[]) {
     Sleep(1000);
     PrintMemoryUsage("SC2 launch");
 
+    std::string output_file_name = "baseline";
+
     // Step forward the game simulation.
     map = std::string("Test/" + map + ".SC2Map");
     //map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
@@ -91,26 +93,27 @@ int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point frame_start;
     std::chrono::steady_clock::time_point frame_end;
 
-    //VRF BLIR PROGRAMMET LÅNGSAMMARE EFTER TESTENS SLUT?!?
-
     //--------
     switch(clock_type){
     case MeasureType::CHRONO:
         frame_start = std::chrono::steady_clock::now();
 
         while (active) {
+            //break conditions
             if (GetKeyState('C') & 0x8000) {
                 PrintDataToFile(nullptr, nullptr, nullptr, 0, "", true);
                 return 0;
             }
 
+            //update
             active = coordinator.Update();
 
+            //store frame time data
             frame_end = std::chrono::steady_clock::now();
             elapsed_frame_time = ((float)std::chrono::duration_cast<std::chrono::microseconds>(frame_end - frame_start).count()) / 1000.f;
             frame_start = std::chrono::steady_clock::now();
 
-            //save frame time data
+            //save runtime data
             frame_storage.push_back(elapsed_frame_time);
             RAM_storage.push_back(GetMemoryUsage());
             VRAM_storage.push_back(bot.GetDeviceMemoryUsage());
