@@ -115,6 +115,8 @@ void MapStorage::PrintCUDAMemoryUsage(std::string location){
 }
 
 int MapStorage::GetCUDAMemoryUsage() {
+    if (cuda == nullptr) return 0;
+
     return cuda->GetDeviceMemoryUsage();
 }
 

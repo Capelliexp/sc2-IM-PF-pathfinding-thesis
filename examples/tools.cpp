@@ -47,20 +47,16 @@ int GetMemoryUsage() {
 }
 
 void PrintDataToFile(float* frame_data, int* RAM_data, int* VRAM_data, int length, std::string file_name, bool close) {
-	static int nr = 0 + TEST_START_NR;
-
-	static std::ofstream frame_file(file_name /*+ "_" + std::to_string(nr)*/ + "_frames.txt");
-	static std::ofstream RAM_file(file_name /*+ "_" + std::to_string(nr)*/ + "_RAM.txt");
-	static std::ofstream VRAM_file(file_name /*+ "_" + std::to_string(nr)*/ + "_VRAM.txt");
+	std::ofstream frame_file(file_name /*+ "_" + std::to_string(nr)*/ + "_frames.txt", std::ios_base::app);
+	std::ofstream RAM_file(file_name /*+ "_" + std::to_string(nr)*/ + "_RAM.txt", std::ios_base::app);
+	std::ofstream VRAM_file(file_name /*+ "_" + std::to_string(nr)*/ + "_VRAM.txt", std::ios_base::app);
 
 	if (close) {
-		frame_file.close();
+		/*frame_file.close();
 		RAM_file.close();
-		VRAM_file.close();
+		VRAM_file.close();*/
 		return;
 	}
-
-	nr += 1;
 
 	if (!frame_file.is_open() || !RAM_file.is_open() || !VRAM_file.is_open()) {
 		std::cout << "data output FAILED" << std::endl;
@@ -77,7 +73,9 @@ void PrintDataToFile(float* frame_data, int* RAM_data, int* VRAM_data, int lengt
 	RAM_file << "\n";
 	VRAM_file << "\n";
 
-	//file.close();
+	frame_file.close();
+	RAM_file.close();
+	VRAM_file.close();
 
 	std::cout << "Data output to " << file_name << std::endl;
 }

@@ -39,12 +39,12 @@ int main(int argc, char* argv[]) {
     coordinator.SetStepSize(1);
 
     //! Om du ändrar denna variable. Glöm inte att ändra #define MAP_X och #define MAP_Y i map_storage.hpp.
-    std::string map = "empty50";
+    //std::string map = "empty50";
 
     //! Experiment/Labyrinth
     //std::string map = "easy";
     //std::string map = "medium";
-    //std::string map = "hard_two";
+    std::string map = "hard_two";
     //std::string map = "hard_one";
 
     int command = 8;
@@ -66,11 +66,11 @@ int main(int argc, char* argv[]) {
     Sleep(1000);
     PrintMemoryUsage("SC2 launch");
 
-    std::string output_file_name = "baseline";
+    std::string output_file_name = "pathfinding";
 
     // Step forward the game simulation.
-    map = std::string("Test/" + map + ".SC2Map");
-    //map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
+    //map = std::string("Test/" + map + ".SC2Map");
+    map = std::string("Experiment/Labyrinth/" + map + ".SC2Map");
     char* str = new char[map.size()];
     std::strcpy(str, map.c_str());
     
@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
 
             if (bot.print_frame_data) {
                 bot.print_frame_data = false;
-                PrintDataToFile(frame_storage.data(), RAM_storage.data(), VRAM_storage.data(), frame_storage.size(), "chrono_no_sync", false);
+                PrintDataToFile(frame_storage.data(), RAM_storage.data(), VRAM_storage.data(), frame_storage.size(), output_file_name, false);
                 frame_storage.clear();
                 RAM_storage.clear();
                 VRAM_storage.clear();

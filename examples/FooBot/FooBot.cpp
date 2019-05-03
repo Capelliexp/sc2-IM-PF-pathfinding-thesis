@@ -18,7 +18,7 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else							this->map = 0;	//Not a valid test map
 
 	print_frame_data = false;
-	units_to_spawn = 0 + (TEST_START_NR * 10);
+	units_to_spawn = 10 + (TEST_START_NR * 10);
 }
 
 void FooBot::OnGameStart() {
@@ -28,7 +28,7 @@ void FooBot::OnGameStart() {
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
-	this->astar = false;
+	this->astar = true;
 	this->astarPF = false;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
@@ -57,7 +57,7 @@ void FooBot::OnGameStart() {
 void FooBot::OnStep() {
 	uint32_t game_loop = Observation()->GetGameLoop();
 
-	if (game_loop % 1000 == 999) { Reset(); }
+	//if (game_loop % 1000 == 999) { Reset(); }
 	if (restarts_%2 == 1) { Reset(); }
 
 	//RAM & VRAM stat prints
@@ -223,87 +223,87 @@ void FooBot::OnUnitEnterVision(const sc2::Unit * unit) {
 }
 
 void FooBot::OnUnitDestroyed(const sc2::Unit * unit) {
-	if (IsStructure(unit)) {
-		if (!astar && !astarPF)
-			map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, 0);
-		else
-			new_buildings = true;
-		return;
-	}
-	else if (unit->alliance == sc2::Unit::Alliance::Self) {
-		if (!astar && !astarPF) {
-			for (int i = 0; i < player_units.size(); ++i) {
-				if (player_units[i].unit == unit) {
-					//std::cout << "Dead: " << player_units[i].dist_traveled << std::endl;
-					//std::cout << "Damage taken:" << player_units[i].unit->health_max << std::endl;
-					units_died++;
-					total_damage += unit->health_max + unit->shield_max;
-					player_units.erase(player_units.begin() + i);
-					if (player_units.size() == 0) {
-						std::ofstream outfile("output.txt", std::ios::app);
-						for (int j = 0; j < enemy_units.size(); ++j)
-							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
-						outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl ;
-						//outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
+	//if (IsStructure(unit)) {
+	//	if (!astar && !astarPF)
+	//		map_storage->ChangeDeviceDynamicMap(unit->pos, unit->radius, 0);
+	//	else
+	//		new_buildings = true;
+	//	return;
+	//}
+	//else if (unit->alliance == sc2::Unit::Alliance::Self) {
+	//	if (!astar && !astarPF) {
+	//		for (int i = 0; i < player_units.size(); ++i) {
+	//			if (player_units[i].unit == unit) {
+	//				//std::cout << "Dead: " << player_units[i].dist_traveled << std::endl;
+	//				//std::cout << "Damage taken:" << player_units[i].unit->health_max << std::endl;
+	//				units_died++;
+	//				total_damage += unit->health_max + unit->shield_max;
+	//				player_units.erase(player_units.begin() + i);
+	//				if (player_units.size() == 0) {
+	//					std::ofstream outfile("output.txt", std::ios::app);
+	//					for (int j = 0; j < enemy_units.size(); ++j)
+	//						total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
+	//					outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl ;
+	//					//outfile << "Dead: " << player_units[i].unit->health_max << " Distance: " << player_units[i].dist_traveled << std::endl;
 
-						Reset();
-						Debug()->SendDebug();
-					}
-					
-					return;
-				}
-			}
-		}
-		else {
-			for (int i = 0; i < astar_units.size(); ++i) {
-				if (astar_units[i].unit == unit) {
-					//std::cout << "Dead: " << astar_units[i].dist_traveled << std::endl;
-					//std::cout << "Damage taken:" << astar_units[i].unit->health_max << std::endl;
+	//					Reset();
+	//					Debug()->SendDebug();
+	//				}
+	//				
+	//				return;
+	//			}
+	//		}
+	//	}
+	//	else {
+	//		for (int i = 0; i < astar_units.size(); ++i) {
+	//			if (astar_units[i].unit == unit) {
+	//				//std::cout << "Dead: " << astar_units[i].dist_traveled << std::endl;
+	//				//std::cout << "Damage taken:" << astar_units[i].unit->health_max << std::endl;
 
-					units_died++;
-					total_damage += unit->health_max + unit->shield_max;
+	//				units_died++;
+	//				total_damage += unit->health_max + unit->shield_max;
 
-					std::ofstream outfile("output.txt", std::ios::app);
-					outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max << std::endl;
+	//				std::ofstream outfile("output.txt", std::ios::app);
+	//				outfile << astar_units[i].dist_traveled << "," << astar_units[i].unit->health_max << std::endl;
 
-					astar_units.erase(astar_units.begin() + i);
-					if (astar_units.size() == 0) {
-						std::ofstream outfile("output.txt", std::ios::app);
-						for (int j = 0; j < enemy_units.size(); ++j)
-							total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
-						//outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
+	//				astar_units.erase(astar_units.begin() + i);
+	//				if (astar_units.size() == 0) {
+	//					std::ofstream outfile("output.txt", std::ios::app);
+	//					for (int j = 0; j < enemy_units.size(); ++j)
+	//						total_damage_enemy_units += enemy_units[j].unit->health_max - enemy_units[j].unit->health + enemy_units[j].unit->shield_max - enemy_units[j].unit->shield;
+	//					//outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
 
-						Reset();
-						Debug()->SendDebug();
-					}
-					return;
-				}
-			}
-		}
-	}
-	else {
-		for (int i = 0; i < enemy_units.size(); ++i) {
-			if (enemy_units[i].unit == unit) {
-				units_died_enemy_units++;
-				total_damage_enemy_units += unit->health_max + unit->shield_max;
+	//					Reset();
+	//					Debug()->SendDebug();
+	//				}
+	//				return;
+	//			}
+	//		}
+	//	}
+	//}
+	//else {
+	//	for (int i = 0; i < enemy_units.size(); ++i) {
+	//		if (enemy_units[i].unit == unit) {
+	//			units_died_enemy_units++;
+	//			total_damage_enemy_units += unit->health_max + unit->shield_max;
 
-				enemy_units.erase(enemy_units.begin() + i);
+	//			enemy_units.erase(enemy_units.begin() + i);
 
-				if (enemy_units.size() == 0) {
-					for (int j = 0; j < player_units.size(); ++j)
-						total_damage += player_units[j].unit->health_max - player_units[j].unit->health + player_units[j].unit->shield_max - player_units[j].unit->shield;
-					for (int j = 0; j < astar_units.size(); ++j)
-						total_damage += astar_units[j].unit->health_max - astar_units[j].unit->health + astar_units[j].unit->shield_max - astar_units[j].unit->shield;
-					std::ofstream outfile("output.txt", std::ios::app);
-					outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
-					//outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
+	//			if (enemy_units.size() == 0) {
+	//				for (int j = 0; j < player_units.size(); ++j)
+	//					total_damage += player_units[j].unit->health_max - player_units[j].unit->health + player_units[j].unit->shield_max - player_units[j].unit->shield;
+	//				for (int j = 0; j < astar_units.size(); ++j)
+	//					total_damage += astar_units[j].unit->health_max - astar_units[j].unit->health + astar_units[j].unit->shield_max - astar_units[j].unit->shield;
+	//				std::ofstream outfile("output.txt", std::ios::app);
+	//				outfile << units_died << "," << total_damage << "," << units_died_enemy_units << "," << total_damage_enemy_units << std::endl;
+	//				//outfile << "Dead: " << astar_units[i].unit->health_max << " Distance: " << astar_units[i].dist_traveled << std::endl;
 
-					Reset();
-					//Debug()->SendDebug();
-				}
-			}
-		}
-	}
+	//				Reset();
+	//				//Debug()->SendDebug();
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 void FooBot::OnUnitCreated(const sc2::Unit * unit) {
@@ -501,7 +501,7 @@ void FooBot::UpdateUnitsPaths() {
 
 				//std::ofstream outfile("output.txt", std::ios::app);
 				//outfile << player_units[i].dist_traveled << "," << player_units[i].unit->health_max - player_units[i].unit->health << std::endl;
-				Reset();
+				//Reset();
 				continue;
 			}
 
@@ -574,9 +574,9 @@ void FooBot::UpdateUnitsPaths() {
 				pf_value = map_storage->GetGroundAvoidancePFValue((int)udlr[j].y, (int)udlr[j].x);
 			else if (player_units[i].behavior == behaviors::ATTACK) {
 				pf_value = map_storage->GetAttractingPF(player_units[i].unit->unit_type, (int)udlr[j].y, (int)udlr[j].x);
-				if (enemy_units.size() > 0 && pf_value >= 4) {
+				/*if (enemy_units.size() > 0 && pf_value >= 4) {
 					new_value = 0;
-				}
+				}*/
 			}
 			new_value += pf_value;
 
@@ -648,10 +648,10 @@ void FooBot::UpdateAstarPath() {
 					//map_storage->AddPathToImage(astar_units[i].path_taken, map_storage->GREEN);
 					//map_storage->PrintImage(MAP_X_R, MAP_Y_R, "IM_Astar");
 
-					if (astar_units.size() == 1) {
-						Reset();
-						Debug()->SendDebug();
-					}
+					//if (astar_units.size() == 1) {
+					//	Reset();
+					//	Debug()->SendDebug();
+					//}
 				}
 			}
 			else {
