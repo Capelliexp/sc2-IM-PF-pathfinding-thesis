@@ -15,7 +15,7 @@ FooBot::FooBot(std::string map, int command, bool spawn_all_units) {
 	else if (map == "medium")		this->map = 6;
 	else if (map == "hard_two")		this->map = 7;
 	else if (map == "hard_one")		this->map = 8;
-	else							this->map = 0;	//Not a valid test map
+	else							this->map = 0;	//Not a valid test map (source code bullying)
 
 	print_frame_data = false;
 	units_to_spawn = 10 + (TEST_START_NR * 10);
@@ -28,8 +28,8 @@ void FooBot::OnGameStart() {
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;
 	this->destination_set = false;
-	this->astar = true;
-	this->astarPF = false;
+	this->astar = false;
+	this->astarPF = true;
 	this->new_buildings = false;
 	this->spawned_player_units = -1;
 	this->spawned_enemy_units = -1;

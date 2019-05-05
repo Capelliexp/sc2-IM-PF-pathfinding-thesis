@@ -1,0 +1,3 @@
+vad vi behöver är att se hur den scalar när:
+* vi har flera unit-typer
+* units behöver gå till olika ställen
