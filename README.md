@@ -6,4 +6,4 @@ The novel algorithms are compared to A* and A*+PF in custom test suites.
 
 Thesis paper: http://urn.kb.se/resolve?urn=urn:nbn:se:bth-18228
 
-Bulk of code contributed is found under /Examples
+Bulk of code contributed is found under /examples
